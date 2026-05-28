@@ -68,29 +68,32 @@ function CommunityPage() {
   const [answerContent, setAnswerContent] = useState({});
   const [submitting, setSubmitting] = useState(null);
   const [filter, setFilter] = useState('open');
-  const [sort, setSort] = useState('recent');
+  const [sort, setSort] = useState récent');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     fetchQueries();
-  }, [filter, sort]);
+  }, [filter, sort, page]);
 
   const fetchQueries = async () => {
     try {
       setLoading(true);
-      const params = { sort };
+      const params = { sort, page, limit: PAGE_SIZE };
       if (filter === 'open') params.status = 'open';
       else if (filter === 'answered') params.status = 'answered';
       else if (filter === 'claimed') params.claimed = 'true';
-      else if (filter === 'sla-breached') {
-        // We'll filter client-side for breached
-      }
       const res = await getQueries(params);
       let list = res.data.queries;
       if (filter === 'sla-breached') {
         list = list.filter(q => q.expiresAt && new Date(q.expiresAt) < new Date() && q.status !== 'closed');
       }
       setQueries(list);
+      if (res.data.pagination) {
+        setTotalPages(res.data.pagination.pages || 1);
+      }
     } catch (err) {
       console.error('Failed to load queries:', err);
     } finally {
@@ -172,9 +175,12 @@ function CommunityPage() {
     if (!user) { alert('Please sign in to take a question'); return; }
     try {
       setLoading(true);
-      const res = await import('../services/api').then(m => m.default.post('/api/queries/take', {}));
-      const assignedQuery = res.data.query;
-      alert(`🎯 Auto-assigned: "${assignedQuery.title}"\n⏱ You now have 24 hours to answer it.`);
+      const res = await getQueries({ status: 'open', sort: 'recent', limit: 1 });
+      const available = res.data.queries.find(q => !q.assignedTo);
+      if (!available) { alert('No open queries available right now.'); return; }
+      const claimRes = await claimQuery(available._id);
+      const assignedQuery = claimRes.data.query || available;
+      alert(`🎯 Claimed: "${assignedQuery.title}"\n⏱ You now have 24 hours to answer it.`);
       const exists = queries.some(q => q._id === assignedQuery._id);
       if (exists) {
         setQueries(queries.map(q => q._id === assignedQuery._id ? { ...q, assignedTo: { _id: user._id, name: user.name } } : q));
@@ -184,7 +190,7 @@ function CommunityPage() {
       setExpandedQuery(assignedQuery._id);
       setTimeout(() => {
         const el = document.getElementById(`query-card-${assignedQuery._id}`);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (el) el.scroll.intoView({ behavior: 'smooth', block: 'center' });
       }, 300);
     } catch (err) {
       alert(err.response?.data?.error || 'No open queries available right now.');
@@ -233,7 +239,7 @@ function CommunityPage() {
           {['all', 'open', 'claimed', 'sla-breached', 'answered'].map(f => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => { setFilter(f); setPage(1); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
                 filter === f
                   ? 'bg-primary-100 text-primary-700'
@@ -241,18 +247,13 @@ function CommunityPage() {
               }`}
             >
               {f === 'sla-breached' ? '⚠️ SLA Breached' : f.charAt(0).toUpperCase() + f.slice(1)}
-              {f === 'sla-breached' && (
-                <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">
-                  {queries.filter(q => q.expiresAt && new Date(q.expiresAt) < new Date() && q.status !== 'closed').length}
-                </span>
-              )}
             </button>
           ))}
         </div>
         <div className="ml-auto">
           <select
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
+            onChange={(e) => { setSort(e.target.value); setPage(1); }}
             className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-600 focus:outline-none focus:border-primary-400"
           >
             <option value="recent">Most Recent</option>
@@ -272,26 +273,51 @@ function CommunityPage() {
           <Link to="/ask" className="btn-primary mt-4 inline-block">Raise a Query</Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          {queries.map(query => (
-            <QueryCard
-              key={query._id}
-              query={query}
-              isExpanded={expandedQuery === query._id}
-              onToggle={() => setExpandedQuery(expandedQuery === query._id ? null : query._id)}
-              answerContent={answerContent[query._id] || ''}
-              onAnswerChange={(val) => setAnswerContent({ ...answerContent, [query._id]: val })}
-              onSubmitAnswer={() => handleSubmitAnswer(query._id)}
-              onUpvoteAnswer={(id) => handleUpvoteAnswer(id, query._id)}
-              onAcceptAnswer={(id) => handleAcceptAnswer(id, query._id)}
-              onRequestFAQ={(id) => handleRequestFAQ(id, query._id, query)}
-              onClaimQuery={() => handleClaimQuery(query._id)}
-              onUnclaimQuery={() => handleUnclaimQuery(query._id)}
-              submitting={submitting === query._id}
-              currentUser={user}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {queries.map(query => (
+              <QueryCard
+                key={query._id}
+                query={query}
+                isExpanded={expandedQuery === query._id}
+                onToggle={() => setExpandedQuery(expandedQuery === query._id ? null : query._id)}
+                answerContent={answerContent[query._id] || ''}
+                onAnswerChange={(val) => setAnswerContent({ ...answerContent, [query._id]: val })}
+                onSubmitAnswer={() => handleSubmitAnswer(query._id)}
+                onUpvoteAnswer={(id) => handleUpvoteAnswer(id, query._id)}
+                onAcceptAnswer={(id) => handleAcceptAnswer(id, query._id)}
+                onRequestFAQ={(id) => handleRequestFAQ(id, query._id, query)}
+                onClaimQuery={() => handleClaimQuery(query._id)}
+                onUnclaimQuery={() => handleUnclaimQuery(query._id)}
+                submitting={submitting === query._id}
+                currentUser={user}
+              />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 mt-8">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="btn-outline text-sm py-1.5 px-4 disabled:opacity-40"
+              >
+                ← Prev
+              </button>
+              <span className="text-sm text-slate-500">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="btn-outline text-sm py-1.5 px-4 disabled:opacity-40"
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
