@@ -53,3 +53,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: CORS preflight options requests were initially blocked because standard preflight headers were omitted from early Express routers.
 * **🛡️ Edge Cases Tested**: Checked fallback responses when the backend server goes offline, ensuring the client UI fails gracefully with a user-facing timeout message.
 
+### 📦 v0.1: Monorepo Setup & Base Bootstrap Release
+* **Release Date**: May 28, 2026 - 20:00
+* **Details**: Baseline pre-alpha release verifying clean monorepo builds.
+* **🎨 Visual Wireframe & Layout**: Base HTML skeleton dashboard rendering static navigation bars with light warm bronze borders.
+* **🧠 Team Thinking & Rationale**: Creating a stable pre-alpha tag allows us to begin deploying code changes sequentially with safety rollbacks.
+* **💬 Discussions & Decisions**: Debated bundling built assets at this early stage vs using active local live-start node processes. Chose direct local starts.
+* **⚠️ Errors & Roadblocks Faced**: Parallel start scripts clashed because of environment-specific port configurations between different local development environments.
+* **🛡️ Edge Cases Tested**: Executed simultaneous start scripts under high system memory usage.
+
