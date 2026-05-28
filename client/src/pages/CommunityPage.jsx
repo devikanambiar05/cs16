@@ -303,9 +303,9 @@ function QueryCard({ query, isExpanded, onToggle, answerContent, onAnswerChange,
   const assignedToId = query.assignedTo ? (query.assignedTo._id || query.assignedTo) : null;
   const isAssignedToCurrentUser = currentUser && assignedToId && assignedToId === (currentUser._id || currentUser.id);
   const isOwnedByCurrentUser = currentUser && query.createdBy && (query.createdBy._id || query.createdBy) === (currentUser._id || currentUser.id);
+  const isClosed = query.status === 'closed';
   const canClaim = !isClosed && !assignedToId && currentUser && !isOwnedByCurrentUser;
   const canRelease = !isClosed && isAssignedToCurrentUser;
-  const isClosed = query.status === 'closed';
 
   return (
     <div id={`query-card-${query._id}`} className={`card transition-all ${isClosed ? 'opacity-60' : ''}`}>
