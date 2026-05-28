@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { getFAQs, getTrending, getFAQById, upvoteFAQ, createFAQ, convertAnswerToFAQ } = require('../controllers/faqController');
+const { getFAQsByCategory } = require('../controllers/categoryController');
 const { protect, optionalAuth, adminOnly } = require('../middleware/auth');
 
 // Public - get all FAQs
 router.get('/', optionalAuth, getFAQs);
+
+// Public - get FAQs by category tag
+router.get('/category/:tag', optionalAuth, getFAQsByCategory);
 
 // Public - trending FAQs
 router.get('/trending', getTrending);

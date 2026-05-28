@@ -247,3 +247,20 @@ exports.deleteQuery = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete query' });
   }
 };
+
+// Get SLA statistics for admin dashboard
+exports.getSlaStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const [total, open, breached, claimed, answered] = await Promise.all([
+      Query.countDocuments(),
+      Query.countDocuments({ status: 'open', claimedBy: null }),
+      Query.countDocuments({ expiresAt: { $lt: now }, status: { $ne: 'closed' } }),
+      Query.countDocuments({ status: 'claimed' }),
+      Query.countDocuments({ status: 'answered' })
+    ]);
+    res.json({ total, open, breached, claimed, answered });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch SLA stats' });
+  }
+};

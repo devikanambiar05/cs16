@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getQueries, getQueryById, createQuery, closeQuery, deleteQuery, takeQuery, claimQuery, unclaimQuery } = require('../controllers/queryController');
+const { getQueries, getQueryById, createQuery, closeQuery, deleteQuery, takeQuery, claimQuery, unclaimQuery, getSlaStats } = require('../controllers/queryController');
 const { protect, optionalAuth } = require('../middleware/auth');
 
 // Get all queries (public)
@@ -19,6 +19,8 @@ router.delete('/:id/claim', protect, unclaimQuery);
 router.post('/', protect, createQuery);
 
 // Get single query with answers (public)
+router.get('/sla/stats', protect, getSlaStats);
+
 router.get('/:id', optionalAuth, getQueryById);
 
 // Close query (owner or admin)
