@@ -1,0 +1,169 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+function LoginPage() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        await login(form.email, form.password);
+      } else {
+        if (!form.name.trim()) {
+          setError('Name is required');
+          setLoading(false);
+          return;
+        }
+        await register(form.name, form.email, form.password);
+      }
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error || (isLogin ? 'Login failed' : 'Registration failed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setForm({ name: '', email: 'rahul@university.edu', password: 'password123' });
+    setError('');
+    setLoading(true);
+    try {
+      await login('rahul@university.edu', 'password123');
+      navigate('/');
+    } catch (err) {
+      setError('Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">
+            {isLogin ? 'Welcome Back' : 'Join Samagama'}
+          </h1>
+          <p className="text-slate-600">
+            {isLogin
+              ? 'Sign in to ask questions and help others'
+              : 'Create an account to participate in the community'}
+          </p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Full Name
+              </label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Priya Sharma"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required={!isLogin}
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Email Address
+            </label>
+            <input
+              type="email"
+              className="input"
+              placeholder="you@university.edu"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              className="input"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+              minLength={6}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full py-2.5 text-base disabled:opacity-50"
+          >
+            {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
+          </button>
+        </form>
+
+        {/* Demo Login */}
+        {isLogin && (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              className="btn-outline w-full py-2.5 text-sm"
+              disabled={loading}
+            >
+              Try Demo Account
+            </button>
+          </div>
+        )}
+
+        {/* Toggle */}
+        <div className="text-center mt-6">
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError('');
+            }}
+            className="text-sm text-primary-600 hover:underline"
+          >
+            {isLogin
+              ? "Don't have an account? Sign up"
+              : 'Already have an account? Sign in'}
+          </button>
+        </div>
+
+        {/* Info Box */}
+        <div className="mt-8 bg-slate-50 rounded-xl p-4 text-sm text-slate-600">
+          <p className="font-medium text-slate-800 mb-2">Demo Accounts:</p>
+          <p className="mb-1">👤 <span className="font-medium">Priya Sharma</span> (Admin) — priya@university.edu</p>
+          <p>👤 <span className="font-medium">Rahul Verma</span> (User) — rahul@university.edu</p>
+          <p className="mt-1">Password for all: <span className="font-mono bg-slate-200 px-1 rounded">password123</span></p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default LoginPage;

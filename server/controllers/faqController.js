@@ -1,0 +1,157 @@
+const FAQ = require('../models/FAQ');
+const User = require('../models/User');
+
+// Get all FAQs with search, filter, pagination
+exports.getFAQs = async (req, res) => {
+  try {
+    const { q, tag, status = 'resolved', sort = 'recent', page = 1, limit = 20 } = req.query;
+
+    const query = { status: 'resolved' };
+    
+    // Full-text search
+    if (q) {
+      query.$text = { $search: q };
+    }
+
+    // Tag filter
+    if (tag) {
+      query.tags = tag.toLowerCase();
+    }
+
+    // Build sort option
+    let sortOption = {};
+    if (q) {
+      // If searching, sort by text match score
+      sortOption = { score: { $meta: 'textScore' } };
+    } else if (sort === 'popular') {
+      sortOption = { upvotes: -1, createdAt: -1 };
+    } else {
+      sortOption = { createdAt: -1 };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [faqs, total] = await Promise.all([
+      FAQ.find(query)
+        .populate('createdBy', 'name reputation')
+        .sort(sortOption)
+        .skip(skip)
+        .limit(parseInt(limit)),
+      FAQ.countDocuments(query)
+    ]);
+
+    res.json({
+      faqs,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Get FAQs error:', error);
+    res.status(500).json({ error: 'Failed to fetch FAQs' });
+  }
+};
+
+// Get trending/most upvoted FAQs
+exports.getTrending = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+
+    const faqs = await FAQ.find({ status: 'resolved' })
+      .populate('createdBy', 'name')
+      .sort({ upvotes: -1, createdAt: -1 })
+      .limit(parseInt(limit));
+
+    res.json(faqs);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch trending FAQs' });
+  }
+};
+
+// Get single FAQ
+exports.getFAQById = async (req, res) => {
+  try {
+    const faq = await FAQ.findById(req.params.id)
+      .populate('createdBy', 'name email reputation')
+      .populate('relatedFAQs', 'title');
+
+    if (!faq) {
+      return res.status(404).json({ error: 'FAQ not found' });
+    }
+
+    res.json(faq);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch FAQ' });
+  }
+};
+
+// Upvote a FAQ
+exports.upvoteFAQ = async (req, res) => {
+  try {
+    const faq = await FAQ.findById(req.params.id);
+    if (!faq) {
+      return res.status(404).json({ error: 'FAQ not found' });
+    }
+
+    const userId = req.user._id;
+
+    // Check if already upvoted
+    if (faq.upvotedBy.includes(userId)) {
+      // Remove upvote (toggle off)
+      faq.upvotes -= 1;
+      faq.upvotedBy = faq.upvotedBy.filter(id => id.toString() !== userId.toString());
+    } else {
+      // Add upvote
+      faq.upvotes += 1;
+      faq.upvotedBy.push(userId);
+
+      // Increase author reputation (+2 per upvote)
+      await User.findByIdAndUpdate(faq.createdBy, {
+        $inc: { reputation: 2 }
+      });
+    }
+
+    await faq.save();
+
+    res.json({
+      upvotes: faq.upvotes,
+      hasUpvoted: faq.upvotedBy.includes(userId)
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to upvote FAQ' });
+  }
+};
+
+// Create a new FAQ (admin or converted from query)
+exports.createFAQ = async (req, res) => {
+  try {
+    const { title, description, finalAnswer, tags } = req.body;
+
+    if (!title || !description || !finalAnswer) {
+      return res.status(400).json({ error: 'Title, description and answer are required' });
+    }
+
+    const faq = new FAQ({
+      title,
+      description,
+      finalAnswer,
+      tags: tags ? tags.map(t => t.toLowerCase().trim()) : [],
+      createdBy: req.user._id
+    });
+
+    await faq.save();
+
+    // Update user stats
+    await User.findByIdAndUpdate(req.user._id, {
+      $inc: { questionsAsked: 1 }
+    });
+
+    res.status(201).json(faq);
+  } catch (error) {
+    console.error('Create FAQ error:', error);
+    res.status(500).json({ error: 'Failed to create FAQ' });
+  }
+};
