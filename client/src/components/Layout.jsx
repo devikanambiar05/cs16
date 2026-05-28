@@ -35,6 +35,16 @@ function Layout() {
                 FAQs
               </NavLink>
               <NavLink
+                to="/wiki"
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive ? 'nav-link-active bg-primary-50' : 'nav-link hover:bg-slate-50'
+                  }`
+                }
+              >
+                Wiki
+              </NavLink>
+              <NavLink
                 to="/community"
                 className={({ isActive }) =>
                   `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${

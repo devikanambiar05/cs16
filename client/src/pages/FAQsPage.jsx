@@ -1,66 +1,124 @@
 import { useState, useEffect } from 'react';
-import { getFAQs, getTrendingFAQs, upvoteFAQ } from '../services/api';
+import { Link } from 'react-router-dom';
+import { getCategories, getFAQs, getTrendingFAQs, getFAQsByCategory, upvoteFAQ } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 function FAQsPage() {
-  const [faqs, setFAQs] = useState([]);
-  const [trending, setTrending] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sort, setSort] = useState('recent');
-  const [pagination, setPagination] = useState({});
   const { user } = useAuth();
 
+  const [categories, setCategories] = useState([]);
+  const [trending, setTrending] = useState([]);
+  const [popular, setPopular] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categoryFAQs, setCategoryFAQs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  // Load initial data
   useEffect(() => {
-    fetchTrending();
+    loadCategories();
+    loadTrending();
+    loadPopular();
   }, []);
 
+  // When category changes, load its FAQs
   useEffect(() => {
-    fetchFAQs();
-  }, [searchQuery, sort]);
+    if (selectedCategory) {
+      loadCategoryFAQs(selectedCategory.tag);
+    }
+  }, [selectedCategory]);
 
-  const fetchFAQs = async (page = 1) => {
+  const loadCategories = async () => {
     try {
-      setLoading(true);
-      const res = await getFAQs({ q: searchQuery, sort, page, limit: 20 });
-      setFAQs(res.data.faqs);
-      setPagination(res.data.pagination || {});
+      const res = await getCategories();
+      setCategories(res.data);
     } catch (err) {
-      console.error('Failed to fetch FAQs:', err);
+      console.error('Failed to load categories:', err);
+    }
+  };
+
+  const loadTrending = async () => {
+    try {
+      const res = await getTrendingFAQs();
+      setTrending(res.data);
+    } catch (err) {
+      console.error('Failed to load trending:', err);
+    }
+  };
+
+  const loadPopular = async () => {
+    try {
+      const res = await getFAQs({ sort: 'popular', limit: 6 });
+      setPopular(res.data.faqs);
+    } catch (err) {
+      console.error('Failed to load popular:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchTrending = async () => {
+  const loadCategoryFAQs = async (tag) => {
     try {
-      const res = await getTrendingFAQs();
-      setTrending(res.data);
+      setLoading(true);
+      const res = await getFAQsByCategory(tag);
+      setCategoryFAQs(res.data.faqs);
     } catch (err) {
-      console.error('Failed to fetch trending:', err);
+      console.error('Failed to load category FAQs:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    fetchFAQs(1);
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const res = await getFAQs({ q: searchQuery, limit: 30 });
+      setSearchResults(res.data.faqs);
+      setSelectedCategory(null);
+    } catch (err) {
+      console.error('Search failed:', err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults(null);
   };
 
   const handleUpvote = async (faqId) => {
-    if (!user) {
-      alert('Please sign in to upvote');
-      return;
-    }
+    if (!user) return;
     try {
       const res = await upvoteFAQ(faqId);
-      // Update local state
-      setFAQs(faqs.map(f =>
-        f._id === faqId
-          ? { ...f, upvotes: res.data.upvotes, hasUpvoted: res.data.hasUpvoted }
-          : f
-      ));
+      // Update in all relevant lists
+      const updateFAQ = (faqs) => faqs.map(f =>
+        f._id === faqId ? { ...f, upvotes: res.data.upvotes } : f
+      );
+      setTrending(updateFAQ);
+      setPopular(updateFAQ);
+      setCategoryFAQs(updateFAQ);
+      if (searchResults) setSearchResults(updateFAQ(searchResults));
     } catch (err) {
       console.error('Upvote failed:', err);
+    }
+  };
+
+  const selectCategory = (cat) => {
+    if (selectedCategory?.id === cat.id) {
+      setSelectedCategory(null);
+      setCategoryFAQs([]);
+    } else {
+      setSelectedCategory(cat);
+      setSearchResults(null);
+      setSearchQuery('');
     }
   };
 
@@ -68,153 +126,186 @@ function FAQsPage() {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">
-          Knowledge Base
-        </h1>
-        <p className="text-slate-600">
-          Find answers to commonly asked questions
-        </p>
+        <h1 className="text-3xl font-bold text-slate-900 mb-1">Knowledge Base</h1>
+        <p className="text-slate-500">Find answers by topic or search keywords</p>
       </div>
 
-      {/* Search Bar */}
-      <form onSubmit={handleSearch} className="mb-8">
+      {/* Search */}
+      <form onSubmit={handleSearch} className="mb-10">
         <div className="relative max-w-2xl">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
           <input
             type="text"
-            className="input pl-12 py-3 text-lg shadow-sm"
-            placeholder="Search FAQs by keyword, topic, or tag..."
+            className="input pl-12 py-3 text-base shadow-sm"
+            placeholder="Search FAQs by keyword or topic..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              if (!e.target.value) { setSearchResults(null); }
+            }}
           />
         </div>
       </form>
 
-      {/* Trending Section */}
-      {!searchQuery && trending.length > 0 && (
-        <div className="mb-10">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            🔥 Trending FAQs
-          </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {trending.slice(0, 6).map(faq => (
-              <FAQCard key={faq._id} faq={faq} onUpvote={handleUpvote} />
-            ))}
+      {/* Search Results */}
+      {searchResults !== null && (
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900">
+              Search results for "{searchQuery}"
+              <span className="font-normal text-slate-400 text-sm ml-2">({searchResults.length} found)</span>
+            </h2>
+            <button onClick={clearSearch} className="btn-ghost text-sm text-slate-500">Clear</button>
           </div>
-        </div>
+          {searchResults.length === 0 ? (
+            <p className="text-slate-400 text-center py-8">No FAQs found matching your search.</p>
+          ) : (
+            <div className="space-y-3">
+              {searchResults.map(faq => (
+                <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
-      {/* All FAQs */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">
-            {searchQuery ? `Search results for "${searchQuery}"` : 'All FAQs'}
-          </h2>
-          {!searchQuery && (
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="input py-1.5 px-3 text-sm w-auto"
-            >
-              <option value="recent">Most Recent</option>
-              <option value="popular">Most Popular</option>
-            </select>
+      {/* Category Cards + FAQs */}
+      {searchResults === null && (
+        <>
+          {/* Categories Grid */}
+          <section className="mb-10">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Browse by Topic</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => selectCategory(cat)}
+                  className={`card text-left transition-all duration-200 ${
+                    selectedCategory?.id === cat.id
+                      ? 'ring-2 ring-primary-500 bg-primary-50 border-primary-300'
+                      : 'hover:border-primary-300 hover:shadow-md'
+                  }`}
+                >
+                  <p className="font-semibold text-slate-800 text-sm leading-tight">{cat.name}</p>
+                  <p className="text-xs text-slate-400 mt-1">{cat.count} FAQs</p>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Selected Category FAQs */}
+          {selectedCategory && (
+            <section className="mb-10">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  {selectedCategory.name}
+                  <span className="font-normal text-slate-400 text-sm ml-2">({categoryFAQs.length} FAQs)</span>
+                </h2>
+                <button onClick={() => setSelectedCategory(null)} className="btn-ghost text-sm text-slate-500">
+                  ✕ Clear
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center py-10"><div className="spinner" /></div>
+              ) : (
+                <div className="space-y-3">
+                  {categoryFAQs.map(faq => (
+                    <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
+                  ))}
+                </div>
+              )}
+            </section>
           )}
+
+          {/* Trending FAQs */}
+          {!selectedCategory && (
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                🔥 Trending FAQs
+              </h2>
+              {trending.length === 0 ? (
+                <p className="text-slate-400 text-sm py-4">No trending FAQs yet.</p>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {trending.slice(0, 6).map(faq => (
+                    <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} compact />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Popular FAQs */}
+          {!selectedCategory && (
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                ⭐ Popular FAQs
+              </h2>
+              {popular.length === 0 ? (
+                <p className="text-slate-400 text-sm py-4">No popular FAQs yet.</p>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {popular.map(faq => (
+                    <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} compact />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </>
+      )}
+
+      {/* Wiki Link */}
+      {searchResults === null && !selectedCategory && (
+        <div className="text-center pt-4 border-t border-slate-200">
+          <p className="text-slate-500 text-sm mb-2">Looking for something specific?</p>
+          <Link to="/wiki" className="btn-outline text-sm">
+            Browse all {categories.reduce((sum, c) => sum + c.count, 0)} FAQs in the Wiki →
+          </Link>
         </div>
-
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="spinner"></div>
-          </div>
-        ) : faqs.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">
-            <p className="text-4xl mb-3">🔍</p>
-            <p className="text-lg">No FAQs found</p>
-            <p className="text-sm mt-1">Try a different search term</p>
-          </div>
-        ) : (
-          <div className="grid lg:grid-cols-2 gap-4">
-            {faqs.map(faq => (
-              <FAQCard key={faq._id} faq={faq} onUpvote={handleUpvote} />
-            ))}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {pagination.pages > 1 && (
-          <div className="flex justify-center gap-2 mt-8">
-            {Array.from({ length: pagination.pages }, (_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => fetchFAQs(i + 1)}
-                className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
-                  pagination.page === i + 1
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white border border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
 
-// FAQ Card Component
-function FAQCard({ faq, onUpvote }) {
+// FAQ Item — used in lists
+function FAQItem({ faq, onUpvote, user, compact = false }) {
   return (
-    <div className="card group">
-      <h3 className="font-semibold text-slate-900 mb-2 group-hover:text-primary-600 transition-colors">
-        {faq.title}
-      </h3>
-      <p className="text-sm text-slate-600 mb-3 line-clamp-2">
-        {faq.description}
-      </p>
-      <div className="bg-slate-50 rounded-lg p-3 mb-3">
-        <p className="text-sm text-slate-700">{faq.finalAnswer}</p>
-      </div>
-
-      {/* Tags */}
-      {faq.tags && faq.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {faq.tags.slice(0, 4).map(tag => (
-            <span key={tag} className="badge badge-gray">
-              #{tag}
-            </span>
-          ))}
+    <div className={`card group ${compact ? 'py-4' : ''}`}>
+      <div className="flex gap-3">
+        <div className="flex-1 min-w-0">
+          <p className={`font-medium text-slate-900 ${compact ? 'text-sm' : ''}`}>
+            {faq.title}
+          </p>
+          {!compact && (
+            <p className="text-sm text-slate-500 mt-1 line-clamp-2">{faq.finalAnswer}</p>
+          )}
+          {faq.tags && faq.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {faq.tags.slice(0, 3).map(tag => (
+                <span key={tag} className="badge badge-gray text-xs">#{tag}</span>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span>by</span>
-          <span className="font-medium text-slate-700">
-            {faq.createdBy?.name || 'Anonymous'}
-          </span>
+        <div className="flex flex-col items-center gap-1 text-slate-400">
+          <button
+            onClick={() => onUpvote(faq._id)}
+            disabled={!user}
+            className="hover:text-primary-600 transition-colors disabled:cursor-not-allowed"
+            title={user ? 'Upvote' : 'Sign in to upvote'}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          <span className="text-sm font-medium text-slate-600">{faq.upvotes}</span>
         </div>
-        <button
-          onClick={() => onUpvote(faq._id)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            faq.hasUpvoted
-              ? 'bg-primary-100 text-primary-700'
-              : 'bg-slate-100 text-slate-600 hover:bg-primary-50 hover:text-primary-600'
-          }`}
-        >
-          <svg className="w-4 h-4" fill={faq.hasUpvoted ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M5 15l7-7 7 7" />
-          </svg>
-          {faq.upvotes}
-        </button>
       </div>
     </div>
   );

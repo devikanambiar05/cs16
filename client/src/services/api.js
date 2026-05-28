@@ -19,6 +19,10 @@ export const getFAQById = (id) => api.get(`/faqs/${id}`);
 export const upvoteFAQ = (id) => api.post(`/faqs/${id}/upvote`);
 export const convertAnswerToFAQ = (answerId) => api.post(`/faqs/from-answer/${answerId}`);
 
+// Categories
+export const getCategories = () => api.get('/categories');
+export const getFAQsByCategory = (tag) => api.get(`/categories/${tag}/faqs`);
+
 // Queries
 export const getQueries = (params) => api.get('/queries', { params });
 export const getQueryById = (id) => api.get(`/queries/${id}`);
