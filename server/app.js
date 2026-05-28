@@ -13,6 +13,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const faqRequestRoutes = require('./routes/faqRequestRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const connectDB = require('./utils/connectDB');
+const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
 const app = express();
 
@@ -60,6 +61,10 @@ app.use('/api/auth/reset-password', resetLimiter);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Samagama API is running' });
 });
+
+// Global error handlers — MUST be registered after all routes
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // Only connect + listen if run directly (not imported in tests)
 if (require.main === module) {
