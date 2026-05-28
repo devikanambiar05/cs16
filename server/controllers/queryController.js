@@ -228,6 +228,13 @@ exports.closeQuery = async (req, res) => {
     const query = await Query.findById(req.params.id);
     if (!query) return res.status(404).json({ error: 'Query not found' });
 
+    const isOwner = query.createdBy.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Only the query owner or an admin can close this query' });
+    }
+
     query.status = 'closed';
     query.answeredAt = new Date();
     query.assignedTo = null;
