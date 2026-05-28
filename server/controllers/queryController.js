@@ -259,6 +259,34 @@ exports.deleteQuery = async (req, res) => {
   }
 };
 
+// Update query (owner only — title, description, tags)
+exports.updateQuery = async (req, res) => {
+  try {
+    const query = await Query.findById(req.params.id);
+    if (!query) return res.status(404).json({ error: 'Query not found' });
+
+    if (query.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Only the owner can edit this query' });
+    }
+    if (query.status === 'closed') {
+      return res.status(400).json({ error: 'Cannot edit a closed query' });
+    }
+
+    const { title, description, tags } = req.body;
+    if (title !== undefined) query.title = title.trim();
+    if (description !== undefined) query.description = description.trim();
+    if (tags !== undefined) query.tags = tags.map(t => t.toLowerCase().trim());
+
+    await query.save();
+    await query.populate('createdBy', 'name reputation');
+
+    res.json({ message: 'Query updated', query });
+  } catch (error) {
+    console.error('Update query error:', error);
+    res.status(500).json({ error: 'Failed to update query' });
+  }
+};
+
 // Get SLA statistics
 exports.getSlaStats = async (req, res) => {
   try {
