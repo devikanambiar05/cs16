@@ -6,6 +6,7 @@ import CommunityPage from './pages/CommunityPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import WikiPage from './pages/WikiPage';
+import LeaderboardPage from './pages/LeaderboardPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -31,6 +32,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="wiki" element={<WikiPage />} />
+            <Route path="leaderboard" element={<LeaderboardPage />} />
           </Route>
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />

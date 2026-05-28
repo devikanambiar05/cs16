@@ -55,6 +55,16 @@ function Layout() {
                 Community
               </NavLink>
               <NavLink
+                to="/leaderboard"
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive ? 'nav-link-active bg-primary-50' : 'nav-link hover:bg-slate-50'
+                  }`
+                }
+              >
+                🏆 Leaderboard
+              </NavLink>
+              <NavLink
                 to="/ask"
                 className={({ isActive }) =>
                   `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
