@@ -75,14 +75,27 @@ exports.getTrending = async (req, res) => {
 exports.getFAQById = async (req, res) => {
   try {
     const faq = await FAQ.findById(req.params.id)
-      .populate('createdBy', 'name email reputation')
-      .populate('relatedFAQs', 'title');
+      .populate('createdBy', 'name email reputation');
 
     if (!faq) {
       return res.status(404).json({ error: 'FAQ not found' });
     }
 
-    res.json(faq);
+
+    // Dynamically compute related FAQs: share at least one tag, exclude self
+    let relatedFAQs = [];
+    if (faq.tags && faq.tags.length > 0) {
+      relatedFAQs = await FAQ.find({
+        _id: { $ne: faq._id },
+        status: 'resolved',
+        deletedAt: null,
+        tags: { $in: faq.tags }
+      })
+        .select('title tags upvotes')
+        .limit(5);
+    }
+
+    res.json({ ...faq.toObject(), relatedFAQs });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch FAQ' });
   }
