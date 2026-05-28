@@ -18,10 +18,12 @@ exports.getQueries = async (req, res) => {
 
     if (tag) query.tags = tag.toLowerCase();
     if (claimed === 'true') query.assignedTo = { $ne: null };
+    if (q) query.$text = { $search: q };
     query.deletedAt = null;
 
-    let sortOption = { createdAt: -1 };
-    if (sort === 'trending') sortOption = { 'answers.length': -1, createdAt: -1 };
+    let sortOption = { communityScore: -1, createdAt: -1 };
+    if (sort === 'recent') sortOption = { createdAt: -1 };
+    else if (sort === 'trending') sortOption = { communityScore: -1, createdAt: -1 };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 

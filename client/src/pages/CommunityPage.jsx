@@ -44,7 +44,7 @@ function SlaWarningBanner({ expiresAt }) {
         : 'bg-red-50 border border-red-200 text-red-700 font-medium'
     }`}>
       {status.urgency === 'warning'
-        ? '⚠️ This query needs an answer soon — SLA deadline approaching'
+        ? '⚠�� This query needs an answer soon — SLA deadline approaching'
         : '🚨 SLA breached! Answer immediately or claim will be released'}
     </div>
   );
@@ -105,9 +105,11 @@ function CommunityPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const PAGE_SIZE = 10;
 
-  useEffect(() => { fetchQueries(); }, [filter, sort, page]);
+  useEffect(() => { fetchQueries(); }, [filter, sort, page, searchQuery]);
 
   const fetchQueries = async () => {
     try {
@@ -116,6 +118,7 @@ function CommunityPage() {
       if (filter === 'open') params.status = 'open';
       else if (filter === 'answered') params.status = 'answered';
       else if (filter === 'claimed') params.claimed = 'true';
+      if (searchQuery) params.q = searchQuery;
       const res = await getQueries(params);
       let list = res.data.queries;
       if (filter === 'sla-breached') {
@@ -279,12 +282,39 @@ function CommunityPage() {
         </div>
       </div>
 
+      <div mb-6>
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search open queries..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { setSearchQuery(searchInput); setPage(1); }
+              if (e.key === 'Escape') { setSearchInput(''); setSearchQuery(''); }
+            }}
+            className="w-full pl-10 pr-12 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-100 placeholder:text-slate-400"
+          />
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+          {searchInput && (
+            <button
+              onClick={() => { setSearchInput(''); setSearchQuery(''); setPage(1); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg font-bold leading-none"
+            >×</button>
+          )}
+        </div>
+        {searchQuery && (
+          <p className="text-xs text-slate-500 mt-1.5">Searching: <strong>"{searchQuery}"</strong> — <button onClick={() => { setSearchQuery(''); setSearchInput(''); setPage(1); }} className="text-primary-600 hover:text-primary-700 underline">clear</button></p>
+        )}
+      </div>
+
+
       <div className="flex items-center gap-3 mb-6">
         <div className="flex gap-1.5">
           {['all', 'open', 'claimed', 'sla-breached', 'answered'].map(f => (
             <button key={f} onClick={() => { setFilter(f); setPage(1); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === f ? 'bg-primary-100 text-primary-700' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-              {f === 'sla-breached' ? '⚠️ SLA Breached' : f.charAt(0).toUpperCase() + f.slice(1)}
+              {f === 'sla-breached' ? '⚠�� SLA Breached' : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
         </div>
@@ -292,7 +322,7 @@ function CommunityPage() {
           <select value={sort} onChange={e => { setSort(e.target.value); setPage(1); }}
             className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-600 focus:outline-none focus:border-primary-400">
             <option value="recent">Most Recent</option>
-            <option value="trending">Most Active</option>
+            <option value="trending">🔥 Trending</option>
           </select>
         </div>
       </div>
@@ -383,7 +413,7 @@ function QueryCard({
             ))}
             <span className="text-xs text-slate-400">by {query.createdBy?.name || 'Unknown'}</span>
             <span className="text-xs text-slate-400">· {query.answerCount || 0} answer{query.answerCount !== 1 ? 's' : ''}</span>
-            {query.escalationCount > 0 && <span className="text-xs text-red-500">· ⚠️ escalated {query.escalationCount}x</span>}
+            {query.escalationCount > 0 && <span className="text-xs text-red-500">· ⚠�� escalated {query.escalationCount}x</span>}
           </div>
         </div>
         {!isExpanded && assignedToId && (
@@ -443,7 +473,7 @@ function QueryCard({
                 {canClaim && <button onClick={onClaimQuery} className="btn-primary text-sm py-1.5">🎯 Claim to Answer</button>}
                 {canRelease && <button onClick={onUnclaimQuery} className="btn-outline text-sm py-1.5">✖ Release Claim</button>}
                 {isOwnedByCurrentUser && !isClosed && (
-                  <button onClick={onStartEdit} className="btn-outline text-sm py-1.5">✏️ Edit Query</button>
+                  <button onClick={onStartEdit} className="btn-outline text-sm py-1.5">✏�� Edit Query</button>
                 )}
                 {isOwnedByCurrentUser && !isClosed && (
                   <span className="text-xs text-slate-400 self-center">You asked this</span>
