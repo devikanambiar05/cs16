@@ -1,20 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { createQuery, getFAQs } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import RichTextEditor from '../components/RichTextEditor';
 
-const QUILL_MODULES = {
-  toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['clean']]
-};
+const PRESET_TAGS = ['fees', 'admission', 'exams', 'hostel', 'scholarship', 'documents', 'courses', 'placement', 'library', 'sports', 'transport', 'calcutta', 'kolkata', 'general'];
 
 function RaiseQueryPage() {
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    tags: ''
-  });
+  const [form, setForm] = useState({ title: '', description: '' });
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [similarFAQs, setSimilarFAQs] = useState([]);
@@ -59,7 +54,6 @@ function RaiseQueryPage() {
       setError('Title and description are required');
       return;
     }
-
     if (!user) {
       navigate('/login');
       return;
@@ -67,21 +61,38 @@ function RaiseQueryPage() {
 
     try {
       setSubmitting(true);
-      const tags = form.tags
-        ? form.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
-        : [];
-
       await createQuery({
         title: form.title.trim(),
         description: form.description.trim(),
         tags
       });
-
       navigate('/community');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to submit query');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const addTag = (tag) => {
+    const clean = tag.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+    if (clean && !tags.includes(clean) && tags.length < 5) {
+      setTags([...tags, clean]);
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tag) => {
+    setTags(tags.filter(t => t !== tag));
+  };
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+      e.preventDefault();
+      addTag(tagInput);
+    }
+    if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
+      setTags(tags.slice(0, -1));
     }
   };
 
@@ -167,32 +178,65 @@ function RaiseQueryPage() {
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
             Description *
           </label>
-          <ReactQuill
-            theme="snow"
-            modules={QUILL_MODULES}
-            className="bg-white rounded-lg mb-1"
-            placeholder="Provide more details about your question. Include any relevant context that might help others understand and answer..."
+          <RichTextEditor
             value={form.description}
             onChange={(val) => setForm({ ...form, description: val })}
+            placeholder="Provide more details about your question. Include any relevant context that might help others understand and answer..."
           />
-          <p className="text-xs text-slate-400">Tip: use <strong>bold</strong>, <em>italic</em>, and bullet lists to make your description clearer</p>
+          <p className="text-xs text-slate-400">Tip: use <strong>**bold**</strong>, <em>*italic*</em>, and <strong>-</strong> for bullet points in your description</p>
         </div>
 
-        {/* Tags */}
+        {/* Tag Chips */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Tags (comma-separated)
+            Tags <span className="text-xs text-slate-400">(up to 5)</span>
           </label>
-          <input
-            type="text"
-            className="input"
-            placeholder="e.g., fees, concession, financial-aid"
-            value={form.tags}
-            onChange={(e) => setForm({ ...form, tags: e.target.value })}
-          />
+
+          {/* Chip input area */}
+          <div className="flex flex-wrap gap-2 p-3 border border-slate-200 rounded-lg bg-white focus-within:border-primary-400 focus-within:ring-1 focus-within:ring-primary-100 min-h-[48px]">
+            {tags.map(tag => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 bg-primary-50 text-primary-700 border border-primary-200 text-sm px-2.5 py-1 rounded-full"
+              >
+                #{tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="text-primary-400 hover:text-primary-700 font-bold leading-none ml-0.5"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {tags.length < 5 && (
+              <input
+                type="text"
+                className="flex-1 min-w-[120px] text-sm border-none outline-none bg-transparent placeholder:text-slate-400"
+                placeholder={tags.length === 0 ? 'e.g., fees, admission, hostel' : 'Add a tag...'}
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+              />
+            )}
+          </div>
           <p className="text-xs text-slate-400 mt-1">
-            Adding tags helps others find your query
+            Press Enter, comma, or space to add a tag
           </p>
+
+          {/* Preset suggestions */}
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {PRESET_TAGS.filter(t => !tags.includes(t)).slice(0, 10).map(tag => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => addTag(tag)}
+                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full transition-colors"
+              >
+                + {tag}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Submit */}
