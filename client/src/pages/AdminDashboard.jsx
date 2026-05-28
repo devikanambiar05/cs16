@@ -62,7 +62,7 @@ function AdminDashboard() {
   };
 
   const handleBanUser = async (userId) => {
-    if (!confirm('Are you sure you want to toggle this user\\'s ban status?')) return;
+    if (!confirm("Are you sure you want to toggle this user's ban status?")) return;
     setActionLoading(userId);
     try {
       const res = await banUser(userId);
@@ -234,7 +234,7 @@ function AdminDashboard() {
                           <span key={tag} className="badge badge-gray">#{tag}</span>
                         ))}
                         <span className="text-xs text-slate-400 ml-auto">
-                          {q.answerCount} answers · by {q.createdBy?.name}
+                          {q.answerCount} answers by {q.createdBy?.name}
                         </span>
                       </div>
                     </div>
@@ -243,7 +243,7 @@ function AdminDashboard() {
                         <>
                           {q.status === 'answered' && (
                             <button
-                              onClick={() => {/* show accepted answer for conversion */}}
+                              onClick={() => handleConvertToFAQ(q._id, q._id)}
                               className="btn-primary text-xs py-1.5 px-3 whitespace-nowrap"
                             >
                               Review & Convert
@@ -259,7 +259,7 @@ function AdminDashboard() {
                         </>
                       )}
                       {q.resolvedFAQ && (
-                        <span className="badge badge-green text-xs">→ FAQ</span>
+                        <span className="badge badge-green text-xs">FAQ Created</span>
                       )}
                     </div>
                   </div>
@@ -307,9 +307,7 @@ function AdminDashboard() {
                       <span className="font-medium text-primary-600">{u.reputation}</span>
                     </td>
                     <td className="px-5 py-3.5 text-xs text-slate-500">
-                      <span>Q: {u.questionsAsked || 0}</span>
-                      <span className="mx-1">·</span>
-                      <span>A: {u.answersGiven || 0}</span>
+                      Q: {u.questionsAsked || 0} &middot; A: {u.answersGiven || 0}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={`badge ${u.status === 'banned' ? 'badge-red' : 'badge-green'}`}>
