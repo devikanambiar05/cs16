@@ -44,3 +44,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Deencountered syntax warnings and workspace mapping failures due to a missing root-level `package.json` workspaces list.
 * **🛡️ Edge Cases Tested**: Verified that executing `npm install` from the root directory installs all client/server node modules seamlessly without path traversals.
 
+### 🔌 v0.05: Express API connection & local Vite link
+* **Release Date**: May 28, 2026 - 15:00
+* **Details**: Establish local REST networking endpoints between node server and client.
+* **🎨 Visual Wireframe & Layout**: A minimalist placeholder webpage showing an absolute golden indicator lamp: `"API Connection: CONNECTED"`.
+* **🧠 Team Thinking & Rationale**: Validating the connection path over CORS early protects the team from discovering late-stage communication mismatches.
+* **💬 Discussions & Decisions**: Debated configuring Vite's dev proxy vs absolute environment variables. Decided to utilize direct environment variables to prevent local build caching issues.
+* **⚠️ Errors & Roadblocks Faced**: CORS preflight options requests were initially blocked because standard preflight headers were omitted from early Express routers.
+* **🛡️ Edge Cases Tested**: Checked fallback responses when the backend server goes offline, ensuring the client UI fails gracefully with a user-facing timeout message.
+
