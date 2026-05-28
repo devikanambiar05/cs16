@@ -72,6 +72,8 @@ exports.upvoteAnswer = async (req, res) => {
       answer.upvotedBy.push(userId);
       // +2 rep to answer author per upvote
       await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: 2 } });
+      // Also increment community score for auto-FAQ promotion (+3 per upvote)
+      await Query.findByIdAndUpdate(answer.queryId, { $inc: { communityScore: 3 } });
     }
 
     await answer.save();
@@ -226,10 +228,21 @@ exports.deleteAnswer = async (req, res) => {
       await User.findByIdAndUpdate(answer.userId, { $inc: { acceptedAnswersCount: -1 } });
     }
 
+    // Reverse upvote community score (+3 per upvote that was removed on answer)
+    if (upvotes > 0 && upvotedBy && upvotedBy.length > 0) {
+      await Query.findByIdAndUpdate(answer.queryId, { $inc: { communityScore: -(3 * upvotedBy.length) } });
+    }
+
+    // Reverse accepted answer community score bonus (+15)
+    if (answer.isAccepted) {
+      await Query.findByIdAndUpdate(answer.queryId, { $inc: { communityScore: -15 } });
+    }
+
     // Reverse answersGiven counter (set on createAnswer)
     await User.findByIdAndUpdate(answer.userId, { $inc: { answersGiven: -1 } });
 
     await answer.deleteOne();
+
 
     res.json({ message: 'Answer deleted' });
   } catch (error) {

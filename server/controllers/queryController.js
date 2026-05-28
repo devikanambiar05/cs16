@@ -310,3 +310,24 @@ exports.getSlaStats = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch SLA stats' });
   }
 };
+
+// Get queries that are strong community-FAQ candidates (communityScore >= threshold)
+// Accessible without auth so anyone browsing can see "What's Hot"
+exports.getCommunityCandidates = async (req, res) => {
+  try {
+    const threshold = parseInt(req.query.threshold) || 30;
+    const candidates = await Query.find({
+      status: { $in: ['open', 'answered', 'claimed'] },
+      deletedAt: null,
+      communityScore: { $gte: threshold }
+    })
+      .populate('createdBy', 'name')
+      .populate('assignedTo', 'name')
+      .sort({ communityScore: -1, createdAt: -1 })
+      .limit(20);
+
+    res.json({ candidates, threshold });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch community candidates' });
+  }
+};

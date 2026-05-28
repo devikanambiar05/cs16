@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getQueries, getQueryById, createQuery, closeQuery, deleteQuery, takeQuery, claimQuery, unclaimQuery, getSlaStats, updateQuery } = require('../controllers/queryController');
+const { getQueries, getQueryById, createQuery, closeQuery, deleteQuery, takeQuery, claimQuery, unclaimQuery, getSlaStats, updateQuery, getCommunityCandidates } = require('../controllers/queryController');
 const { protect, optionalAuth } = require('../middleware/auth');
 
 // Get all queries (public)
@@ -21,6 +21,7 @@ router.post('/', protect, createQuery);
 // Get single query with answers (public)
 router.get('/sla/stats', protect, getSlaStats);
 
+router.get('/community-candidates', getCommunityCandidates);
 router.get('/:id', optionalAuth, getQueryById);
 
 // Update query (owner only — PUT before wildcard /:id)

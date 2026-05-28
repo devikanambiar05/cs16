@@ -72,6 +72,7 @@ export const getCategories = () => api.get('/api/categories');
 
 // ─── Community Queries ─────────────────────────────────────────────────────────
 export const getQueries = (params) => api.get('/api/queries', params);
+export const getCommunityCandidates = (params) => api.get('/api/queries/community-candidates', params);
 export const createQuery = (data) => api.post('/api/queries', data);
 export const updateQuery = (id, data) => api.put(`/api/queries/${id}`, data);
 export const closeQuery = (id) => api.patch(`/api/queries/${id}/close`);
