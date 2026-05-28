@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { forgotPassword, resendVerification } from '../services/api';
 
 function LoginPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,13 +50,38 @@ function LoginPage() {
     setLoading(true);
     try {
       await login('admin@faqapp.com', 'admin123');
-      // Redirect to original destination, or home
       const destination = from !== '/login' ? from : '/';
       navigate(destination, { replace: true });
     } catch (err) {
       setError('Login failed — make sure you\'ve run the seed script');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setLoading(true);
+    try {
+      await forgotPassword(forgotEmail);
+      setForgotSent(true);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to send reset email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    try {
+      await resendVerification();
+      alert('Verification email sent! Check your inbox.');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to send email');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -73,6 +103,55 @@ function LoginPage() {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
             {error}
+          </div>
+        )}
+
+        {/* Forgot Password Panel */}
+        {isLogin && showForgot && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
+            <h3 className="font-semibold text-slate-900 mb-3">
+              {forgotSent ? '✓ Check your email' : 'Reset your password'}
+            </h3>
+            {forgotSent ? (
+              <div>
+                <p className="text-sm text-slate-600 mb-3">
+                  If that email address is registered with us, we've sent a password reset link.
+                  It expires in 1 hour.
+                </p>
+                <button
+                  onClick={() => { setShowForgot(false); setForgotSent(false); setForgotEmail(''); }}
+                  className="text-sm text-primary-600 hover:underline"
+                >
+                  Back to sign in
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotSubmit} className="space-y-3">
+                <p className="text-sm text-slate-600">
+                  Enter your email and we'll send you a reset link.
+                </p>
+                <input
+                  type="email"
+                  className="input"
+                  placeholder="you@university.edu"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                />
+                <div className="flex gap-2">
+                  <button type="submit" disabled={loading} className="btn-primary text-sm py-2 flex-1">
+                    {loading ? 'Sending...' : 'Send Reset Link'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgot(false)}
+                    className="btn-ghost text-sm py-2"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
 
@@ -131,6 +210,19 @@ function LoginPage() {
           </button>
         </form>
 
+        {/* Forgot password link */}
+        {isLogin && !showForgot && (
+          <div className="text-right mt-2">
+            <button
+              type="button"
+              onClick={() => setShowForgot(true)}
+              className="text-sm text-primary-600 hover:underline"
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
+
         {/* Demo Login */}
         {isLogin && (
           <div className="mt-4">
@@ -152,6 +244,7 @@ function LoginPage() {
             onClick={() => {
               setIsLogin(!isLogin);
               setError('');
+              setShowForgot(false);
             }}
             className="text-sm text-primary-600 hover:underline"
           >

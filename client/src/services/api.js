@@ -1,52 +1,60 @@
-import axios from 'axios';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const api = axios.create({
-  baseURL: '/api',
-  headers: { 'Content-Type': 'application/json' }
-});
+const getHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { 'x-auth-token': token } : {};
+};
 
-export default api;
+async function handleResponse(res) {
+  const data = await res.json();
+  if (!res.ok) throw { response: { data } };
+  return { data };
+}
 
-// Auth
-export const login = (data) => api.post('/auth/login', data);
-export const register = (data) => api.post('/auth/register', data);
-export const getMe = () => api.get('/auth/me');
+const api = {
+  get: (path, params) => fetch(`${API_URL}${path}${params ? '?' + new URLSearchParams(params) : ''}`, { headers: getHeaders() }).then(handleResponse),
+  post: (path, body) => fetch(`${API_URL}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...getHeaders() }, body: JSON.stringify(body) }).then(handleResponse),
+  patch: (path, body) => fetch(`${API_URL}${path}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...getHeaders() }, body: JSON.stringify(body) }).then(handleResponse),
+  delete: (path) => fetch(`${API_URL}${path}`, { method: 'DELETE', headers: getHeaders() }).then(handleResponse)
+};
 
-// FAQs
-export const getFAQs = (params) => api.get('/faqs', { params });
-export const getTrendingFAQs = () => api.get('/faqs/trending');
-export const getFAQById = (id) => api.get(`/faqs/${id}`);
-export const upvoteFAQ = (id) => api.post(`/faqs/${id}/upvote`);
-export const convertAnswerToFAQ = (answerId) => api.post(`/faqs/from-answer/${answerId}`);
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+export const login = (email, password) => api.post('/api/auth/login', { email, password });
+export const register = (name, email, password) => api.post('/api/auth/register', { name, email, password });
+export const getMe = () => api.get('/api/auth/me');
+export const forgotPassword = (email) => api.post('/api/auth/forgot-password', { email });
+export const resetPassword = (token, password) => api.post('/api/auth/reset-password', { token, password });
+export const resendVerification = () => api.post('/api/auth/resend-verification', {});
 
-// Categories
-export const getCategories = () => api.get('/categories');
-export const getFAQsByCategory = (tag) => api.get(`/categories/${tag}/faqs`);
+// ─── FAQs ─────────────────────────────────────────────────────────────────────
+export const getFAQs = (params) => api.get('/api/faqs', params);
+export const getTrendingFAQs = () => api.get('/api/faqs/trending');
+export const getFAQsByCategory = (tag, params) => api.get(`/api/faqs/category/${tag}`, params);
+export const upvoteFAQ = (id) => api.post(`/api/faqs/${id}/upvote`);
+export const convertAnswerToFAQ = (answerId) => api.post(`/api/answers/${answerId}/convert`);
 
-// Queries
-export const getQueries = (params) => api.get('/queries', { params });
-export const getQueryById = (id) => api.get(`/queries/${id}`);
-export const createQuery = (data) => api.post('/queries', data);
-export const takeQuery = () => api.post('/queries/take');
-export const closeQuery = (id) => api.patch(`/queries/${id}/close`);
-export const claimQuery = (id) => api.post(`/queries/${id}/claim`);
-export const unclaimQuery = (id) => api.delete(`/queries/${id}/claim`);
+// ─── Categories ────────────────────────────────────────────────────────────────
+export const getCategories = () => api.get('/api/categories');
 
-// Answers
-export const createAnswer = (data) => api.post('/answers', data);
-export const upvoteAnswer = (id) => api.post(`/answers/${id}/upvote`);
-export const acceptAnswer = (id) => api.post(`/answers/${id}/accept`);
-export const deleteAnswer = (id) => api.delete(`/answers/${id}`);
+// ─── Community Queries ─────────────────────────────────────────────────────────
+export const getQueries = (params) => api.get('/api/queries', params);
+export const createQuery = (data) => api.post('/api/queries', data);
+export const closeQuery = (id) => api.patch(`/api/queries/${id}/close`);
+export const claimQuery = (id) => api.post(`/api/queries/${id}/claim`);
+export const unclaimQuery = (id) => api.delete(`/api/queries/${id}/claim`);
 
-// Users
-export const getLeaderboard = () => api.get('/users/leaderboard');
-export const getUserProfile = (id) => api.get(`/users/${id}`);
-export const getAdminStats = () => api.get('/users/admin/stats');
-export const getAdminUsers = (params) => api.get('/users/admin/users', { params });
+// ─── Answers ───────────────────────────────────────────────────────────────────
+export const createAnswer = (queryId, content) => api.post(`/api/answers`, { queryId, content });
+export const upvoteAnswer = (id) => api.post(`/api/answers/${id}/upvote`);
+export const acceptAnswer = (id) => api.post(`/api/answers/${id}/accept`);
 
-// FAQ Requests
-export const createFAQRequest = (data) => api.post('/faq-requests', data);
-export const getFAQRequests = (params) => api.get('/faq-requests', { params });
-export const approveFAQRequest = (id, data) => api.post(`/faq-requests/${id}/approve`, data);
-export const rejectFAQRequest = (id, data) => api.delete(`/faq-requests/${id}/reject`, data);
-export const banUser = (id) => api.patch(`/users/${id}/ban`);
+// ─── FAQ Requests ──────────────────────────────────────────────────────────────
+export const createFAQRequest = (data) => api.post('/api/faq-requests', data);
+export const getFAQRequests = (params) => api.get('/api/faq-requests', params);
+export const approveFAQRequest = (id, data) => api.post(`/api/faq-requests/${id}/approve`, data);
+export const rejectFAQRequest = (id, data) => api.delete(`/api/faq-requests/${id}/reject`, data);
+
+// ─── Admin ─────────────────────────────────────────────────────────────────────
+export const getAdminStats = () => api.get('/api/users/admin/stats');
+export const getAdminUsers = (params) => api.get('/api/users/admin/users', { params });
+export const banUser = (id) => api.patch(`/api/users/admin/ban/${id}`);

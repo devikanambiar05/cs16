@@ -3,6 +3,44 @@ import { Link } from 'react-router-dom';
 import { getCategories, getFAQs, getTrendingFAQs, getFAQsByCategory, upvoteFAQ } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+const PAGE_SIZE = 10;
+
+function Pagination({ page, totalPages, onPage }) {
+  if (totalPages <= 1) return null;
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  return (
+    <div className="flex items-center justify-center gap-1 py-6">
+      <button
+        onClick={() => onPage(page - 1)}
+        disabled={page <= 1}
+        className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50 transition-colors"
+      >
+        ← Prev
+      </button>
+      {pages.map(p => (
+        <button
+          key={p}
+          onClick={() => onPage(p)}
+          className={`px-3 py-1.5 rounded-lg border text-sm transition-colors ${
+            p === page
+              ? 'bg-primary-100 border-primary-300 text-primary-700 font-medium'
+              : 'border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          {p}
+        </button>
+      ))}
+      <button
+        onClick={() => onPage(page + 1)}
+        disabled={page >= totalPages}
+        className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50 transition-colors"
+      >
+        Next →
+      </button>
+    </div>
+  );
+}
+
 function FAQsPage() {
   const { user } = useAuth();
 
@@ -11,9 +49,13 @@ function FAQsPage() {
   const [popular, setPopular] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryFAQs, setCategoryFAQs] = useState([]);
+  const [faqPage, setFaqPage] = useState(1);
+  const [faqTotal, setFaqTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
+  const [searchPage, setSearchPage] = useState(1);
+  const [searchTotal, setSearchTotal] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
 
   // Load initial data
@@ -59,11 +101,13 @@ function FAQsPage() {
     }
   };
 
-  const loadCategoryFAQs = async (tag) => {
+  const loadCategoryFAQs = async (tag, page = 1) => {
     try {
       setLoading(true);
-      const res = await getFAQsByCategory(tag);
+      const res = await getFAQsByCategory(tag, { page, limit: PAGE_SIZE });
       setCategoryFAQs(res.data.faqs);
+      setFaqTotal(res.data.pagination?.total || 0);
+      setFaqPage(page);
     } catch (err) {
       console.error('Failed to load category FAQs:', err);
     } finally {
@@ -71,16 +115,18 @@ function FAQsPage() {
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const handleSearch = async (e, page = 1) => {
+    e?.preventDefault();
     if (!searchQuery.trim()) {
       setSearchResults(null);
       return;
     }
     setSearchLoading(true);
     try {
-      const res = await getFAQs({ q: searchQuery, limit: 30 });
+      const res = await getFAQs({ q: searchQuery, page, limit: PAGE_SIZE });
       setSearchResults(res.data.faqs);
+      setSearchTotal(res.data.pagination?.total || 0);
+      setSearchPage(page);
       setSelectedCategory(null);
     } catch (err) {
       console.error('Search failed:', err);
@@ -119,6 +165,7 @@ function FAQsPage() {
       setSelectedCategory(cat);
       setSearchResults(null);
       setSearchQuery('');
+      loadCategoryFAQs(cat.tag, 1);
     }
   };
 
@@ -164,11 +211,18 @@ function FAQsPage() {
           {searchResults.length === 0 ? (
             <p className="text-slate-400 text-center py-8">No FAQs found matching your search.</p>
           ) : (
-            <div className="space-y-3">
-              {searchResults.map(faq => (
-                <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
-              ))}
-            </div>
+            <>
+              <div className="space-y-3">
+                {searchResults.map(faq => (
+                  <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
+                ))}
+              </div>
+              <Pagination
+                page={searchPage}
+                totalPages={Math.ceil(searchTotal / PAGE_SIZE)}
+                onPage={(p) => handleSearch(null, p)}
+              />
+            </>
           )}
         </section>
       )}
@@ -203,7 +257,7 @@ function FAQsPage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-900">
                   {selectedCategory.name}
-                  <span className="font-normal text-slate-400 text-sm ml-2">({categoryFAQs.length} FAQs)</span>
+                  <span className="font-normal text-slate-400 text-sm ml-2">({faqTotal} FAQs)</span>
                 </h2>
                 <button onClick={() => setSelectedCategory(null)} className="btn-ghost text-sm text-slate-500">
                   ✕ Clear
@@ -213,11 +267,18 @@ function FAQsPage() {
               {loading ? (
                 <div className="flex justify-center py-10"><div className="spinner" /></div>
               ) : (
-                <div className="space-y-3">
-                  {categoryFAQs.map(faq => (
-                    <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
-                  ))}
-                </div>
+                <>
+                  <div className="space-y-3">
+                    {categoryFAQs.map(faq => (
+                      <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
+                    ))}
+                  </div>
+                  <Pagination
+                    page={faqPage}
+                    totalPages={Math.ceil(faqTotal / PAGE_SIZE)}
+                    onPage={(p) => loadCategoryFAQs(selectedCategory.tag, p)}
+                  />
+                </>
               )}
             </section>
           )}

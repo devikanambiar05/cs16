@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { createQuery, getFAQs } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+
+const QUILL_MODULES = {
+  toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['clean']]
+};
 
 function RaiseQueryPage() {
   const [form, setForm] = useState({
@@ -161,13 +167,15 @@ function RaiseQueryPage() {
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
             Description *
           </label>
-          <textarea
-            className="input resize-none"
-            rows={6}
+          <ReactQuill
+            theme="snow"
+            modules={QUILL_MODULES}
+            className="bg-white rounded-lg mb-1"
             placeholder="Provide more details about your question. Include any relevant context that might help others understand and answer..."
             value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            onChange={(val) => setForm({ ...form, description: val })}
           />
+          <p className="text-xs text-slate-400">Tip: use <strong>bold</strong>, <em>italic</em>, and bullet lists to make your description clearer</p>
         </div>
 
         {/* Tags */}

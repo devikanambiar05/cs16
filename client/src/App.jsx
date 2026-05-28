@@ -7,6 +7,8 @@ import RaiseQueryPage from './pages/RaiseQueryPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import WikiPage from './pages/WikiPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="wiki" element={<WikiPage />} />
           </Route>
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

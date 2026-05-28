@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { getQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery, createFAQRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+
+const QUILL_MODULES = {
+  toolbar: [['bold', 'italic', 'underline'], [{ list: 'ordered' }, { list: 'bullet' }], ['clean']]
+};
 
 function CommunityPage() {
   const [queries, setQueries] = useState([]);
@@ -362,14 +368,18 @@ function QueryCard({ query, isExpanded, onToggle, answerContent, onAnswerChange,
               </div>
             )}
 
-            <textarea
-              className="input resize-none disabled:opacity-50 disabled:bg-slate-50 disabled:cursor-not-allowed"
-              rows={4}
-              placeholder={query.answerCount >= 5 ? "Answer submissions are locked because the cap of 5 answers has been reached." : "Share your knowledge..."}
+            <ReactQuill
+              theme="snow"
+              modules={QUILL_MODULES}
+              className="bg-white rounded-b-lg"
+              placeholder={query.answerCount >= 5 ? "Answer submissions are locked." : "Share your knowledge — use **bold**, *italic*, or - for bullet points"}
               value={answerContent}
-              onChange={(e) => onAnswerChange(e.target.value)}
-              disabled={query.answerCount >= 5}
+              onChange={(val) => onAnswerChange(val)}
+              readOnly={query.answerCount >= 5}
             />
+            {answerContent && answerContent !== '<p><br></p>' && (
+              <p className="text-xs text-slate-400 mt-1">Tip: use <strong>bold</strong>, <em>italic</em>, and bullet lists to format your answer</p>
+            )}
             <div className="flex justify-end mt-2">
               <button
                 onClick={onSubmitAnswer}
