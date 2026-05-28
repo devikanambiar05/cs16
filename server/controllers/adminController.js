@@ -72,6 +72,7 @@ exports.mergeFAQs = async (req, res) => {
     // Soft-delete the source FAQ (as duplicate)
     sourceFAQ.status = 'duplicate';
     sourceFAQ.mergedInto = targetFAQ._id;
+    sourceFAQ.duplicateOf = targetFAQ._id;
     await sourceFAQ.save();
 
     // Update any related FAQ refs pointing to source → point to target

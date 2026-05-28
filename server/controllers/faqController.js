@@ -6,7 +6,7 @@ exports.getFAQs = async (req, res) => {
   try {
     const { q, tag, status = 'resolved', sort = 'recent', page = 1, limit = 20 } = req.query;
 
-    const query = { status: 'resolved' };
+    const query = { status: 'resolved', deletedAt: null };
     
     // Full-text search
     if (q) {
@@ -60,7 +60,7 @@ exports.getTrending = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
 
-    const faqs = await FAQ.find({ status: 'resolved' })
+    const faqs = await FAQ.find({ status: 'resolved', deletedAt: null })
       .populate('createdBy', 'name')
       .sort({ upvotes: -1, createdAt: -1 })
       .limit(parseInt(limit));

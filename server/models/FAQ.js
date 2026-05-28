@@ -68,6 +68,12 @@ const faqSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'FAQ',
     default: null
+  },
+  // Canonical FAQ this is a duplicate of (set when status becomes 'duplicate')
+  duplicateOf: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FAQ',
+    default: null
   }
 }, {
   timestamps: true
