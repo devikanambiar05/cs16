@@ -26,6 +26,8 @@ exports.createAnswer = async (req, res) => {
 
     query.answerCount = (query.answerCount || 0) + 1;
     if (query.answerCount === 1) query.status = 'answered';
+    // Refresh activity window on the query when claim-holder submits an answer
+    query.lastActivityAt = new Date();
     await query.save();
 
     await User.findByIdAndUpdate(req.user._id, { $inc: { answersGiven: 1 } });
@@ -77,6 +79,8 @@ exports.upvoteAnswer = async (req, res) => {
     }
 
     await answer.save();
+    // Touch activity window on the query so claim doesn't go stale while there is engagement
+    await Query.findByIdAndUpdate(answer.queryId, { lastActivityAt: new Date() });
     res.json({ upvotes: answer.upvotes, upvotedBy: answer.upvotedBy });
   } catch (error) {
     res.status(500).json({ error: 'Failed to upvote' });

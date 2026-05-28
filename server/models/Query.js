@@ -34,6 +34,16 @@ const querySchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Tracks last substantive activity by the claim holder
+  lastActivityAt: {
+    type: Date,
+    default: null
+  },
+  // SLA warning sent at (one-time warning before auto-release)
+  warningSentAt: {
+    type: Date,
+    default: null
+  },
   // SLA: when this query's 24hr window expires
   expiresAt: {
     type: Date,
