@@ -27,7 +27,10 @@ export const getFAQsByCategory = (tag) => api.get(`/categories/${tag}/faqs`);
 export const getQueries = (params) => api.get('/queries', { params });
 export const getQueryById = (id) => api.get(`/queries/${id}`);
 export const createQuery = (data) => api.post('/queries', data);
+export const takeQuery = () => api.post('/queries/take');
 export const closeQuery = (id) => api.patch(`/queries/${id}/close`);
+export const claimQuery = (id) => api.post(`/queries/${id}/claim`);
+export const unclaimQuery = (id) => api.delete(`/queries/${id}/claim`);
 
 // Answers
 export const createAnswer = (data) => api.post('/answers', data);

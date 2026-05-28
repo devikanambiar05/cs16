@@ -35,6 +35,15 @@ const querySchema = new mongoose.Schema({
   resolvedFAQ: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'FAQ'
+  },
+  // Who claimed this query (null = open for anyone)
+  assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  claimedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true
@@ -42,5 +51,7 @@ const querySchema = new mongoose.Schema({
 
 // Text index for search
 querySchema.index({ title: 'text', description: 'text', tags: 'text' });
+querySchema.index({ assignedTo: 1 });
+querySchema.index({ status: 1, assignedTo: 1 });
 
 module.exports = mongoose.model('Query', querySchema);

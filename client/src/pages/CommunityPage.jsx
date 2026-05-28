@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getQueries, createAnswer, upvoteAnswer, acceptAnswer } from '../services/api';
+import { getQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 function CommunityPage() {
@@ -11,6 +11,7 @@ function CommunityPage() {
   const [expandedQuery, setExpandedQuery] = useState(null);
   const [answerContent, setAnswerContent] = useState({});
   const [submitting, setSubmitting] = useState(null);
+  const [pagination, setPagination] = useState({});
   const { user } = useAuth();
 
   useEffect(() => {
@@ -23,6 +24,7 @@ function CommunityPage() {
       const params = { sort };
       if (filter === 'open') params.status = 'open';
       if (filter === 'answered') params.status = 'answered';
+      if (filter === 'claimed') params.claimed = 'true';
       const res = await getQueries(params);
       setQueries(res.data.queries);
       setPagination(res.data.pagination || {});
@@ -30,6 +32,40 @@ function CommunityPage() {
       console.error('Failed to fetch queries:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClaimQuery = async (queryId) => {
+    if (!user) {
+      alert('Please sign in to claim a query');
+      return;
+    }
+    try {
+      const res = await claimQuery(queryId);
+      setQueries(queries.map(q => {
+        if (q._id === queryId) {
+          return { ...q, assignedTo: { _id: user._id, name: user.name } };
+        }
+        return q;
+      }));
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to claim query');
+    }
+  };
+
+  const handleUnclaimQuery = async (queryId) => {
+    if (!user) return;
+    try {
+      await unclaimQuery(queryId);
+      setQueries(queries.map(q => {
+        if (q._id === queryId) {
+          const { assignedTo, ...rest } = q;
+          return { ...rest };
+        }
+        return q;
+      }));
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to release claim');
     }
   };
 
@@ -121,17 +157,19 @@ function CommunityPage() {
             Community Answers
           </h1>
           <p className="text-slate-600">
-            Help others by sharing your knowledge
+            Browse open queries — claim the ones you can answer
           </p>
         </div>
-        <Link to="/ask" className="btn-primary">
-          Raise a Query
-        </Link>
+        <div>
+          <Link to="/ask" className="btn-primary">
+            Raise a Query
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        {['all', 'open', 'answered'].map(f => (
+        {['all', 'open', 'claimed', 'answered'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -182,6 +220,8 @@ function CommunityPage() {
               onSubmitAnswer={() => handleSubmitAnswer(query._id)}
               onUpvoteAnswer={(id) => handleUpvoteAnswer(id, query._id)}
               onAcceptAnswer={(id) => handleAcceptAnswer(id, query._id)}
+              onClaimQuery={() => handleClaimQuery(query._id)}
+              onUnclaimQuery={() => handleUnclaimQuery(query._id)}
               submitting={submitting === query._id}
               currentUser={user}
             />
@@ -192,9 +232,19 @@ function CommunityPage() {
   );
 }
 
-function QueryCard({ query, isExpanded, onToggle, answerContent, onAnswerChange, onSubmitAnswer, onUpvoteAnswer, onAcceptAnswer, submitting, currentUser }) {
+function QueryCard({ query, isExpanded, onToggle, answerContent, onAnswerChange, onSubmitAnswer, onUpvoteAnswer, onAcceptAnswer, onClaimQuery, onUnclaimQuery, submitting, currentUser }) {
+  const assignedToId = query.assignedTo ? (query.assignedTo._id || query.assignedTo) : null;
+  const isAssignedToCurrentUser = currentUser && assignedToId && assignedToId === (currentUser._id || currentUser.id);
+  const isClosed = query.status === 'closed';
+  const isOwnedByCurrentUser = currentUser && query.createdBy && (query.createdBy._id || query.createdBy) === (currentUser._id || currentUser.id);
+  const canClaim = !isClosed && !assignedToId && currentUser && !isOwnedByCurrentUser;
+  const canRelease = !isClosed && isAssignedToCurrentUser;
+
   return (
-    <div className={`card ${isExpanded ? 'ring-2 ring-primary-200' : ''}`}>
+    <div
+      id={`query-card-${query._id}`}
+      className={`card transition-all duration-200 ${isExpanded ? 'ring-2 ring-primary-200 shadow-md' : 'hover:border-primary-300'}`}
+    >
       <div
         className="cursor-pointer"
         onClick={onToggle}
@@ -211,6 +261,32 @@ function QueryCard({ query, isExpanded, onToggle, answerContent, onAnswerChange,
 
             {/* Tags & Meta */}
             <div className="flex flex-wrap items-center gap-2 mt-3">
+              {isAssignedToCurrentUser && (
+                <span className="badge bg-indigo-100 text-indigo-800 border border-indigo-200 font-semibold flex items-center gap-1">
+                  🎯 Claimed by You
+                </span>
+              )}
+              {!isAssignedToCurrentUser && assignedToId && (
+                <span className="badge bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                  🔒 Claimed by {query.assignedTo?.name || 'someone'}
+                </span>
+              )}
+              {canClaim && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onClaimQuery(); }}
+                  className="badge bg-primary-100 text-primary-700 border border-primary-300 font-semibold flex items-center gap-1 cursor-pointer hover:bg-primary-200 transition-colors"
+                >
+                  🎯 Claim to Answer
+                </button>
+              )}
+              {canRelease && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onUnclaimQuery(); }}
+                  className="badge bg-slate-100 text-slate-600 border border-slate-300 font-semibold flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors"
+                >
+                  ✖ Release Claim
+                </button>
+              )}
               {query.tags?.map(tag => (
                 <span key={tag} className="badge badge-gray">#{tag}</span>
               ))}
@@ -252,17 +328,29 @@ function QueryCard({ query, isExpanded, onToggle, answerContent, onAnswerChange,
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
               Your Answer
             </h4>
+
+            {query.answerCount >= 5 && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-lg mb-3 text-sm flex items-start gap-2">
+                <span className="text-amber-500 text-lg flex-shrink-0">⚠️</span>
+                <div>
+                  <p className="font-semibold">Answer Cap Reached</p>
+                  <p className="mt-0.5">This query has already reached the maximum cap of 5 answers to prevent spam and duplicate answers.</p>
+                </div>
+              </div>
+            )}
+
             <textarea
-              className="input resize-none"
+              className="input resize-none disabled:opacity-50 disabled:bg-slate-50 disabled:cursor-not-allowed"
               rows={4}
-              placeholder="Share your knowledge..."
+              placeholder={query.answerCount >= 5 ? "Answer submissions are locked because the cap of 5 answers has been reached." : "Share your knowledge..."}
               value={answerContent}
               onChange={(e) => onAnswerChange(e.target.value)}
+              disabled={query.answerCount >= 5}
             />
             <div className="flex justify-end mt-2">
               <button
                 onClick={onSubmitAnswer}
-                disabled={!answerContent.trim() || submitting}
+                disabled={!answerContent.trim() || submitting || query.answerCount >= 5}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Submitting...' : 'Submit Answer'}
