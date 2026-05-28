@@ -17,6 +17,7 @@ export const getFAQs = (params) => api.get('/faqs', { params });
 export const getTrendingFAQs = () => api.get('/faqs/trending');
 export const getFAQById = (id) => api.get(`/faqs/${id}`);
 export const upvoteFAQ = (id) => api.post(`/faqs/${id}/upvote`);
+export const convertAnswerToFAQ = (answerId) => api.post(`/faqs/from-answer/${answerId}`);
 
 // Queries
 export const getQueries = (params) => api.get('/queries', { params });
@@ -33,3 +34,6 @@ export const deleteAnswer = (id) => api.delete(`/answers/${id}`);
 // Users
 export const getLeaderboard = () => api.get('/users/leaderboard');
 export const getUserProfile = (id) => api.get(`/users/${id}`);
+export const getAdminStats = () => api.get('/users/admin/stats');
+export const getAdminUsers = (params) => api.get('/users/admin/users', { params });
+export const banUser = (id) => api.patch(`/users/${id}/ban`);

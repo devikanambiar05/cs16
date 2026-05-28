@@ -125,6 +125,58 @@ exports.upvoteFAQ = async (req, res) => {
   }
 };
 
+// Convert accepted answer to FAQ
+exports.convertAnswerToFAQ = async (req, res) => {
+  try {
+    const Answer = require('../models/Answer');
+    const Query = require('../models/Query');
+
+    const answer = await Answer.findById(req.params.answerId)
+      .populate('userId', 'name');
+
+    if (!answer) {
+      return res.status(404).json({ error: 'Answer not found' });
+    }
+
+    if (!answer.isAccepted) {
+      return res.status(400).json({ error: 'Only accepted answers can be converted to FAQs' });
+    }
+
+    const query = await Query.findById(answer.queryId);
+    if (!query) {
+      return res.status(404).json({ error: 'Associated query not found' });
+    }
+
+    // Check if FAQ already created from this answer
+    const existingFAQ = await FAQ.findOne({ sourceQuery: query._id });
+    if (existingFAQ) {
+      return res.status(400).json({ error: 'FAQ already created from this query' });
+    }
+
+    const faq = new FAQ({
+      title: query.title,
+      description: query.description,
+      finalAnswer: answer.content,
+      tags: query.tags,
+      status: 'resolved',
+      createdBy: req.user._id,
+      sourceQuery: query._id
+    });
+
+    await faq.save();
+
+    // Mark query as resolved
+    query.resolvedFAQ = faq._id;
+    query.status = 'closed';
+    await query.save();
+
+    res.status(201).json(faq);
+  } catch (error) {
+    console.error('Convert answer error:', error);
+    res.status(500).json({ error: 'Failed to convert answer to FAQ' });
+  }
+};
+
 // Create a new FAQ (admin or converted from query)
 exports.createFAQ = async (req, res) => {
   try {

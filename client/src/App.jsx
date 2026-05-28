@@ -5,6 +5,7 @@ import FAQsPage from './pages/FAQsPage';
 import CommunityPage from './pages/CommunityPage';
 import RaiseQueryPage from './pages/RaiseQueryPage';
 import LoginPage from './pages/LoginPage';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
             <Route path="community" element={<CommunityPage />} />
             <Route path="ask" element={<RaiseQueryPage />} />
             <Route path="login" element={<LoginPage />} />
+            <Route path="admin" element={<AdminDashboard />} />
           </Route>
         </Routes>
       </AuthProvider>

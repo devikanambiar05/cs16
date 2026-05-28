@@ -54,12 +54,29 @@ function Layout() {
               >
                 Raise Query
               </NavLink>
+              {user?.role === 'admin' && (
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) =>
+                    `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive ? 'nav-link-active bg-red-50 text-red-600' : 'nav-link hover:bg-slate-50'
+                    }`
+                  }
+                >
+                  Admin
+                </NavLink>
+              )}
             </div>
 
             {/* User Actions */}
             <div className="flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-3">
+                  {user.role === 'admin' && (
+                    <Link to="/admin" className="hidden sm:flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-lg font-medium">
+                      ⚙️ Admin
+                    </Link>
+                  )}
                   <div className="hidden sm:block text-right">
                     <p className="text-sm font-medium text-slate-900">{user.name}</p>
                     <p className="text-xs text-slate-500">{user.reputation} rep</p>
