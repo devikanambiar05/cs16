@@ -16,25 +16,14 @@ const querySchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   }],
-  status: {
-    type: String,
-    enum: ['open', 'answered', 'closed'],
-    default: 'open'
-  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
   },
-  // Cached answer count
-  answerCount: {
-    type: Number,
-    default: 0
-  },
-  // Accepted answer (converted to FAQ)
-  resolvedFAQ: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'FAQ'
+  status: {
+    type: String,
+    enum: ['open', 'claimed', 'answered', 'closed'],
+    default: 'open'
   },
   // Who claimed this query (null = open for anyone)
   assignedTo: {
@@ -44,14 +33,40 @@ const querySchema = new mongoose.Schema({
   claimedAt: {
     type: Date,
     default: null
+  },
+  // SLA: when this query's 24hr window expires
+  expiresAt: {
+    type: Date,
+    required: true
+  },
+  // When the query was escalated (first SLA breach)
+  escalatedAt: {
+    type: Date,
+    default: null
+  },
+  // Number of times SLA has been breached
+  escalationCount: {
+    type: Number,
+    default: 0
+  },
+  // When it got an accepted answer
+  answeredAt: {
+    type: Date,
+    default: null
+  },
+  resolvedFAQ: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FAQ',
+    default: null
   }
 }, {
   timestamps: true
 });
 
-// Text index for search
-querySchema.index({ title: 'text', description: 'text', tags: 'text' });
+querySchema.index({ status: 1, expiresAt: 1 });
 querySchema.index({ assignedTo: 1 });
-querySchema.index({ status: 1, assignedTo: 1 });
+querySchema.index({ createdBy: 1 });
+querySchema.index({ tags: 1 });
+querySchema.index({ expiresAt: 1, status: 1 }); // For SLA cron
 
 module.exports = mongoose.model('Query', querySchema);

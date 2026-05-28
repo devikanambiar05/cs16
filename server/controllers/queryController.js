@@ -3,25 +3,24 @@ const Answer = require('../models/Answer');
 const FAQ = require('../models/FAQ');
 const User = require('../models/User');
 
-// Get all queries with filters
+// 24-hour SLA window in ms
+const SLA_24HR = 24 * 60 * 60 * 1000;
+
+// Get all queries with optional filters
 exports.getQueries = async (req, res) => {
   try {
     const { status, tag, sort = 'recent', page = 1, limit = 20, claimed } = req.query;
-
     const query = {};
-    if (status) query.status = status;
+
+    if (status === 'open') query.status = 'open';
+    else if (status === 'answered') query.status = 'answered';
+    else if (status === 'closed') query.status = 'closed';
+
     if (tag) query.tags = tag.toLowerCase();
     if (claimed === 'true') query.assignedTo = { $ne: null };
 
-    let sortOption = {};
-    if (sort === 'popular') {
-      sortOption = { answerCount: -1, createdAt: -1 };
-    } else if (sort === 'unanswered') {
-      query.answerCount = 0;
-      sortOption = { createdAt: -1 };
-    } else {
-      sortOption = { createdAt: -1 };
-    }
+    let sortOption = { createdAt: -1 };
+    if (sort === 'trending') sortOption = { 'answers.length': -1, createdAt: -1 };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -50,21 +49,18 @@ exports.getQueries = async (req, res) => {
   }
 };
 
-// Get single query with its answers
+// Get single query with answers
 exports.getQueryById = async (req, res) => {
   try {
     const query = await Query.findById(req.params.id)
       .populate('createdBy', 'name reputation')
-      .populate('resolvedFAQ');
+      .populate('assignedTo', 'name reputation');
 
-    if (!query) {
-      return res.status(404).json({ error: 'Query not found' });
-    }
+    if (!query) return res.status(404).json({ error: 'Query not found' });
 
-    // Get answers for this query
     const answers = await Answer.find({ queryId: query._id })
       .populate('userId', 'name reputation')
-      .sort({ isAccepted: -1, upvotes: -1, createdAt: -1 });
+      .sort({ upvotes: -1, createdAt: 1 });
 
     res.json({ query, answers });
   } catch (error) {
@@ -72,79 +68,32 @@ exports.getQueryById = async (req, res) => {
   }
 };
 
-// Raise a new query
+// Create a new query with 24hr SLA
 exports.createQuery = async (req, res) => {
   try {
     const { title, description, tags } = req.body;
-
     if (!title || !description) {
       return res.status(400).json({ error: 'Title and description are required' });
     }
 
-    const query = new Query({
+    // Set 24hr SLA deadline
+    const expiresAt = new Date(Date.now() + SLA_24HR);
+
+    const query = await Query.create({
       title,
       description,
-      tags: tags ? tags.map(t => t.toLowerCase().trim()) : [],
-      createdBy: req.user._id
+      tags: (tags || []).map(t => t.toLowerCase().trim()),
+      createdBy: req.user._id,
+      status: 'open',
+      expiresAt
     });
 
-    await query.save();
+    await query.populate('createdBy', 'name reputation');
 
-    // Update user stats
-    await User.findByIdAndUpdate(req.user._id, {
-      $inc: { questionsAsked: 1 }
-    });
-
-    // Note: Similar FAQ detection would go here (optional - semantic search)
-    res.status(201).json(query);
+    res.status(201).json({ message: 'Query raised successfully', query });
   } catch (error) {
     console.error('Create query error:', error);
     res.status(500).json({ error: 'Failed to create query' });
-  }
-};
-
-// Close a query (only by owner or admin)
-exports.closeQuery = async (req, res) => {
-  try {
-    const query = await Query.findById(req.params.id);
-    if (!query) {
-      return res.status(404).json({ error: 'Query not found' });
-    }
-
-    // Only owner or admin can close
-    if (query.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    query.status = 'closed';
-    await query.save();
-
-    res.json(query);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to close query' });
-  }
-};
-
-// Delete a query (only by owner)
-exports.deleteQuery = async (req, res) => {
-  try {
-    const query = await Query.findById(req.params.id);
-    if (!query) {
-      return res.status(404).json({ error: 'Query not found' });
-    }
-
-    if (query.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    await query.deleteOne();
-    
-    // Also delete associated answers
-    await Answer.deleteMany({ queryId: query._id });
-
-    res.json({ message: 'Query deleted' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete query' });
   }
 };
 
@@ -152,12 +101,8 @@ exports.deleteQuery = async (req, res) => {
 exports.claimQuery = async (req, res) => {
   try {
     const query = await Query.findById(req.params.id);
-    if (!query) {
-      return res.status(404).json({ error: 'Query not found' });
-    }
-    if (query.status === 'closed') {
-      return res.status(400).json({ error: 'This query is closed' });
-    }
+    if (!query) return res.status(404).json({ error: 'Query not found' });
+    if (query.status === 'closed') return res.status(400).json({ error: 'This query is closed' });
     if (query.assignedTo && query.assignedTo.toString() !== req.user._id.toString()) {
       return res.status(409).json({ error: 'This query has already been claimed by someone else' });
     }
@@ -165,10 +110,9 @@ exports.claimQuery = async (req, res) => {
       return res.json({ message: 'You already have this query claimed', query });
     }
 
-    // Enforce one active claim per user
     const existing = await Query.findOne({
       assignedTo: req.user._id,
-      status: { $ne: 'closed' },
+      status: { $in: ['open', 'claimed'] },
       _id: { $ne: query._id }
     });
     if (existing) {
@@ -177,8 +121,16 @@ exports.claimQuery = async (req, res) => {
       });
     }
 
+    // Check if SLA already breached — if so, give a fresh 24hr window
+    const needsFreshSla = query.expiresAt < new Date();
     query.assignedTo = req.user._id;
     query.claimedAt = new Date();
+    query.status = 'claimed';
+    if (needsFreshSla) {
+      query.expiresAt = new Date(Date.now() + SLA_24HR);
+      query.escalationCount += 1;
+      query.escalatedAt = query.escalatedAt || new Date();
+    }
     await query.save();
 
     const populated = await Query.findById(query._id)
@@ -196,9 +148,7 @@ exports.claimQuery = async (req, res) => {
 exports.unclaimQuery = async (req, res) => {
   try {
     const query = await Query.findById(req.params.id);
-    if (!query) {
-      return res.status(404).json({ error: 'Query not found' });
-    }
+    if (!query) return res.status(404).json({ error: 'Query not found' });
     if (!query.assignedTo) {
       return res.json({ message: 'Query is not currently claimed', query });
     }
@@ -212,70 +162,88 @@ exports.unclaimQuery = async (req, res) => {
 
     query.assignedTo = null;
     query.claimedAt = null;
+    query.status = 'open';
+    query.expiresAt = new Date(Date.now() + SLA_24HR); // Reset SLA for next claim
     await query.save();
 
     const populated = await Query.findById(query._id)
       .populate('createdBy', 'name reputation')
       .populate('assignedTo', 'name reputation');
 
-    res.json({ message: isAdmin && !isClaimant ? 'Admin released the claim' : 'Claim released', query: populated });
+    res.json({ message: isAdmin && !isClaimant ? 'Admin released the claim — SLA restarts' : 'Claim released', query: populated });
   } catch (error) {
     console.error('Unclaim query error:', error);
     res.status(500).json({ error: 'Failed to release claim' });
   }
 };
 
-// Take a Question (Auto-assignment of unresolved query)
+// Take a Question (Auto-assign with SLA awareness)
 exports.takeQuery = async (req, res) => {
   try {
+    // Find the oldest unclaimed, non-closed query that's past SLA or oldest overall
+    const query = await Query.findOne({
+      status: 'open',
+      assignedTo: null
+    }).sort({ expiresAt: 1, createdAt: 1 });
+
+    if (!query) {
+      return res.status(404).json({ error: 'No open queries available for assignment' });
+    }
+
     const userId = req.user._id;
 
-    // 1. First find if user already has an active assigned unresolved query
-    let existingAssignment = await Query.findOne({
-      assignedTo: userId,
-      status: { $ne: 'closed' }
-    }).populate('createdBy', 'name reputation');
-
-    if (existingAssignment) {
-      return res.json({
-        message: 'You already have an active assigned question!',
-        query: existingAssignment
-      });
-    }
-
-    // 2. Find an open query created by another user, and not assigned to anyone yet
-    let query = await Query.findOne({
-      status: 'open',
-      createdBy: { $ne: userId },
-      $or: [
-        { assignedTo: { $exists: false } },
-        { assignedTo: null }
-      ]
-    }).populate('createdBy', 'name reputation');
-
-    // 3. Fallback: find any query created by another user that isn't closed yet
-    if (!query) {
-      query = await Query.findOne({
-        status: { $in: ['open', 'answered'] },
-        createdBy: { $ne: userId }
-      }).populate('createdBy', 'name reputation');
-    }
-
-    if (!query) {
-      return res.status(404).json({ error: 'No unresolved community queries available to assign right now.' });
-    }
-
-    // 4. Assign to user
     query.assignedTo = userId;
     query.claimedAt = new Date();
+    query.status = 'claimed';
+    query.expiresAt = new Date(Date.now() + SLA_24HR); // Fresh 24hr window
+    query.escalationCount += 1;
+    query.escalatedAt = query.escalatedAt || new Date();
     await query.save();
 
-    res.json({
-      message: 'Question assigned successfully!',
-      query
-    });
+    const populated = await Query.findById(query._id)
+      .populate('createdBy', 'name reputation')
+      .populate('assignedTo', 'name reputation');
+
+    res.json({ message: 'Question auto-assigned! You have 24 hours to answer it.', query: populated });
   } catch (error) {
     console.error('Take query error:', error);
-    res.status(500).json({ error: 'Failed to auto-assign a query' });
+    res.status(500).json({ error: 'Failed to take query' });
+  }
+};
+
+// Accept an answer and close the query
+exports.closeQuery = async (req, res) => {
+  try {
+    const query = await Query.findById(req.params.id);
+    if (!query) return res.status(404).json({ error: 'Query not found' });
+
+    query.status = 'closed';
+    query.answeredAt = new Date();
+    query.assignedTo = null;
+    await query.save();
+
+    const populated = await Query.findById(query._id)
+      .populate('createdBy', 'name reputation')
+      .populate('assignedTo', 'name reputation');
+
+    res.json({ message: 'Query closed', query: populated });
+  } catch (error) {
+    console.error('Close query error:', error);
+    res.status(500).json({ error: 'Failed to close query' });
+  }
+};
+
+// Delete a query
+exports.deleteQuery = async (req, res) => {
+  try {
+    const query = await Query.findById(req.params.id);
+    if (!query) return res.status(404).json({ error: 'Query not found' });
+
+    await Answer.deleteMany({ queryId: query._id });
+    await query.deleteOne();
+
+    res.json({ message: 'Query deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete query' });
   }
 };

@@ -33,8 +33,11 @@ function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const res = await getAdminStats();
-      setStats(res.data);
+      const [statsRes, slaRes] = await Promise.all([
+        getAdminStats(),
+        api.get('/api/queries/sla/stats')
+      ]);
+      setStats({ ...statsRes.data, sla: slaRes.data });
     } catch (err) {
       console.error('Failed to load stats:', err);
     }
