@@ -3,13 +3,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 function LoginPage() {
-  const [isLogin, setIsLogin] = useState(location.state?.wantsSignup ? false : true);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isLogin, setIsLogin] = useState(location.state?.wantsSignup ? false : true);
 
   const from = (location.state?.from && location.state?.from !== '/login')
     ? location.state.from
