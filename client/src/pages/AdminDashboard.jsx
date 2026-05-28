@@ -299,9 +299,9 @@ function AdminDashboard() {
                     <div className="flex flex-col gap-2 ml-4">
                       {q.status !== 'closed' && (
                         <>
-                          {q.status === 'answered' && (
+                          {q.status === 'answered' && q.acceptedAnswer && (
                             <button
-                              onClick={() => handleConvertToFAQ(q._id, q._id)}
+                              onClick={() => handleConvertToFAQ(q.acceptedAnswer._id, q._id)}
                               className="btn-primary text-xs py-1.5 px-3 whitespace-nowrap"
                             >
                               Review & Convert

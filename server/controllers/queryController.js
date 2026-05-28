@@ -18,6 +18,7 @@ exports.getQueries = async (req, res) => {
 
     if (tag) query.tags = tag.toLowerCase();
     if (claimed === 'true') query.assignedTo = { $ne: null };
+    query.deletedAt = null;
 
     let sortOption = { createdAt: -1 };
     if (sort === 'trending') sortOption = { 'answers.length': -1, createdAt: -1 };
@@ -28,11 +29,24 @@ exports.getQueries = async (req, res) => {
       Query.find(query)
         .populate('createdBy', 'name reputation')
         .populate('assignedTo', 'name reputation')
+        .populate('resolvedFAQ', 'title')
         .sort(sortOption)
         .skip(skip)
         .limit(parseInt(limit)),
       Query.countDocuments(query)
     ]);
+
+    // Attach accepted answer to each query (for admin "Review & Convert" button)
+    await Promise.all(queries.map(async (q) => {
+      const accepted = await Answer.findOne({ queryId: q._id, isAccepted: true });
+      if (accepted) {
+        q._doc.acceptedAnswer = {
+          _id: accepted._id,
+          content: accepted.content,
+          userId: accepted.userId
+        };
+      }
+    }));
 
     res.json({
       queries,
@@ -163,7 +177,7 @@ exports.unclaimQuery = async (req, res) => {
     query.assignedTo = null;
     query.claimedAt = null;
     query.status = 'open';
-    query.expiresAt = new Date(Date.now() + SLA_24HR); // Reset SLA for next claim
+    query.expiresAt = new Date(Date.now() + SLA_24HR);
     await query.save();
 
     const populated = await Query.findById(query._id)
@@ -180,7 +194,6 @@ exports.unclaimQuery = async (req, res) => {
 // Take a Question (Auto-assign with SLA awareness)
 exports.takeQuery = async (req, res) => {
   try {
-    // Find the oldest unclaimed, non-closed query that's past SLA or oldest overall
     const query = await Query.findOne({
       status: 'open',
       assignedTo: null
@@ -190,12 +203,10 @@ exports.takeQuery = async (req, res) => {
       return res.status(404).json({ error: 'No open queries available for assignment' });
     }
 
-    const userId = req.user._id;
-
-    query.assignedTo = userId;
+    query.assignedTo = req.user._id;
     query.claimedAt = new Date();
     query.status = 'claimed';
-    query.expiresAt = new Date(Date.now() + SLA_24HR); // Fresh 24hr window
+    query.expiresAt = new Date(Date.now() + SLA_24HR);
     query.escalationCount += 1;
     query.escalatedAt = query.escalatedAt || new Date();
     await query.save();
@@ -207,7 +218,7 @@ exports.takeQuery = async (req, res) => {
     res.json({ message: 'Question auto-assigned! You have 24 hours to answer it.', query: populated });
   } catch (error) {
     console.error('Take query error:', error);
-    res.status(500).json({ error: 'Failed to take query' });
+    res.status(500).json({ error: 'Failed to auto-assign query' });
   }
 };
 
@@ -228,7 +239,7 @@ exports.closeQuery = async (req, res) => {
 
     res.json({ message: 'Query closed', query: populated });
   } catch (error) {
-    console.error('Close query error:', error);
+    console.error('Close (accept answer) error:', error);
     res.status(500).json({ error: 'Failed to close query' });
   }
 };
@@ -248,13 +259,13 @@ exports.deleteQuery = async (req, res) => {
   }
 };
 
-// Get SLA statistics for admin dashboard
+// Get SLA statistics
 exports.getSlaStats = async (req, res) => {
   try {
     const now = new Date();
     const [total, open, breached, claimed, answered] = await Promise.all([
       Query.countDocuments(),
-      Query.countDocuments({ status: 'open', claimedBy: null }),
+      Query.countDocuments({ status: 'open' }),
       Query.countDocuments({ expiresAt: { $lt: now }, status: { $ne: 'closed' } }),
       Query.countDocuments({ status: 'claimed' }),
       Query.countDocuments({ status: 'answered' })
