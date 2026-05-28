@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAdminStats, getQueries, getAdminUsers, banUser, convertAnswerToFAQ, closeQuery, getFAQRequests, approveFAQRequest, rejectFAQRequest } from '../services/api';
+import { getAdminStats, getQueries, getAdminUsers, banUser, convertAnswerToFAQ, closeQuery, getFAQRequests, approveFAQRequest, rejectFAQRequest, getSlaStats } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 function AdminDashboard() {
@@ -35,7 +35,7 @@ function AdminDashboard() {
     try {
       const [statsRes, slaRes] = await Promise.all([
         getAdminStats(),
-        api.get('/api/queries/sla/stats')
+        getSlaStats()
       ]);
       setStats({ ...statsRes.data, sla: slaRes.data });
     } catch (err) {

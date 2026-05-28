@@ -12,10 +12,35 @@ async function handleResponse(res) {
 }
 
 const api = {
-  get: (path, params) => fetch(`${API_URL}${path}${params ? '?' + new URLSearchParams(params) : ''}`, { headers: getHeaders() }).then(handleResponse),
-  post: (path, body) => fetch(`${API_URL}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...getHeaders() }, body: JSON.stringify(body) }).then(handleResponse),
-  patch: (path, body) => fetch(`${API_URL}${path}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...getHeaders() }, body: JSON.stringify(body) }).then(handleResponse),
-  delete: (path) => fetch(`${API_URL}${path}`, { method: 'DELETE', headers: getHeaders() }).then(handleResponse)
+  defaults: { headers: { common: {} } },
+
+  get: (path, params) => {
+    const url = `${API_URL}${path}${params ? '?' + new URLSearchParams(params) : ''}`;
+    return fetch(url, { headers: getHeaders() }).then(handleResponse);
+  },
+
+  post: (path, body) => {
+    const url = `${API_URL}${path}`;
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getHeaders() },
+      body: JSON.stringify(body)
+    }).then(handleResponse);
+  },
+
+  patch: (path, body) => {
+    const url = `${API_URL}${path}`;
+    return fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...getHeaders() },
+      body: JSON.stringify(body)
+    }).then(handleResponse);
+  },
+
+  delete: (path) => {
+    const url = `${API_URL}${path}`;
+    return fetch(url, { method: 'DELETE', headers: getHeaders() }).then(handleResponse);
+  }
 };
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -56,5 +81,8 @@ export const rejectFAQRequest = (id, data) => api.delete(`/api/faq-requests/${id
 
 // ─── Admin ─────────────────────────────────────────────────────────────────────
 export const getAdminStats = () => api.get('/api/users/admin/stats');
+export const getSlaStats = () => api.get('/api/admin/sla-stats');
 export const getAdminUsers = (params) => api.get('/api/users/admin/users', { params });
 export const banUser = (id) => api.patch(`/api/users/admin/ban/${id}`);
+
+export default api;
