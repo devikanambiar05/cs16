@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery, createFAQRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ToastProvider';
 import RichTextEditor, { MarkdownContent } from '../components/RichTextEditor';
 
 // ─── SLA helpers ──────────────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ function CommunityPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_SIZE = 10;
+  const toast = useToast();
 
   useEffect(() => {
     fetchQueries();
@@ -102,12 +104,13 @@ function CommunityPage() {
   };
 
   const handleClaimQuery = async (queryId) => {
-    if (!user) { alert('Please sign in to claim a query'); return; }
+    if (!user) { toast.warning('Please sign in to claim a query'); return; }
     try {
       const res = await claimQuery(queryId);
       setQueries(queries.map(q => q._id === queryId ? { ...q, assignedTo: { _id: user._id, name: user.name } } : q));
+      toast.success('Query claimed successfully!');
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to claim query');
+      toast.error(err.response?.data?.error || 'Failed to claim query');
     }
   };
 
@@ -116,35 +119,38 @@ function CommunityPage() {
     try {
       await unclaimQuery(queryId);
       setQueries(queries.map(q => q._id === queryId ? { ...q, assignedTo: null } : q));
+      toast.success('Claim released');
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to release claim');
+      toast.error(err.response?.data?.error || 'Failed to release claim');
     }
   };
 
   const handleSubmitAnswer = async (queryId) => {
     const content = answerContent[queryId];
-    if (!content || !content.trim()) { alert('Please write an answer before submitting.'); return; }
-    if (!user) { alert('Please sign in to answer.'); return; }
+    if (!content || !content.trim()) { toast.warning('Please write an answer before submitting.'); return; }
+    if (!user) { toast.warning('Please sign in to answer.'); return; }
     setSubmitting(queryId);
     try {
       await createAnswer(queryId, content);
       setAnswerContent({ ...answerContent, [queryId]: '' });
+      toast.success('Answer submitted!');
       fetchQueries();
       setExpandedQuery(queryId);
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to submit answer');
+      toast.error(err.response?.data?.error || 'Failed to submit answer');
     } finally {
       setSubmitting(null);
     }
   };
 
   const handleUpvoteAnswer = async (answerId, queryId) => {
-    if (!user) { alert('Please sign in to upvote.'); return; }
+    if (!user) { toast.warning('Please sign in to upvote.'); return; }
     try {
       await upvoteAnswer(answerId);
+      toast.success('Upvoted!');
       fetchQueries();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to upvote');
+      toast.error(err.response?.data?.error || 'Failed to upvote');
     }
   };
 
@@ -152,35 +158,36 @@ function CommunityPage() {
     if (!user) return;
     try {
       await acceptAnswer(answerId);
+      toast.success('Answer accepted! Query closed.');
       fetchQueries();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to accept answer');
+      toast.error(err.response?.data?.error || 'Failed to accept answer');
     }
   };
 
   const handleRequestFAQ = async (answerId, queryId, query) => {
-    if (!user) { alert('Please sign in to request a FAQ'); return; }
+    if (!user) { toast.warning('Please sign in to request a FAQ'); return; }
     const answer = query.answers?.find(a => a._id === answerId);
     if (!answer) return;
     if (!confirm(`Request to add this answer as an FAQ for "${query.title}"?`)) return;
     try {
       await createFAQRequest({ queryId, answerId, proposedQuestion: query.title, proposedAnswer: answer.content, proposedTags: query.tags || [] });
-      alert('FAQ request submitted! An admin will review it.');
+      toast.success('FAQ request submitted! An admin will review it.');
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to submit FAQ request');
+      toast.error(err.response?.data?.error || 'Failed to submit FAQ request');
     }
   };
 
   const handleTakeQuestion = async () => {
-    if (!user) { alert('Please sign in to take a question'); return; }
+    if (!user) { toast.warning('Please sign in to take a question'); return; }
     try {
       setLoading(true);
       const res = await getQueries({ status: 'open', sort: 'recent', limit: 1 });
       const available = res.data.queries.find(q => !q.assignedTo);
-      if (!available) { alert('No open queries available right now.'); return; }
+      if (!available) { toast.info('No open queries available right now.'); return; }
       const claimRes = await claimQuery(available._id);
       const assignedQuery = claimRes.data.query || available;
-      alert(`🎯 Claimed: "${assignedQuery.title}"\n⏱ You now have 24 hours to answer it.`);
+      toast.success(`🎯 Claimed: "${assignedQuery.title}" — 24hr SLA started!`);
       const exists = queries.some(q => q._id === assignedQuery._id);
       if (exists) {
         setQueries(queries.map(q => q._id === assignedQuery._id ? { ...q, assignedTo: { _id: user._id, name: user.name } } : q));
@@ -190,10 +197,10 @@ function CommunityPage() {
       setExpandedQuery(assignedQuery._id);
       setTimeout(() => {
         const el = document.getElementById(`query-card-${assignedQuery._id}`);
-        if (el) el.scroll.intoView({ behavior: 'smooth', block: 'center' });
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 300);
     } catch (err) {
-      alert(err.response?.data?.error || 'No open queries available right now.');
+      toast.error(err.response?.data?.error || 'No open queries available right now.');
     } finally {
       setLoading(false);
     }

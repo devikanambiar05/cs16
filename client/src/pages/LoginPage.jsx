@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ToastProvider';
 import { forgotPassword, resendVerification } from '../services/api';
 
 function LoginPage() {
@@ -14,6 +15,7 @@ function LoginPage() {
   const { login, register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
   const [isLogin, setIsLogin] = useState(location.state?.wantsSignup ? false : true);
 
   const from = (location.state?.from && location.state?.from !== '/login')
@@ -77,9 +79,9 @@ function LoginPage() {
     setResendLoading(true);
     try {
       await resendVerification();
-      alert('Verification email sent! Check your inbox.');
+      toast.success('Verification email sent! Check your inbox.');
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to send email');
+      toast.error(err.response?.data?.error || 'Failed to send email');
     } finally {
       setResendLoading(false);
     }

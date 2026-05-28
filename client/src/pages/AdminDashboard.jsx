@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAdminStats, getQueries, getAdminUsers, banUser, convertAnswerToFAQ, closeQuery, getFAQRequests, approveFAQRequest, rejectFAQRequest, getSlaStats } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ToastProvider';
 
 function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [queries, setQueries] = useState([]);
@@ -89,7 +91,7 @@ function AdminDashboard() {
         u._id === userId ? { ...u, status: res.data.user.status } : u
       ));
     } catch (err) {
-      alert(err.response?.data?.error || 'Action failed');
+      toast.error(err.response?.data?.error || 'Action failed');
     } finally {
       setActionLoading(null);
     }
@@ -103,10 +105,10 @@ function AdminDashboard() {
       setQueries(queries.map(q =>
         q._id === queryId ? { ...q, status: 'closed', resolvedFAQ: { _id: 'new' } } : q
       ));
-      alert('FAQ created successfully!');
+      toast.success('FAQ created successfully!');
       fetchStats();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to convert to FAQ');
+      toast.error(err.response?.data?.error || 'Failed to convert to FAQ');
     } finally {
       setActionLoading(null);
     }
@@ -121,7 +123,7 @@ function AdminDashboard() {
       ));
       fetchStats();
     } catch (err) {
-      console.error('Failed to close query:', err);
+      toast.error(err.response?.data?.error || 'Failed to close query');
     } finally {
       setActionLoading(null);
     }
@@ -135,10 +137,10 @@ function AdminDashboard() {
       setFaqRequests(faqRequests.map(r =>
         r._id === requestId ? { ...r, status: 'approved' } : r
       ));
-      alert('FAQ request approved and FAQ created!');
+      toast.success('FAQ request approved and FAQ created!');
       fetchStats();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to approve FAQ request');
+      toast.error(err.response?.data?.error || 'Failed to approve FAQ request');
     } finally {
       setActionLoading(null);
     }
