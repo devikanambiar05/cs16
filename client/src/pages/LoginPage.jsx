@@ -1,14 +1,19 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(location.state?.wantsSignup ? false : true);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = (location.state?.from && location.state?.from !== '/login')
+    ? location.state.from
+    : '/';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,7 +31,7 @@ function LoginPage() {
         }
         await register(form.name, form.email, form.password);
       }
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || (isLogin ? 'Login failed' : 'Registration failed'));
     } finally {
@@ -35,14 +40,16 @@ function LoginPage() {
   };
 
   const handleDemoLogin = async () => {
-    setForm({ name: '', email: 'rahul@university.edu', password: 'password123' });
+    setForm({ name: '', email: 'admin@faqapp.com', password: 'admin123' });
     setError('');
     setLoading(true);
     try {
-      await login('rahul@university.edu', 'password123');
-      navigate('/');
+      await login('admin@faqapp.com', 'admin123');
+      // Redirect to original destination, or home
+      const destination = from !== '/login' ? from : '/';
+      navigate(destination, { replace: true });
     } catch (err) {
-      setError('Login failed');
+      setError('Login failed — make sure you\'ve run the seed script');
     } finally {
       setLoading(false);
     }
@@ -156,10 +163,10 @@ function LoginPage() {
 
         {/* Info Box */}
         <div className="mt-8 bg-slate-50 rounded-xl p-4 text-sm text-slate-600">
-          <p className="font-medium text-slate-800 mb-2">Demo Accounts:</p>
-          <p className="mb-1">👤 <span className="font-medium">Priya Sharma</span> (Admin) — priya@university.edu</p>
-          <p>👤 <span className="font-medium">Rahul Verma</span> (User) — rahul@university.edu</p>
-          <p className="mt-1">Password for all: <span className="font-mono bg-slate-200 px-1 rounded">password123</span></p>
+          <p className="font-medium text-slate-800 mb-2">Demo Account:</p>
+          <p>👤 <span className="font-medium">Admin User</span> — admin@faqapp.com</p>
+          <p className="mt-1">Password: <span className="font-mono bg-slate-200 px-1 rounded">admin123</span></p>
+          <p className="text-xs mt-2 text-amber-600">Run <code className="bg-amber-100 px-1 rounded">npm run seed</code> first if login fails.</p>
         </div>
       </div>
     </div>

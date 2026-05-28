@@ -72,9 +72,14 @@ function Layout() {
                   </button>
                 </div>
               ) : (
-                <Link to="/login" className="btn-primary text-sm">
-                  Sign In
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link to="/login" className="btn-ghost text-sm">
+                    Sign In
+                  </Link>
+                  <Link to="/login" state={{ wantsSignup: true }} className="btn-primary text-sm">
+                    Sign Up
+                  </Link>
+                </div>
               )}
             </div>
           </div>

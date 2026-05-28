@@ -16,6 +16,13 @@ function RaiseQueryPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user && !localStorage.getItem('token')) {
+      navigate('/login', { state: { from: '/ask' } });
+    }
+  }, [user, navigate]);
+
   // Debounced search for similar FAQs while typing title
   useEffect(() => {
     if (!form.title.trim() || form.title.length < 5) {
