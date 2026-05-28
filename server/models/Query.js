@@ -58,6 +58,14 @@ const querySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'FAQ',
     default: null
+  },
+  answerCount: {
+    type: Number,
+    default: 0
+  },
+  deletedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

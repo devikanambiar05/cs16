@@ -31,6 +31,10 @@ const answerSchema = new mongoose.Schema({
   // Only the query owner can mark as accepted
   acceptedAt: {
     type: Date
+  },
+  deletedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

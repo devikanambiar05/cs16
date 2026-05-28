@@ -48,7 +48,28 @@ const faqSchema = new mongoose.Schema({
   relatedFAQs: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'FAQ'
-  }]
+  }],
+  // Admin-only fields
+  pinned: {
+    type: Boolean,
+    default: false
+  },
+  // Soft delete
+  deletedAt: {
+    type: Date,
+    default: null
+  },
+  // Merge tracking
+  mergedFrom: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FAQ',
+    default: null
+  },
+  mergedInto: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FAQ',
+    default: null
+  }
 }, {
   timestamps: true
 });

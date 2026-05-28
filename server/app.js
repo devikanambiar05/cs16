@@ -11,6 +11,7 @@ const answerRoutes = require('./routes/answerRoutes');
 const userRoutes = require('./routes/userRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const faqRequestRoutes = require('./routes/faqRequestRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/api/answers', answerRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/faq-requests', faqRequestRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/auth/forgot-password', resetLimiter);
 app.use('/api/auth/reset-password', resetLimiter);
 
