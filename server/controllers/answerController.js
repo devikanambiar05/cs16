@@ -178,6 +178,21 @@ exports.deleteAnswer = async (req, res) => {
       await query.save();
     }
 
+    // Reverse upvote rep for each remaining upvote (each upvote award = +2)
+    if (answer.upvotes > 0 && answer.upvotedBy.length > 0) {
+      await User.updateMany(
+        { _id: { $in: answer.upvotedBy } },
+        { $inc: { reputation: -2 } }
+      );
+    }
+
+    // Reverse accepted answer rep bonus (+20 to author)
+    if (answer.isAccepted) {
+      await User.findByIdAndUpdate(answer.userId, {
+        $inc: { reputation: -20 }
+      });
+    }
+
     await answer.deleteOne();
 
     res.json({ message: 'Answer deleted' });
