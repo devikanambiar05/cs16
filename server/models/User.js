@@ -48,6 +48,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  acceptedAnswersCount: {
+    type: Number,
+    default: 0
+  },
   status: {
     type: String,
     enum: ['active', 'banned'],
