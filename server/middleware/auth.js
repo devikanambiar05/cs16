@@ -6,9 +6,14 @@ const protect = async (req, res, next) => {
   try {
     let token;
 
-    // Get token from header: "Bearer <token>"
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+
+    // Support both header conventions:
+    //   Authorization: Bearer <token>   (standard)
+    //   x-auth-token: <token>           (legacy client)
+    if (req.headers.authorization?.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
+    } else if (req.headers['x-auth-token']) {
+      token = req.headers['x-auth-token'];
     }
 
     if (!token) {
@@ -40,8 +45,10 @@ const optionalAuth = async (req, res, next) => {
   try {
     let token;
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    if (req.headers.authorization?.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
+    } else if (req.headers['x-auth-token']) {
+      token = req.headers['x-auth-token'];
     }
 
     if (token) {
