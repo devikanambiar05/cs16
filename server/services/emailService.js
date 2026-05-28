@@ -28,11 +28,21 @@ async function sendEmail({ to, subject, text, html }) {
 
   if (!process.env.SMTP_URL) {
     // Development — decode and print the email to console
+    // Handle different nodemailer version APIs
+    let body;
+    if (typeof info.message?.getContent === 'function') {
+      body = info.message.getContent();
+    } else if (typeof info.message?.AsciiString === 'function') {
+      body = info.message.AsciiString();
+    } else {
+      body = String(info.message || '[no body]');
+    }
+
     console.log('\n📧 [EMAIL] ---------------------------------------------');
     console.log(`To: ${to}`);
     console.log(`Subject: ${subject}`);
     console.log('Body (raw):');
-    console.log(info.message.AsciiString());
+    console.log(body);
     console.log('------------------------------------------------------\n');
   }
 
