@@ -43,4 +43,10 @@ export const getLeaderboard = () => api.get('/users/leaderboard');
 export const getUserProfile = (id) => api.get(`/users/${id}`);
 export const getAdminStats = () => api.get('/users/admin/stats');
 export const getAdminUsers = (params) => api.get('/users/admin/users', { params });
+
+// FAQ Requests
+export const createFAQRequest = (data) => api.post('/faq-requests', data);
+export const getFAQRequests = (params) => api.get('/faq-requests', { params });
+export const approveFAQRequest = (id, data) => api.post(`/faq-requests/${id}/approve`, data);
+export const rejectFAQRequest = (id, data) => api.delete(`/faq-requests/${id}/reject`, data);
 export const banUser = (id) => api.patch(`/users/${id}/ban`);

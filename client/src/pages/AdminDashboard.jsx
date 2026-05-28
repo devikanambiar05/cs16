@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAdminStats, getQueries, getAdminUsers, banUser, convertAnswerToFAQ, closeQuery } from '../services/api';
+import { getAdminStats, getQueries, getAdminUsers, banUser, convertAnswerToFAQ, closeQuery, getFAQRequests, approveFAQRequest, rejectFAQRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 function AdminDashboard() {
@@ -10,8 +10,10 @@ function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [queries, setQueries] = useState([]);
   const [users, setUsers] = useState([]);
+  const [faqRequests, setFaqRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const [requestFilter, setRequestFilter] = useState('pending');
 
   // Protect: admin only
   useEffect(() => {
@@ -25,6 +27,7 @@ function AdminDashboard() {
       fetchStats();
       fetchQueries();
       fetchUsers();
+      fetchFAQRequests();
     }
   }, [user, activeTab]);
 
@@ -56,6 +59,19 @@ function AdminDashboard() {
       setUsers(res.data.users);
     } catch (err) {
       console.error('Failed to load users:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFAQRequests = async (status) => {
+    try {
+      setLoading(true);
+      const s = status !== undefined ? status : requestFilter;
+      const res = await getFAQRequests({ status: s === 'all' ? undefined : s, limit: 50 });
+      setFaqRequests(res.data.requests);
+    } catch (err) {
+      console.error('Failed to load FAQ requests:', err);
     } finally {
       setLoading(false);
     }
@@ -108,6 +124,40 @@ function AdminDashboard() {
     }
   };
 
+  const handleApproveFAQRequest = async (requestId, adminNotes) => {
+    if (!confirm('Approve this FAQ request? The FAQ will be created.')) return;
+    setActionLoading(requestId);
+    try {
+      await approveFAQRequest(requestId, { adminNotes });
+      setFaqRequests(faqRequests.map(r =>
+        r._id === requestId ? { ...r, status: 'approved' } : r
+      ));
+      alert('FAQ request approved and FAQ created!');
+      fetchStats();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to approve FAQ request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRejectFAQRequest = async (requestId) => {
+    const adminNotes = prompt('Reason for rejection (optional):');
+    if (adminNotes === null) return;
+    setActionLoading(requestId);
+    try {
+      await rejectFAQRequest(requestId, { adminNotes });
+      setFaqRequests(faqRequests.map(r =>
+        r._id === requestId ? { ...r, status: 'rejected' } : r
+      ));
+      fetchStats();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to reject FAQ request');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (authLoading || !user) {
     return (
       <div className="flex justify-center py-20">
@@ -127,12 +177,17 @@ function AdminDashboard() {
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <span className="badge badge-red">Admin</span>
           <span>{user.name}</span>
+          {stats?.pendingFaqRequests > 0 && (
+            <span className="badge bg-amber-100 text-amber-800 border border-amber-200">
+              {stats.pendingFaqRequests} FAQ request{stats.pendingFaqRequests !== 1 ? 's' : ''} pending
+            </span>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-slate-200 mb-8">
-        {['overview', 'queries', 'users'].map(tab => (
+        {['overview', 'queries', 'users', 'faq-requests'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -333,6 +388,99 @@ function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+      )}
+
+      {/* FAQ Requests Tab */}
+      {activeTab === 'faq-requests' && (
+        <div>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex gap-2">
+              {['pending', 'approved', 'rejected', 'all'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => {
+                    setRequestFilter(f);
+                    fetchFAQRequests(f);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    requestFilter === f
+                      ? 'bg-primary-100 text-primary-700'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
+            <span className="text-sm text-slate-500">{faqRequests.length} request{faqRequests.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-12"><div className="spinner" /></div>
+          ) : faqRequests.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No FAQ requests found</div>
+          ) : (
+            <div className="space-y-4">
+              {faqRequests.map(req => (
+                <div key={req._id} className="card">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`badge ${
+                          req.status === 'pending' ? 'badge-yellow' :
+                          req.status === 'approved' ? 'badge-green' : 'badge-gray'
+                        }`}>
+                          {req.status}
+                        </span>
+                        <span className="text-sm text-slate-500">by {req.submittedBy?.name}</span>
+                        {req.adminNotes && (
+                          <span className="text-xs text-slate-400 italic">— {req.adminNotes}</span>
+                        )}
+                      </div>
+                      <h3 className="font-medium text-slate-900 mb-1">{req.proposedQuestion}</h3>
+                      <p className="text-sm text-slate-600 mb-2">From query: {req.queryId?.title}</p>
+                      <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-700 border border-slate-200 mb-2">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Proposed Answer</p>
+                        <p className="whitespace-pre-wrap">{req.proposedAnswer}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {(req.proposedTags || []).map(tag => (
+                          <span key={tag} className="badge badge-gray text-xs">#{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 ml-4">
+                      {req.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleApproveFAQRequest(req._id)}
+                            disabled={actionLoading === req._id}
+                            className="btn-primary text-xs py-1.5 px-3"
+                          >
+                            {actionLoading === req._id ? '...' : '✓ Approve'}
+                          </button>
+                          <button
+                            onClick={() => handleRejectFAQRequest(req._id)}
+                            disabled={actionLoading === req._id}
+                            className="btn-outline text-xs py-1.5 px-3"
+                          >
+                            ✕ Reject
+                          </button>
+                        </>
+                      )}
+                      {req.status === 'approved' && (
+                        <span className="badge badge-green text-xs">✓ Approved</span>
+                      )}
+                      {req.status === 'rejected' && (
+                        <span className="badge badge-gray text-xs">✕ Rejected</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

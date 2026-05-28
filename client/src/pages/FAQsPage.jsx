@@ -275,36 +275,72 @@ function FAQsPage() {
 
 // FAQ Item — used in lists
 function FAQItem({ faq, onUpvote, user, compact = false }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
-    <div className={`card group ${compact ? 'py-4' : ''}`}>
+    <div
+      className={`card group transition-all duration-200 cursor-pointer ${
+        isExpanded ? 'ring-2 ring-primary-200 bg-slate-50/50 shadow-sm' : 'hover:border-primary-300 hover:shadow-sm'
+      } ${compact ? 'py-4' : ''}`}
+      onClick={() => setIsExpanded(!isExpanded)}
+    >
       <div className="flex gap-3">
         <div className="flex-1 min-w-0">
-          <p className={`font-medium text-slate-900 ${compact ? 'text-sm' : ''}`}>
+          <p className={`font-semibold text-slate-900 ${compact ? 'text-sm' : ''} flex items-center gap-2`}>
             {faq.title}
           </p>
-          {!compact && (
-            <p className="text-sm text-slate-500 mt-1 line-clamp-2">{faq.finalAnswer}</p>
-          )}
+          
+          <div
+            className={`transition-all duration-300 overflow-hidden ${
+              isExpanded ? 'max-h-[500px] mt-2' : compact ? 'max-h-0' : 'max-h-12 mt-1'
+            }`}
+          >
+            <p className={`text-sm text-slate-600 ${isExpanded ? 'whitespace-pre-line' : 'line-clamp-2'}`}>
+              {faq.finalAnswer}
+            </p>
+          </div>
+
           {faq.tags && faq.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {faq.tags.slice(0, 3).map(tag => (
-                <span key={tag} className="badge badge-gray text-xs">#{tag}</span>
+                <span
+                  key={tag}
+                  className="badge badge-gray text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  #{tag}
+                </span>
               ))}
             </div>
           )}
         </div>
-        <div className="flex flex-col items-center gap-1 text-slate-400">
-          <button
-            onClick={() => onUpvote(faq._id)}
-            disabled={!user}
-            className="hover:text-primary-600 transition-colors disabled:cursor-not-allowed"
-            title={user ? 'Upvote' : 'Sign in to upvote'}
+
+        <div className="flex flex-col items-center gap-3 text-slate-400 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={() => onUpvote(faq._id)}
+              disabled={!user}
+              className="hover:text-primary-600 transition-colors disabled:cursor-not-allowed"
+              title={user ? 'Upvote' : 'Sign in to upvote'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <span className="text-sm font-medium text-slate-600">{faq.upvotes}</span>
+          </div>
+
+          {/* Expand icon indicator */}
+          <svg
+            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+              isExpanded ? 'rotate-180 text-primary-500' : 'group-hover:text-slate-600'
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-            </svg>
-          </button>
-          <span className="text-sm font-medium text-slate-600">{faq.upvotes}</span>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
       </div>
     </div>

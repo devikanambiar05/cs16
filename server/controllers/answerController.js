@@ -20,6 +20,9 @@ exports.createAnswer = async (req, res) => {
     if (query.status === 'closed') {
       return res.status(400).json({ error: 'This query is closed' });
     }
+    if (query.answerCount >= 5) {
+      return res.status(400).json({ error: 'This query already has the maximum of 5 answers. Please take another question!' });
+    }
 
     const answer = new Answer({
       content,

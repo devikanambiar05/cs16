@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery } from '../services/api';
+import { getQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery, createFAQRequest } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 function CommunityPage() {
@@ -148,6 +148,28 @@ function CommunityPage() {
     }
   };
 
+  const handleRequestFAQ = async (answerId, queryId, query) => {
+    if (!user) {
+      alert('Please sign in to request a FAQ');
+      return;
+    }
+    const answer = query.answers?.find(a => a._id === answerId);
+    if (!answer) return;
+    if (!confirm(`Request to add this answer as an FAQ for "${query.title}"?`)) return;
+    try {
+      await createFAQRequest({
+        queryId,
+        answerId,
+        proposedQuestion: query.title,
+        proposedAnswer: answer.content,
+        proposedTags: query.tags || []
+      });
+      alert('FAQ request submitted! An admin will review it.');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to submit FAQ request');
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
@@ -220,6 +242,7 @@ function CommunityPage() {
               onSubmitAnswer={() => handleSubmitAnswer(query._id)}
               onUpvoteAnswer={(id) => handleUpvoteAnswer(id, query._id)}
               onAcceptAnswer={(id) => handleAcceptAnswer(id, query._id)}
+              onRequestFAQ={(id) => handleRequestFAQ(id, query._id, query)}
               onClaimQuery={() => handleClaimQuery(query._id)}
               onUnclaimQuery={() => handleUnclaimQuery(query._id)}
               submitting={submitting === query._id}
@@ -232,7 +255,7 @@ function CommunityPage() {
   );
 }
 
-function QueryCard({ query, isExpanded, onToggle, answerContent, onAnswerChange, onSubmitAnswer, onUpvoteAnswer, onAcceptAnswer, onClaimQuery, onUnclaimQuery, submitting, currentUser }) {
+function QueryCard({ query, isExpanded, onToggle, answerContent, onAnswerChange, onSubmitAnswer, onUpvoteAnswer, onAcceptAnswer, onRequestFAQ, onClaimQuery, onUnclaimQuery, submitting, currentUser }) {
   const assignedToId = query.assignedTo ? (query.assignedTo._id || query.assignedTo) : null;
   const isAssignedToCurrentUser = currentUser && assignedToId && assignedToId === (currentUser._id || currentUser.id);
   const isClosed = query.status === 'closed';
@@ -414,6 +437,16 @@ function QueryCard({ query, isExpanded, onToggle, answerContent, onAnswerChange,
                             className="text-xs text-emerald-600 hover:text-emerald-700 font-medium ml-auto"
                           >
                             Accept Answer
+                          </button>
+                        )}
+
+                        {/* Request to Add to FAQ - query owner or admin */}
+                        {(isOwnedByCurrentUser || (currentUser && currentUser.role === 'admin')) && (
+                          <button
+                            onClick={() => onRequestFAQ(answer._id)}
+                            className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                          >
+                            📋 Request to Add to FAQ
                           </button>
                         )}
                       </div>

@@ -9,6 +9,7 @@ const queryRoutes = require('./routes/queryRoutes');
 const answerRoutes = require('./routes/answerRoutes');
 const userRoutes = require('./routes/userRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const faqRequestRoutes = require('./routes/faqRequestRoutes');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/queries', queryRoutes);
 app.use('/api/answers', answerRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/faq-requests', faqRequestRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

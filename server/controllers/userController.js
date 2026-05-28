@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const FAQ = require('../models/FAQ');
+const FAQRequest = require('../models/FAQRequest');
 const Query = require('../models/Query');
 const Answer = require('../models/Answer');
 
@@ -91,14 +92,15 @@ exports.banUser = async (req, res) => {
 // Admin: Get admin stats dashboard
 exports.getStats = async (req, res) => {
   try {
-    const [totalUsers, totalFAQs, totalQueries, totalAnswers, openQueries, answeredQueries, recentQueries] = await Promise.all([
+    const [totalUsers, totalFAQs, totalQueries, totalAnswers, openQueries, answeredQueries, recentQueries, pendingFaqRequests] = await Promise.all([
       User.countDocuments(),
       FAQ.countDocuments({ status: 'resolved' }),
       Query.countDocuments(),
       Answer.countDocuments(),
       Query.countDocuments({ status: 'open' }),
       Query.countDocuments({ status: 'answered' }),
-      Query.find().populate('createdBy', 'name').sort({ createdAt: -1 }).limit(5)
+      Query.find().populate('createdBy', 'name').sort({ createdAt: -1 }).limit(5),
+      FAQRequest.countDocuments({ status: 'pending' })
     ]);
 
     res.json({
@@ -108,7 +110,8 @@ exports.getStats = async (req, res) => {
       totalAnswers,
       openQueries,
       answeredQueries,
-      recentQueries
+      recentQueries,
+      pendingFaqRequests
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch stats' });
