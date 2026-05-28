@@ -99,14 +99,14 @@ exports.upvoteFAQ = async (req, res) => {
     const userId = req.user._id;
 
     // Check if already upvoted
-    if (faq.upvotedBy.includes(userId)) {
+    if (faq.upvoters.includes(userId)) {
       // Remove upvote (toggle off)
       faq.upvotes -= 1;
-      faq.upvotedBy = faq.upvotedBy.filter(id => id.toString() !== userId.toString());
+      faq.upvoters = faq.upvoters.filter(id => id.toString() !== userId.toString());
     } else {
       // Add upvote
       faq.upvotes += 1;
-      faq.upvotedBy.push(userId);
+      faq.upvoters.push(userId);
 
       // Increase author reputation (+2 per upvote)
       await User.findByIdAndUpdate(faq.createdBy, {
@@ -118,7 +118,7 @@ exports.upvoteFAQ = async (req, res) => {
 
     res.json({
       upvotes: faq.upvotes,
-      hasUpvoted: faq.upvotedBy.includes(userId)
+      hasUpvoted: faq.upvoters.includes(userId)
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to upvote FAQ' });

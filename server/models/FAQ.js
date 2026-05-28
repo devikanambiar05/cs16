@@ -24,8 +24,7 @@ const faqSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  // Users who upvoted this FAQ
-  upvotedBy: [{
+  upvoters: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
