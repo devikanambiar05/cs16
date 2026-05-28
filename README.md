@@ -62,6 +62,8 @@ JWT_SECRET=your-secret-key
 npm run seed
 ```
 
+This reads `FAQ.txt` from the project root and seeds all FAQs automatically.
+
 ### 4. Run Servers
 
 ```bash
@@ -82,8 +84,7 @@ npm run dev
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | priya@university.edu | password123 |
-| User | rahul@university.edu | password123 |
+| Admin | admin@faqapp.com | admin123 |
 
 ## API Endpoints
 
