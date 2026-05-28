@@ -75,7 +75,7 @@ npm run dev
 
 ### 5. Open App
 
-- **Frontend:** http://localhost:3000
+- **Frontend:** http://localhost:5173
 - **Backend API:** http://localhost:5000/api
 
 ## Demo Accounts
