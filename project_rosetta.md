@@ -62,3 +62,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Parallel start scripts clashed because of environment-specific port configurations between different local development environments.
 * **🛡️ Edge Cases Tested**: Executed simultaneous start scripts under high system memory usage.
 
+### 📐 v0.11: Design DB models and standard schemas
+* **Release Date**: May 29, 2026 - 09:00
+* **Details**: Design schemas for active models (`User`, `FAQ`, `Query`, `Pin`).
+* **🎨 Visual Wireframe & Layout**: Whiteboard schema blocks mapping user credentials, upvote counters, soft delete flags, and category tags.
+* **🧠 Team Thinking & Rationale**: The database models form the backbone of the application; they must support gamification reputation, search indexes, and audit logs natively.
+* **💬 Discussions & Decisions**: Discussed referencing user objects by ObjectId vs embedding profile details. We decided on referencing to avoid duplicate user profile synchronization overhead.
+* **⚠️ Errors & Roadblocks Faced**: Mongoose model initialization crashed due to missing field validations on optional sub-documents.
+* **🛡️ Edge Cases Tested**: Validating schemas with missing optional parameters, ensuring defaults (like `reputation: 0` and `pinned: false`) are written correctly.
+
