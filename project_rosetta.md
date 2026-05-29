@@ -98,3 +98,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Network lag on initial load when querying large text bodies.
 * **🛡️ Edge Cases Tested**: Querying categories that have zero active FAQs linked, confirming they render a graceful "No entries found" banner.
 
+### 🔐 v0.22: JWT stateless tokens authentication
+* **Release Date**: May 29, 2026 - 21:00
+* **Details**: Implement stateless JSON Web Token cookies exchange.
+* **🎨 Visual Wireframe & Layout**: High-fidelity sandy/bronze theme login and registration dialog screens.
+* **🧠 Team Thinking & Rationale**: Stateful sessions are hard to scale; stateless JWT tokens placed inside HTTP-only cookies prevent XSS theft.
+* **💬 Discussions & Decisions**: Debated localStorage tokens vs secure HTTP-only cookies. Selected cookies due to robust script-injection resistance.
+* **⚠️ Errors & Roadblocks Faced**: Test suites failed to decrypt session signatures when JWT secret keys were missing from the local environment values.
+* **🛡️ Edge Cases Tested**: Handling expired tokens, tampered signatures, and malicious user role injection attempts.
+
