@@ -47,7 +47,8 @@ const querySchema = new mongoose.Schema({
   // SLA: when this query's 24hr window expires
   expiresAt: {
     type: Date,
-    required: true
+    required: true,
+    default: () => new Date(Date.now() + 24 * 60 * 60 * 1000)
   },
   // When the query was escalated (first SLA breach)
   escalatedAt: {

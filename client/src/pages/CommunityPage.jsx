@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getQueries, getSimilarQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery, createFAQRequest, updateQuery } from '../services/api';
+import { getQueries, getSimilarQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery, createFAQRequest, updateQuery, vetAnswer } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
 import RichTextEditor, { MarkdownContent } from '../components/RichTextEditor';
@@ -194,6 +194,17 @@ function CommunityPage() {
     }
   };
 
+  const handleVetAnswer = async (answerId) => {
+    if (!user) return;
+    try {
+      await vetAnswer(answerId);
+      toast.success('Answer successfully verified!');
+      fetchQueries();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to verify answer');
+    }
+  };
+
   const handleRequestFAQ = async (answerId, queryId, query) => {
     if (!user) { toast.warning('Please sign in to request a FAQ'); return; }
     const answer = query.answers?.find(a => a._id === answerId);
@@ -362,6 +373,7 @@ function CommunityPage() {
                 onUpvoteAnswer={handleUpvoteAnswer}
                 onAcceptAnswer={handleAcceptAnswer}
                 onRequestFAQ={handleRequestFAQ}
+                onVetAnswer={handleVetAnswer}
                 onClaimQuery={() => handleClaimQuery(query._id)}
                 onUnclaimQuery={() => handleUnclaimQuery(query._id)}
                 onStartEdit={() => handleStartEdit(query)}
@@ -397,7 +409,7 @@ function CommunityPage() {
 function QueryCard({
   query, isExpanded, onToggle,
   answerContent, onAnswerChange, onSubmitAnswer,
-  onUpvoteAnswer, onAcceptAnswer, onRequestFAQ,
+  onUpvoteAnswer, onAcceptAnswer, onRequestFAQ, onVetAnswer,
   onClaimQuery, onUnclaimQuery, onStartEdit,
   isEditing, editForm, onEditFormChange, onSaveEdit, onCancelEdit,
   similarQueries,
@@ -488,7 +500,7 @@ function QueryCard({
                 {canClaim && <button onClick={onClaimQuery} className="btn-primary text-sm py-1.5">🎯 Claim to Answer</button>}
                 {canRelease && <button onClick={onUnclaimQuery} className="btn-outline text-sm py-1.5">✖ Release Claim</button>}
                 {isOwnedByCurrentUser && !isClosed && (
-                  <button onClick={onStartEdit} className="btn-outline text-sm py-1.5">✏�� Edit Query</button>
+                  <button onClick={onStartEdit} className="btn-outline text-sm py-1.5">✏ Edit Query</button>
                 )}
                 {isOwnedByCurrentUser && !isClosed && (
                   <span className="text-xs text-slate-400 self-center">You asked this</span>
@@ -513,13 +525,26 @@ function QueryCard({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="flex-1 flex items-center gap-2">
+                            <div className="flex-1 flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-sm text-slate-800">{answer.userId?.name || 'Anonymous'}</span>
                               <span className="text-xs text-slate-400">{answer.userId?.reputation || 0} rep</span>
-                              {answer.isAccepted && <span className="badge badge-green text-xs">✓ Accepted</span>}
+                              {answer.isAccepted ? (
+                                <span className="badge badge-green text-xs">✓ Accepted</span>
+                              ) : answer.isVetted ? (
+                                <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5 font-medium">
+                                  🟢 Verified
+                                </span>
+                              ) : (
+                                <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5 font-medium">
+                                  🟡 Unverified
+                                </span>
+                              )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <button onClick={() => onUpvoteAnswer(answer._id)} className="text-xs text-slate-400 hover:text-primary-600">▲ {answer.upvotes || 0}</button>
+                              {!answer.isVetted && currentUser && (currentUser.role === 'admin' || currentUser.reputation >= 100) && (
+                                <button onClick={() => onVetAnswer(answer._id)} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">Verify 🪄</button>
+                              )}
                               {isOwnedByCurrentUser && !answer.isAccepted && !query.resolvedFAQ && (
                                 <button onClick={() => onAcceptAnswer(answer._id)} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">Accept</button>
                               )}

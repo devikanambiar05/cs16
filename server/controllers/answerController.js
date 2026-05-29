@@ -3,6 +3,7 @@ const Query = require('../models/Query');
 const FAQ = require('../models/FAQ');
 const FAQRequest = require('../models/FAQRequest');
 const User = require('../models/User');
+const UpvoteLog = require('../models/UpvoteLog');
 const { notifyQueryOwnerOfAnswer } = require('../services/emailService');
 
 // Threshold for auto-promoting an accepted answer to a pending FAQ request
@@ -23,10 +24,14 @@ exports.createAnswer = async (req, res) => {
     if (query.status === 'closed') return res.status(400).json({ error: 'This query is closed' });
     if (query.answerCount >= 5) return res.status(400).json({ error: 'This query already has 5 answers' });
 
+    const author = await User.findById(req.user._id).select('reputation role');
+    const isVetted = author ? (author.reputation >= 50 || author.role === 'admin') : true;
+
     const answer = await Answer.create({
       content,
       queryId,
-      userId: req.user._id
+      userId: req.user._id,
+      isVetted
     });
 
     query.answerCount = (query.answerCount || 0) + 1;
@@ -85,6 +90,10 @@ exports.upvoteAnswer = async (req, res) => {
 
     const userId = req.user._id;
 
+    if (answer.userId.toString() === userId.toString()) {
+      return res.status(400).json({ error: 'You cannot upvote your own answer' });
+    }
+
     if (answer.upvotedBy.includes(userId)) {
       // Remove upvote
       answer.upvotes -= 1;
@@ -93,7 +102,22 @@ exports.upvoteAnswer = async (req, res) => {
       await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: -2 } });
       // Reverse the +3 communityScore per removed upvote
       await Query.findByIdAndUpdate(answer.queryId, { $inc: { communityScore: -3 } });
+      
+      // Delete the upvote log
+      await UpvoteLog.findOneAndDelete({ upvoterId: userId, answerId: answer._id });
     } else {
+      // Enforce peer-to-peer anti-collusion: max 2 upvotes from upvoter to target author in the last 24h
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const count = await UpvoteLog.countDocuments({
+        upvoterId: userId,
+        targetUserId: answer.userId,
+        createdAt: { $gte: twentyFourHoursAgo }
+      });
+
+      if (count >= 2) {
+        return res.status(400).json({ error: 'Upvote limit exceeded for this contributor in the last 24 hours.' });
+      }
+
       // Add upvote
       answer.upvotes += 1;
       answer.upvotedBy.push(userId);
@@ -101,6 +125,13 @@ exports.upvoteAnswer = async (req, res) => {
       await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: 2 } });
       // +3 communityScore per upvote for auto-FAQ promotion
       await Query.findByIdAndUpdate(answer.queryId, { $inc: { communityScore: 3 } });
+
+      // Record the upvote log
+      await UpvoteLog.create({
+        upvoterId: userId,
+        targetUserId: answer.userId,
+        answerId: answer._id
+      });
     }
 
     await answer.save();
@@ -290,11 +321,44 @@ exports.deleteAnswer = async (req, res) => {
     // Reverse answersGiven counter (set on createAnswer)
     await User.findByIdAndUpdate(answer.userId, { $inc: { answersGiven: -1 } });
 
+    // Clean up upvote logs for this answer
+    await UpvoteLog.deleteMany({ answerId: answer._id });
+
     await answer.deleteOne();
 
 
     res.json({ message: 'Answer deleted' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete answer' });
+  }
+};
+
+// ─── Vet an answer ────────────────────────────────────────────────────────────
+
+exports.vetAnswer = async (req, res) => {
+  try {
+    const answer = await Answer.findById(req.params.id);
+    if (!answer) return res.status(404).json({ error: 'Answer not found' });
+
+    if (answer.isVetted) {
+      return res.status(400).json({ error: 'Answer is already verified' });
+    }
+
+    // Must be admin or have reputation >= 100
+    if (req.user.role !== 'admin' && req.user.reputation < 100) {
+      return res.status(403).json({ error: 'Only admins or contributors with 100+ reputation can verify answers' });
+    }
+
+    answer.isVetted = true;
+    await answer.save();
+
+    // Award +5 reputation to the answer author
+    await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: 5 } });
+
+    await answer.populate('userId', 'name reputation');
+
+    res.json({ message: 'Answer successfully verified', answer });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to verify answer' });
   }
 };

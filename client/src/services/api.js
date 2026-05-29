@@ -94,6 +94,7 @@ export const submitAnswer = (queryId, content) => api.post(`/api/queries/${query
 export const createAnswer = (queryId, content) => api.post('/api/answers', { queryId, content });
 export const upvoteAnswer = (answerId) => api.post(`/api/answers/${answerId}/upvote`);
 export const acceptAnswer = (answerId) => api.post(`/api/answers/${answerId}/accept`);
+export const vetAnswer = (answerId) => api.post(`/api/answers/${answerId}/vet`);
 export const getQueryById = (id) => api.get(`/api/queries/${id}`);
 
 // Answers

@@ -35,6 +35,10 @@ const answerSchema = new mongoose.Schema({
   deletedAt: {
     type: Date,
     default: null
+  },
+  isVetted: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
