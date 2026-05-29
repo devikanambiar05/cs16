@@ -1,5 +1,17 @@
 # FAQ App — Community FAQ Knowledge Base
 
+![License](https://img.shields.io/github/license/vicharanashala/cs16?style=flat-square&color=6366f1)
+![Last Commit](https://img.shields.io/github/last-commit/vicharanashala/cs16/main?style=flat-square&color=6366f1)
+![Commits](https://img.shields.io/github/commit-activity/t/vicharanashala/cs16?style=flat-square&color=6366f1)
+![Issues](https://img.shields.io/github/issues/vicharanashala/cs16?style=flat-square&color=6366f1)
+![Pull Requests](https://img.shields.io/github/issues-pr/vicharanashala/cs16?style=flat-square&color=6366f1)
+
+![Node](https://img.shields.io/badge/node-18%2B-339933?style=flat-square&logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/react-18-61DAFB?style=flat-square&logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/vite-5-646CFF?style=flat-square&logo=vite&logoColor=white)
+![MongoDB](https://img.shields.io/badge/mongodb-7-47A248?style=flat-square&logo=mongodb&logoColor=white)
+![Express](https://img.shields.io/badge/express-5-000000?style=flat-square&logo=express&logoColor=white)
+
 A MERN stack application where users search FAQs, raise queries, and receive community answers. Includes an admin dashboard for content moderation, a RAG-powered chat assistant, and a gamified reputation system.
 
 ## Tech Stack
