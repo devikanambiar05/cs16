@@ -9,6 +9,131 @@ const Pin = require('../models/Pin');
 
 const FAQHistory = require('../models/FAQHistory');
 
+// ─── Get All FAQs (Admin view with pagination & filtering) ────────────────────
+
+exports.getAdminFaqs = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      status,      // e.g. 'resolved', 'duplicate', 'deleted'
+      search,
+      tag
+    } = req.query;
+
+    const filter = {};
+    if (status) {
+      if (status === 'deleted') {
+        filter.deletedAt = { $ne: null };
+      } else {
+        filter.status = status;
+        if (status !== 'deleted') filter.deletedAt = null;
+      }
+    } else {
+      // Default: only non-deleted FAQs
+      filter.deletedAt = null;
+    }
+
+    if (tag) filter.tags = tag;
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { finalAnswer: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [faqs, total] = await Promise.all([
+      FAQ.find(filter)
+        .populate('mergedFrom', 'title')
+        .populate('mergedInto', 'title')
+        .populate('duplicateOf', 'title')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      FAQ.countDocuments(filter)
+    ]);
+
+    res.json({
+      faqs,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('getAdminFaqs error:', error);
+    res.status(500).json({ error: 'Failed to fetch FAQs' });
+  }
+};
+
+// ─── Patch FAQ (update finalAnswer with audit trail, or soft-delete/restore) ──
+
+exports.patchFaq = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { finalAnswer, status, deletedAt } = req.body;
+
+    const faq = await FAQ.findById(id);
+    if (!faq) return res.status(404).json({ error: 'FAQ not found' });
+
+    // ── Soft-delete / Restore ──────────────────────────────────────────────────
+    if (typeof deletedAt !== 'undefined' || status) {
+      if (deletedAt === null || status === 'resolved') {
+        // Restore
+        faq.deletedAt = null;
+        faq.status = status || 'resolved';
+        await faq.save();
+        return res.json({ message: 'FAQ restored', faq });
+      } else {
+        // Soft-delete
+        faq.deletedAt = deletedAt !== undefined ? deletedAt : new Date();
+        faq.status = status || 'deleted';
+        await faq.save();
+        return res.json({ message: 'FAQ deleted', faq });
+      }
+    }
+
+    // ── Update finalAnswer with FAQHistory audit trail ─────────────────────────
+    if (finalAnswer !== undefined) {
+      const history = new FAQHistory({
+        faq: faq._id,
+        editedBy: req.user._id,
+        previousTitle: faq.title,
+        previousDescription: faq.description,
+        previousFinalAnswer: faq.finalAnswer,
+        previousTags: [...(faq.tags || [])],
+        newTitle: faq.title,
+        newDescription: faq.description,
+        newFinalAnswer: finalAnswer,
+        newTags: [...(faq.tags || [])],
+        reason: req.body.reason || 'admin patch'
+      });
+      await history.save();
+
+      faq.finalAnswer = finalAnswer;
+      await faq.save();
+      return res.json({ message: 'FAQ updated', faq, history });
+    }
+
+    // ── General status update (no audit needed for status alone) ───────────────
+    if (status) {
+      faq.status = status;
+      await faq.save();
+      return res.json({ message: 'FAQ status updated', faq });
+    }
+
+    res.status(400).json({ error: 'No valid update fields provided' });
+  } catch (error) {
+    console.error('patchFaq error:', error);
+    res.status(500).json({ error: 'Failed to patch FAQ' });
+  }
+};
+
 // ─── Pin / Unpin FAQ ──────────────────────────────────────────────────────────
 
 exports.pinFAQ = async (req, res) => {
@@ -21,7 +146,7 @@ exports.pinFAQ = async (req, res) => {
 
     res.json({ message: faq.pinned ? 'FAQ pinned' : 'FAQ unpinned', pinned: faq.pinned });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update pin status' });
+    res.status(500).json({ error: 'Failed to delete FAQ' });
   }
 };
 
@@ -483,5 +608,84 @@ exports.deletePin = async (req, res) => {
     res.json({ message: 'Pin removed' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete pin' });
+  }
+};
+
+exports.getAdminFaqs = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status, search, tag } = req.query;
+    const query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    if (search) {
+      query.title = { $regex: search, $options: 'i' };
+    }
+    if (tag) {
+      query.tags = tag.toLowerCase().trim();
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [faqs, total] = await Promise.all([
+      FAQ.find(query)
+        .populate('createdBy', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      FAQ.countDocuments(query)
+    ]);
+
+    res.json({
+      faqs,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('getAdminFaqs error:', error);
+    res.status(500).json({ error: 'Failed to fetch admin FAQs' });
+  }
+};
+
+exports.patchFaq = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { finalAnswer, deletedAt, status, title, tags } = req.body;
+
+    const faq = await FAQ.findById(id);
+    if (!faq) return res.status(404).json({ error: 'FAQ not found' });
+
+    // Handle audit trail if finalAnswer is being changed
+    if (finalAnswer !== undefined && faq.finalAnswer !== finalAnswer) {
+      const history = new FAQHistory({
+        faq: faq._id,
+        editedBy: req.user._id,
+        previousTitle: faq.title,
+        previousDescription: faq.description,
+        previousFinalAnswer: faq.finalAnswer,
+        previousTags: [...(faq.tags || [])],
+        newTitle: title || faq.title,
+        newDescription: faq.description,
+        newFinalAnswer: finalAnswer,
+        newTags: tags ? tags.map(t => t.toLowerCase().trim()) : [...(faq.tags || [])],
+        reason: 'admin patch'
+      });
+      await history.save();
+      faq.finalAnswer = finalAnswer;
+    }
+
+    if (deletedAt !== undefined) faq.deletedAt = deletedAt;
+    if (status !== undefined) faq.status = status;
+    if (title !== undefined) faq.title = title;
+    if (tags !== undefined) faq.tags = tags.map(t => t.toLowerCase().trim());
+
+    await faq.save();
+    res.json({ message: 'FAQ updated successfully', faq });
+  } catch (error) {
+    console.error('patchFaq error:', error);
+    res.status(500).json({ error: 'Failed to patch FAQ' });
   }
 };

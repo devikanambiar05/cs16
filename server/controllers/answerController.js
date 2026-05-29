@@ -265,12 +265,9 @@ exports.deleteAnswer = async (req, res) => {
       await query.save();
     }
 
-    // Reverse upvote rep for each upvote (-2 per upvote removed)
+    // Reverse upvote rep: answer author received +2 per upvote, so reverse all of it
     if (answer.upvotes > 0 && answer.upvotedBy && answer.upvotedBy.length > 0) {
-      await User.updateMany(
-        { _id: { $in: answer.upvotedBy } },
-        { $inc: { reputation: -2 } }
-      );
+      await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: -(2 * answer.upvotes) } });
     }
 
     // Reverse accepted answer rep bonus (-20 to author)

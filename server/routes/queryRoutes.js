@@ -24,12 +24,34 @@ router.get('/sla/stats', protect, getSlaStats);
 router.get('/community-candidates', getCommunityCandidates);
 router.get('/sla/stale-claims', protect, adminOnly, async (req, res) => {
   try {
-    const AdminController = require('../controllers/adminController');
-    const handler = AdminController.autoReleaseStaleClaims;
-    if (typeof handler === 'function') {
-      return handler(req, res);
+    const Query = require('../models/Query');
+    const Answer = require('../models/Answer');
+    const SLA_24HR = 24 * 60 * 60 * 1000;
+    const now = new Date();
+
+    const staleClaimed = await Query.find({
+      status: 'claimed',
+      expiresAt: { $lt: now }
+    });
+
+    let actionCount = 0;
+    for (const query of staleClaimed) {
+      const hasAcceptedAnswer = await Answer.exists({
+        queryId: query._id,
+        isAccepted: true
+      });
+      if (!hasAcceptedAnswer) {
+        query.assignedTo = null;
+        query.claimedAt = null;
+        query.status = 'open';
+        query.expiresAt = new Date(Date.now() + SLA_24HR);
+        query.escalationCount = (query.escalationCount || 0) + 1;
+        query.escalatedAt = query.escalatedAt || new Date();
+        await query.save();
+        actionCount++;
+      }
     }
-    res.status(501).json({ error: 'Not implemented' });
+    res.json({ message: `Successfully released ${actionCount} stale claim(s)`, releasedCount: actionCount });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

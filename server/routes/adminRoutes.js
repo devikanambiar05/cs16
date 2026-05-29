@@ -13,7 +13,9 @@ const {
   rejectAnswer,
   getModerationQueue,
   getPins,
-  createPin
+  createPin,
+  getAdminFaqs,
+  patchFaq
 } = require('../controllers/adminController');
 
 // ─── FAQ Management ────────────────────────────────────────────────────────────
@@ -27,8 +29,8 @@ router.post('/faqs/merge', protect, adminOnly, mergeFAQs);
 // Edit FAQ finalAnswer (with audit trail)
 router.patch('/faqs/:id/final-answer', protect, adminOnly, editFAQFinalAnswer);
 
-// Soft-delete / Restore a FAQ
-router.patch('/faqs/:id', protect, adminOnly, deleteFAQ);
+// Soft-delete / Restore — handled by patchFaq below
+// (PATCH /faqs/:id is now exclusively managed by patchFaq)
 
 // ─── Answer Management ────────────────────────────────────────────────────────
 
@@ -50,6 +52,10 @@ router.get('/analytics', protect, adminOnly, getAnalytics);
 
 // SLA-specific stats
 router.get('/sla-stats', protect, adminOnly, getSlaStats);
+
+// FAQ Management
+router.get('/faqs', protect, adminOnly, getAdminFaqs);
+router.patch('/faqs/:id', protect, adminOnly, patchFaq);
 
 // Pin Management
 router.get('/pins', protect, adminOnly, getPins);
