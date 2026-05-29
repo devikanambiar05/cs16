@@ -27,28 +27,53 @@ exports.getQueries = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const [queries, total] = await Promise.all([
-      Query.find(query)
-        .populate('createdBy', 'name reputation')
-        .populate('assignedTo', 'name reputation')
-        .populate('resolvedFAQ', 'title')
-        .sort(sortOption)
-        .skip(skip)
-        .limit(parseInt(limit)),
-      Query.countDocuments(query)
+    // Single aggregation: fetch queries + populate refs + attach accepted answers in one shot (fixes N+1)
+    // Note: $lookup replaces .populate() in aggregation pipelines — refs are not auto-populated
+    const queries = await Query.aggregate([
+      { $match: query },
+      // Populate createdBy (user name + reputation)
+      { $lookup: { from: 'users', localField: 'createdBy', foreignField: '_id', as: 'createdByArr' } },
+      { $addFields: { createdBy: { $arrayElemAt: ['$createdByArr', 0] } } },
+      { $project: { createdByArr: 0 } },
+      // Populate assignedTo (user name + reputation)
+      { $lookup: { from: 'users', localField: 'assignedTo', foreignField: '_id', as: 'assignedToArr' } },
+      { $addFields: { assignedTo: { $arrayElemAt: ['$assignedToArr', 0] } } },
+      { $project: { assignedToArr: 0 } },
+      // Populate resolvedFAQ (FAQ title)
+      { $lookup: { from: 'faqs', localField: 'resolvedFAQ', foreignField: '_id', as: 'resolvedFAQArr' } },
+      { $addFields: { resolvedFAQ: { $arrayElemAt: ['$resolvedFAQArr', 0] } } },
+      { $project: { resolvedFAQArr: 0 } },
+      // Attach accepted answer inline via $lookup
+      {
+        $lookup: {
+          from: 'answers',
+          let: { qId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$queryId', '$$qId'] },
+                    { $eq: ['$isAccepted', true] }
+                  ]
+                }
+              }
+            },
+            { $project: { _id: 1, content: 1, userId: 1 } },
+            { $limit: 1 }
+          ],
+          as: 'acceptedAnswerArr'
+        }
+      },
+      { $addFields: { acceptedAnswer: { $arrayElemAt: ['$acceptedAnswerArr', 0] } } },
+      { $project: { acceptedAnswerArr: 0 } },
+      // Sort and paginate
+      { $sort: sortOption },
+      { $skip: skip },
+      { $limit: parseInt(limit) }
     ]);
 
-    // Attach accepted answer to each query (for admin "Review & Convert" button)
-    await Promise.all(queries.map(async (q) => {
-      const accepted = await Answer.findOne({ queryId: q._id, isAccepted: true });
-      if (accepted) {
-        q._doc.acceptedAnswer = {
-          _id: accepted._id,
-          content: accepted.content,
-          userId: accepted.userId
-        };
-      }
-    }));
+    const total = await Query.countDocuments(query);
 
     res.json({
       queries,
@@ -215,17 +240,30 @@ exports.claimQuery = async (req, res) => {
       });
     }
 
-    // Check if SLA already breached — if so, give a fresh 24hr window
-    const needsFreshSla = query.expiresAt < new Date();
-    query.assignedTo = req.user._id;
-    query.claimedAt = new Date();
-    query.status = 'claimed';
-    if (needsFreshSla) {
-      query.expiresAt = new Date(Date.now() + SLA_24HR);
-      query.escalationCount += 1;
-      query.escalatedAt = query.escalatedAt || new Date();
+    // Atomic claim: fail if already claimed by someone else (prevents race condition)
+    const freshSla = query.expiresAt < new Date();
+    const claimed = await Query.findOneAndUpdate(
+      {
+        _id: query._id,
+        assignedTo: { $in: [null, req.user._id] },
+        status: { $in: ['open', 'claimed'] }
+      },
+      {
+        $set: {
+          assignedTo: req.user._id,
+          claimedAt: new Date(),
+          status: 'claimed',
+          ...(freshSla ? { expiresAt: new Date(Date.now() + SLA_24HR) } : {})
+        },
+        ...(freshSla ? { $inc: { escalationCount: 1 } } : {}),
+        ...(freshSla && !query.escalatedAt ? { $set: { escalatedAt: new Date() } } : {})
+      },
+      { new: true }
+    );
+
+    if (!claimed) {
+      return res.status(409).json({ error: 'This query was just claimed by another user. Please refresh and try again.' });
     }
-    await query.save();
 
     const populated = await Query.findById(query._id)
       .populate('createdBy', 'name reputation')

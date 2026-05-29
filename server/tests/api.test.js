@@ -275,5 +275,105 @@ describe('Community Query Endpoints', () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.queries)).toBe(true);
     });
+
+    it('should attach acceptedAnswer inline without per-item extra queries', async () => {
+      const Query = require('../models/Query');
+      const Answer = require('../models/Answer');
+      const User = require('../models/User');
+      const u = await User.findOne({});
+      const q = await Query.create({
+        title: 'N+1 accepted answer test',
+        description: 'does the accepted answer attach inline?',
+        status: 'open',
+        expiresAt: new Date()
+      });
+      const a = await Answer.create({
+        queryId: q._id, userId: u._id,
+        content: 'this is the accepted answer',
+        isAccepted: true, upvotes: 0
+      });
+      const res = await request(app).get('/api/queries/' + q._id);
+      expect(res.status).toBe(200);
+      expect(res.body.query).toBeDefined();
+      expect(res.body.query.acceptedAnswer).toBeDefined();
+      expect(res.body.query.acceptedAnswer._id.toString()).toBe(a._id.toString());
+      expect(res.body.query.acceptedAnswer.content).toBe('this is the accepted answer');
+      await a.deleteOne();
+      await q.deleteOne();
+    });
+
+    it('should populate createdBy and assignedTo inline via $lookup (no N+1)', async () => {
+      const res = await request(app).get('/api/queries?limit=5');
+      expect(res.status).toBe(200);
+      const q = res.body.queries[0];
+      if (q) {
+        expect(q.createdBy).toBeDefined();
+        expect(q.createdBy.name).toBeDefined();
+      }
+    });
+  });
+
+  describe('Claim Race Condition', () => {
+    let token, user;
+    beforeAll(async () => {
+      const User = require('../models/User');
+      // Ensure the user exists by attempting registration first (ignore duplicate error if already there)
+      await request(app).post('/api/auth/register').send({
+        name: 'Race Tester',
+        email: 'race-test@test.com',
+        password: 'testpass123'
+      });
+      const loginRes = await request(app).post('/api/auth/login').send({
+        email: 'race-test@test.com', password: 'testpass123'
+      });
+      token = loginRes.body.token;
+      const decoded = require('jsonwebtoken').decode(token);
+      user = await User.findById(decoded.userId || decoded._id || decoded.id) || await User.findOne({ email: 'race-test@test.com' });
+    });
+
+    it('only one of two concurrent self-claims succeeds; the other gets 409', async () => {
+      const Query = require('../models/Query');
+      const q = await Query.create({
+        title: 'Race condition test', description: 'two simultaneous claims from same token',
+        status: 'open', expiresAt: new Date()
+      });
+      const [r1, r2] = await Promise.all([
+        request(app).post('/api/queries/' + q._id + '/claim').set('Authorization', 'Bearer ' + token),
+        request(app).post('/api/queries/' + q._id + '/claim').set('Authorization', 'Bearer ' + token)
+      ]);
+      const successes = [r1, r2].filter(r => r.status === 200);
+      const conflicts = [r1, r2].filter(r => r.status === 409);
+      expect(successes.length).toBe(1);
+      expect(conflicts.length).toBe(1);
+      const updated = await Query.findById(q._id);
+      expect(updated.assignedTo.toString()).toBe(user._id.toString());
+      expect(updated.status).toBe('claimed');
+      await Query.findByIdAndDelete(q._id);
+    });
+
+    it('concurrent claims from two different users: one wins (200), one loses (409)', async () => {
+      const Query = require('../models/Query');
+      const email2 = 'race-test-2-' + Date.now() + '@test.com';
+      await request(app).post('/api/auth/register').send({
+        name: 'Race Tester 2', email: email2, password: 'testpass123'
+      });
+      const login2 = await request(app).post('/api/auth/login').send({ email: email2, password: 'testpass123' });
+      const token2 = login2.body.token;
+      const q = await Query.create({
+        title: 'Two-user race test', description: 'different users claiming same query',
+        status: 'open', expiresAt: new Date()
+      });
+      const [r1, r2] = await Promise.all([
+        request(app).post('/api/queries/' + q._id + '/claim').set('Authorization', 'Bearer ' + token),
+        request(app).post('/api/queries/' + q._id + '/claim').set('Authorization', 'Bearer ' + token2)
+      ]);
+      const successCount = [r1.status, r2.status].filter(s => s === 200).length;
+      const conflictCount = [r1.status, r2.status].filter(s => s === 409).length;
+      expect(successCount).toBe(1);
+      expect(conflictCount).toBe(1);
+      const updated = await Query.findById(q._id);
+      expect(updated.assignedTo).not.toBeNull();
+      await Query.findByIdAndDelete(q._id);
+    });
   });
 });
