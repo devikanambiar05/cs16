@@ -80,3 +80,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Double newline differences between Windows and Unix formatting (CRLF vs LF) caused the seeding script to group separate paragraphs into single fields.
 * **🛡️ Edge Cases Tested**: Parsing text files containing empty lines, invalid category headings, and duplicate question strings.
 
+### 🔍 v0.13: Concurrent database text indexes checks
+* **Release Date**: May 29, 2026 - 15:00
+* **Details**: Sync full-text search indexes on Mongo initialization to prevent searches crash.
+* **🎨 Visual Wireframe & Layout**: Diagnostic console outputs: `"✔ Search text indexes verified on database connection"`.
+* **🧠 Team Thinking & Rationale**: Full-text searching will fail at runtime if MongoDB hasn't finished indexing fields. Indexing must be guaranteed on boot.
+* **💬 Discussions & Decisions**: Discussed building indexes dynamically upon query arrival vs indexing on startup. We opted for concurrent startup index generation.
+* **⚠️ Errors & Roadblocks Faced**: Index building locked subsequent collection writes, crashing the parallel test suites.
+* **🛡️ Edge Cases Tested**: Initializing multiple server processes concurrently attempting to write identical search index rules.
+
