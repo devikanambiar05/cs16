@@ -214,6 +214,10 @@ function CommunityPage() {
       const res = await getQueries({ status: 'open', sort: 'recent', limit: 50 });
       const available = res.data.queries.find(q => !q.assignedTo);
       if (!available) { toast.info('No open queries available right now.'); return; }
+      if (available.createdBy?._id === user._id) {
+        toast.info('You cannot take your own query.');
+        return;
+      }
       const claimRes = await claimQuery(available._id);
       const assignedQuery = claimRes.data.query || available;
       toast.success(`🎯 Claimed: "${assignedQuery.title}" — 24hr SLA started!`);

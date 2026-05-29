@@ -1,23 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { getPins } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
-export default function Layout({ children, user, onLogout }) {
+export default function Layout() {
   const location = useLocation();
   const [pins, setPins] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const { dark, toggle } = useTheme();
 
   useEffect(() => {
     getPins().then(res => setPins(res.data || [])).catch(() => {});
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   const navLinks = [
-    { to: '/faqs', label: 'FAQs' },
+    { to: '/', label: 'FAQs' },
     { to: '/wiki', label: 'Wiki' },
     { to: '/community', label: 'Community' },
+    { to: '/leaderboard', label: 'Leaderboard' },
   ];
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
@@ -55,25 +59,44 @@ export default function Layout({ children, user, onLogout }) {
 
             {/* Right side */}
             <div className="flex items-center gap-2">
-              {/* Pin badge on FAQ nav */}
+              {/* Pin badge */}
               {pins.length > 0 && (
                 <Link
-                  to="/faqs"
+                  to="/"
                   className="hidden sm:flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium"
                 >
                   📌 {pins.length} pinned
                 </Link>
               )}
 
-              {/* RAG chat toggle */}
+              {/* Theme toggle */}
+              <button
+                onClick={toggle}
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {dark ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l.707.707M6.343 17.657l.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+
+              {/* User controls */}
               {user ? (
                 <>
-                  <Link
-                    to="/raise-query"
-                    className="hidden sm:block text-sm text-slate-600 hover:text-primary-600 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                  >
-                    Ask a Question
-                  </Link>
+                  {user.role !== 'admin' && (
+                    <Link
+                      to="/ask"
+                      className="hidden sm:block text-sm text-slate-600 hover:text-primary-600 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
+                      Ask a Question
+                    </Link>
+                  )}
                   <div className="relative group">
                     <button className="w-8 h-8 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold flex items-center justify-center hover:bg-primary-200 transition-colors">
                       {user.name?.charAt(0).toUpperCase()}
@@ -90,7 +113,7 @@ export default function Layout({ children, user, onLogout }) {
                         </Link>
                       )}
                       <button
-                        onClick={onLogout}
+                        onClick={logout}
                         className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         Sign out
@@ -103,7 +126,7 @@ export default function Layout({ children, user, onLogout }) {
                   <Link to="/login" className="text-sm text-slate-600 hover:text-primary-600 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">
                     Sign in
                   </Link>
-                  <Link to="/register" className="btn-primary text-sm py-1.5 px-3">
+                  <Link to="/login" className="btn-primary text-sm py-1.5 px-3">
                     Register
                   </Link>
                 </>
@@ -141,8 +164,8 @@ export default function Layout({ children, user, onLogout }) {
                 {link.label}
               </Link>
             ))}
-            {user && (
-              <Link to="/raise-query" className="block px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg">
+            {user && user.role !== 'admin' && (
+              <Link to="/ask" className="block px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg">
                 Ask a Question
               </Link>
             )}
@@ -150,9 +173,9 @@ export default function Layout({ children, user, onLogout }) {
         )}
       </header>
 
-      {/* ── Page content ── */}
+      {/* ── Page content — rendered via React Router's <Outlet /> ── */}
       <main className="flex-1">
-        {children}
+        <Outlet />
       </main>
 
       {/* ── Footer ── */}
@@ -166,12 +189,10 @@ export default function Layout({ children, user, onLogout }) {
               <span>FAQ App — Vicharanashala</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link to="/faqs" className="hover:text-primary-600 transition-colors">FAQs</Link>
+              <Link to="/" className="hover:text-primary-600 transition-colors">FAQs</Link>
               <Link to="/wiki" className="hover:text-primary-600 transition-colors">Wiki</Link>
               <Link to="/community" className="hover:text-primary-600 transition-colors">Community</Link>
-              {user?.role === 'admin' && (
-                <Link to="/admin" className="hover:text-primary-600 transition-colors">Admin</Link>
-              )}
+              <Link to="/leaderboard" className="hover:text-primary-600 transition-colors">Leaderboard</Link>
             </div>
           </div>
         </div>

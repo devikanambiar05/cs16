@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getFAQs, getTrending, getFAQById, upvoteFAQ, createFAQ, convertAnswerToFAQ } = require('../controllers/faqController');
+const { getFAQs, getTrending, getFAQById, upvoteFAQ, createFAQ, convertAnswerToFAQ, getPins } = require('../controllers/faqController');
 const { getFAQsByCategory } = require('../controllers/categoryController');
 const { protect, optionalAuth, adminOnly } = require('../middleware/auth');
 
@@ -12,6 +12,9 @@ router.get('/category/:tag', optionalAuth, getFAQsByCategory);
 
 // Public - trending FAQs
 router.get('/trending', getTrending);
+
+// Public - get pins (community board cards)
+router.get('/pins', getPins);
 
 // Admin - create FAQ manually
 router.post('/', protect, adminOnly, createFAQ);

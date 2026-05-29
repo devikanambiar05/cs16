@@ -110,7 +110,7 @@ export default function TagInput({ tags, onChange, maxTags = 3 }) {
               type="button"
               onClick={() => removeTag(tag)}
               className="text-primary-400 hover:text-primary-700 dark:hover:text-primary-200 leading-none ml-0.5 font-bold"
-              aria-label={`Remove ${tag}`}
+              aria-label={`Remove tag ${tag}`}
             >
               ×
             </button>

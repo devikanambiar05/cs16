@@ -11,7 +11,9 @@ const {
   getAnalytics,
   getSlaStats,
   rejectAnswer,
-  getModerationQueue
+  getModerationQueue,
+  getPins,
+  createPin
 } = require('../controllers/adminController');
 
 // ─── FAQ Management ────────────────────────────────────────────────────────────
@@ -48,6 +50,10 @@ router.get('/analytics', protect, adminOnly, getAnalytics);
 
 // SLA-specific stats
 router.get('/sla-stats', protect, adminOnly, getSlaStats);
+
+// Pin Management
+router.get('/pins', protect, adminOnly, getPins);
+router.post('/pins', protect, adminOnly, createPin);
 
 // Moderation queue (pending FAQ requests + SLA-breached queries)
 router.get('/moderation', protect, adminOnly, getModerationQueue);

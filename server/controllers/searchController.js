@@ -153,11 +153,15 @@ function rsjIdf(df, N) {
   return Math.log((N - df + 0.5) / (df + 0.5) + 1);
 }
 
-// BM25 scoring
+// BM25 scoring — token array version (for FAQ index)
 function bm25Score(queryTokens, docTokens, docLength, avgDL, df, idf, N, k1 = 1.5, b = 0.75) {
   const docTf = {};
   for (const t of docTokens) docTf[t] = (docTf[t] || 0) + 1;
+  return bm25ScoreTf(queryTokens, docTf, docLength, avgDL, df, N, k1, b);
+}
 
+// BM25 scoring — pre-computed TF map version (for query scoring)
+function bm25ScoreTf(queryTokens, docTf, docLength, avgDL, df, N, k1 = 1.5, b = 0.75) {
   let score = 0;
   for (const term of queryTokens) {
     const termDf = df[term] || 0;
@@ -180,6 +184,7 @@ async function scoreFaqsAgainstQuery(queryText, limit = 5) {
 
   const avgDL = faqs.reduce((sum, f) => sum + f._docLen, 0) / faqs.length;
 
+  // Score every FAQ
   const scored = faqs
     .map(faq => ({
       _id: faq._id,
@@ -190,23 +195,22 @@ async function scoreFaqsAgainstQuery(queryText, limit = 5) {
       score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, df, N)
     }))
     .filter(f => f.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .sort((a, b) => b.score - a.score);
 
   if (scored.length === 0) return [];
 
-  // Normalise scores relative to the top result.
-  // Only return FAQs that score at least 25% of the best match — this filters
-  // out low-relevance results for unrelated queries like "who was the first president".
+  // Use the TOP result's score as the relevance ceiling, not the input threshold.
+  // Only return FAQs that score >= 35% of the best match — this cleanly filters
+  // out low-relevance results for truly unrelated queries. An absolute floor of
+  // 0.8 prevents a low-scoring result from appearing solely because the corpus
+  // is tiny and everything scores poorly.
   const topScore = scored[0].score;
-  const MIN_RELATIVE_SCORE = 0.25;
-
-  // Also require a minimum absolute BM25 score so that a corpus with very few
-  // documents doesn't inflate all scores artificially.
-  const MIN_ABSOLUTE_SCORE = 1.0;
+  const MIN_RELATIVE_SCORE = 0.35;
+  const MIN_ABSOLUTE_SCORE = 0.8;
 
   return scored
     .filter(f => f.score >= MIN_ABSOLUTE_SCORE && f.score / topScore >= MIN_RELATIVE_SCORE)
+    .slice(0, limit)
     .map(f => ({ _id: f._id, title: f.title, finalAnswer: f.finalAnswer, tags: f.tags, upvotes: f.upvotes, similarity: Math.round(f.score * 1000) / 1000 }));
 }
 
@@ -228,27 +232,69 @@ exports.searchSimilar = async (req, res) => {
   try {
     const q = (req.query.q || '').trim();
     if (!q || q.length < 3) {
-      return res.json({ faqs: [], queries: [], resolvedQueries: [], highConfidenceDuplicate: null });
+      return res.json({ faqs: [], queries: [], resolvedQueries: [], highConfidenceDuplicate: null, isInScope: true });
     }
+
+    // Scope check — does the query mention anything related to the platform/internship?
+    const scopeKeywords = [
+      'vicharanashala', 'vins', 'vise', 'summership', 'iit ropar', 'internship',
+      'noc', 'offer letter', 'certificate', 'rosetta', 'vibe', 'yaksha', 'samagama',
+      'phase', 'bronze', 'silver', 'gold', 'platinum', 'badge', 'mentor', 'team formation',
+      'quiz', 'live session', 'coursework', 'proctor', 'proctoring',
+      'leave', 'attendance', 'stipend', 'laptop', 'linux', 'ssh',
+      'viBe', 'vibe platform', 'linear progression', 'penalty score'
+    ];
+    const queryLower = q.toLowerCase();
+    const matchedScope = scopeKeywords.filter(k => queryLower.includes(k));
+    const isInScope = matchedScope.length > 0;
 
     // FAQs — BM25 (handles short queries, zero-IDF edge cases)
     const faqs = await scoreFaqsAgainstQuery(q, 5);
 
-    // Queries — keyword + regex (fast, sufficient)
-    const allQueries = await Query.find({
-      $or: [
-        { tags: { $in: tokenize(q) } },
-        { title: { $regex: q, $options: 'i' } }
-      ]
+    // Queries — full BM25 scoring, filter to relative relevance threshold
+    const allRawQueries = await Query.find({
+      status: { $ne: 'closed' },
+      deletedAt: null
     })
-      .select('_id title status answerCount tags upvotes')
-      .limit(10)
+      .select('_id title description tags status answerCount upvotes createdBy')
       .lean();
+
+    const qTokens = tokenize(q);
+    let topRawQueries = [];
+    if (qTokens.length > 0) {
+      // Separate idf/N for query corpus — compute document frequency across all queries
+      const qdf = {};
+      for (const r of allRawQueries) {
+        for (const term of new Set(tokenize(`${r.title} ${r.description}`))) {
+          qdf[term] = (qdf[term] || 0) + 1;
+        }
+      }
+      const qN = allRawQueries.length;
+      const avgQL = allRawQueries.reduce((s, r) => s + tokenize(`${r.title} ${r.description}`).length, 0) / Math.max(qN, 1);
+      const scoreMap = {};
+      for (const r of allRawQueries) {
+        const rTokens = tokenize(`${r.title} ${r.description}`);
+        const rdl = rTokens.length;
+        const rTf = {};
+        for (const t of rTokens) rTf[t] = (rTf[t] || 0) + 1;
+        const s = bm25ScoreTf(qTokens, rTf, rdl, avgQL || rdl, qdf, qN);
+       if (s >= 0.5) scoreMap[r._id.toString()] = s;
+      }
+      const topScore = Object.values(scoreMap)[0] || 0;
+      const MIN_RELATIVE = 0.35;
+      topRawQueries = allRawQueries
+        .filter(r => {
+          const s = scoreMap[r._id.toString()] || 0;
+          return topScore === 0 || s / topScore >= MIN_RELATIVE;
+        })
+        .sort((a, b) => (scoreMap[b._id.toString()] || 0) - (scoreMap[a._id.toString()] || 0))
+        .slice(0, 10);
+    }
 
     const resolvedQueries = [];
     const openQueries = [];
 
-    for (const query of allQueries) {
+    for (const query of topRawQueries) {
       const acceptedAnswer = await Answer.findOne({ queryId: query._id, isAccepted: true })
         .select('_id upvotes').lean();
       if (acceptedAnswer) resolvedQueries.push({ ...query, acceptedAnswer });
@@ -268,7 +314,8 @@ exports.searchSimilar = async (req, res) => {
       faqs,
       queries: openQueries,
       resolvedQueries: scoredResolved,
-      highConfidenceDuplicate: highConfidenceDuplicate || null
+      highConfidenceDuplicate: highConfidenceDuplicate || null,
+      isInScope
     });
   } catch (error) {
     console.error('Search error:', error);
@@ -302,24 +349,27 @@ exports.getTagSuggestions = async (req, res) => {
 
 exports.detectTags = async (req, res) => {
   try {
-    const { title = '', description = '' } = req.query;
-    const text = `${title} ${description}`.trim();
+    const { text = '' } = req.query;
     if (!text || text.length < 10) return res.json({ detectedTags: [], confidence: [] });
 
-    const { knownTags, idf } = await buildIDFCache();
+    const scoreTags = require('./searchController').scoreTags || (async () => []);
+    const extractKeywords = (text) => text
+      .toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)
+      .filter(t => t.length > 2);
 
-    if (!knownTags || knownTags.size === 0) {
-      const fallback = extractKeywords(text).slice(0, 3);
-      return res.json({ detectedTags: fallback, confidence: fallback.map(t => ({ tag: t, score: 1 })) });
+    const knownTags = new Set();
+    const allFAQs = await FAQ.find({ status: 'resolved', deletedAt: null }).select('tags').lean();
+    for (const f of allFAQs) { (f.tags || []).forEach(t => knownTags.add(t)); }
+
+    if (!knownTags.size) {
+      const kw = extractKeywords(text).slice(0, 3);
+      return res.json({ detectedTags: kw, confidence: kw.map(t => ({ tag: t, score: 1 })) });
     }
 
-    // Score and cap at 3 tags. Only include tags with a meaningful score
-    // (score > 0.05) so that unrelated text doesn't produce noise tags.
-    const scored = scoreTags(text, knownTags, idf, 10);
-    const MIN_TAG_SCORE = 0.05;
-    const filtered = scored.filter(s => s.score >= MIN_TAG_SCORE).slice(0, 3);
-
-    res.json({ detectedTags: filtered.map(s => s.tag), confidence: filtered });
+    // Only suggest tags that already exist in the FAQ database
+    const tokens = extractKeywords(text);
+    const suggestions = tokens.filter(t => knownTags.has(t)).slice(0, 3);
+    return res.json({ detectedTags: suggestions, confidence: suggestions.map(t => ({ tag: t, score: 1 })) });
   } catch (error) {
     console.error('Tag detection error:', error);
     res.status(500).json({ error: 'Failed to detect tags' });

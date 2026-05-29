@@ -103,6 +103,8 @@ export const getLeaderboard = (params) => api.get('/api/users/leaderboard', para
 // ─── Admin ─────────────────────────────────────────────────────────────────────
 // ─── Pins ──────────────────────────────────────────────────────────────────────
 export const getPins = () => api.get('/api/faqs/pins');
+export const searchSimilar = (q) => api.get('/api/search/similar', { q });
+export const detectTags = (text) => api.get('/api/search/detect-tags', { text });
 export const getAdminPins = () => api.get('/api/admin/pins');
 export const createPin = (data) => api.post('/api/admin/pins', data);
 export const updatePin = (id, data) => api.patch(`/api/admin/pins/${id}`, data);

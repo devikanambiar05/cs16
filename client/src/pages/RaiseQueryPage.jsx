@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { createQuery } from '../services/api';
+import { createQuery, searchSimilar, detectTags } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RichTextEditor from '../components/RichTextEditor';
 import TagInput from '../components/TagInput';
@@ -14,11 +14,12 @@ function RaiseQueryPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Duplicate / similar results
   const [similarFAQs, setSimilarFAQs] = useState([]);
   const [similarQueries, setSimilarQueries] = useState([]);
   const [resolvedQueries, setResolvedQueries] = useState([]);
   const [highConfidenceDuplicate, setHighConfidenceDuplicate] = useState(null);
+  const [isInScope, setIsInScope] = useState(true);
+  const [duplicateType, setDuplicateType] = useState(null);
 
   const searchTimerRef = useRef(null);
   const tagTimerRef = useRef(null);
@@ -28,6 +29,9 @@ function RaiseQueryPage() {
   useEffect(() => {
     if (!user && !localStorage.getItem('token')) {
       navigate('/login', { state: { from: '/ask' } });
+    }
+    if (user?.role === 'admin') {
+      navigate('/', { replace: true });
     }
   }, [user, navigate]);
 
@@ -45,50 +49,43 @@ function RaiseQueryPage() {
 
     searchTimerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/search/similar?q=${encodeURIComponent(form.title.trim())}`,
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } }
-        );
-        const data = await res.json();
+        const res = await searchSimilar(form.title);
+        const data = res.data;
         setSimilarFAQs(data.faqs || []);
         setSimilarQueries(data.queries || []);
         setResolvedQueries(data.resolvedQueries || []);
-        setHighConfidenceDuplicate(data.highConfidenceDuplicate || null);
-      } catch {
-        // non-critical
+        setIsInScope(data.isInScope !== undefined ? data.isInScope : true);
+        // If this query closely matches a resolved query, pre-fill the duplicate panel
+        if (data.highConfidenceDuplicate && !highConfidenceDuplicate) {
+          setHighConfidenceDuplicate(data.highConfidenceDuplicate);
+          setDuplicateType('query');
+        }
+      } catch (err) {
+        console.error('Similar search failed:', err);
       }
     }, 500);
 
     return () => clearTimeout(searchTimerRef.current);
   }, [form.title]);
 
-  // ── Tag auto-detection — fires 1s after BOTH title and description settle ──
-  // Only auto-applies if the user hasn't manually set tags yet.
+  // ── Tag auto-detection — fires 1s after typing pauses ──────────────────
   useEffect(() => {
     clearTimeout(tagTimerRef.current);
+    if (!form.title.trim() && !form.description.trim()) return;
 
-    const text = `${form.title} ${form.description}`.trim();
-    if (text.length < 15) return;
-
+    setDetectingTags(true);
     tagTimerRef.current = setTimeout(async () => {
-      setDetectingTags(true);
       try {
-        const res = await fetch(
-          `/api/search/detect-tags?title=${encodeURIComponent(form.title)}&description=${encodeURIComponent(form.description)}`,
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } }
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        const detected = (data.detectedTags || []).slice(0, MAX_TAGS);
-        if (detected.length > 0) {
-          // Auto-apply, but don't overwrite tags the user has manually edited
-          setTags(prev => {
-            if (prev.length > 0) return prev; // user already has tags — don't clobber
-            return detected;
-          });
+        const res = await detectTags(`${form.title} ${form.description}`);
+        if (Array.isArray(res.data) && tags.length < MAX_TAGS) {
+          const newTags = res.data.filter(t => !tags.includes(t)).slice(0, MAX_TAGS - tags.length);
+          if (newTags.length > 0) setTags(prev => [...prev, ...newTags]);
+        } else if (Array.isArray(res.data.detectedTags) && tags.length < MAX_TAGS) {
+          const newTags = res.data.detectedTags.filter(t => !tags.includes(t)).slice(0, MAX_TAGS - tags.length);
+          if (newTags.length > 0) setTags(prev => [...prev, ...newTags]);
         }
-      } catch {
-        // non-critical
+      } catch (err) {
+        // Silently fail tag detection
       } finally {
         setDetectingTags(false);
       }
@@ -116,7 +113,28 @@ function RaiseQueryPage() {
       });
       navigate('/community');
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to submit query');
+      const data = err.response?.data;
+      if (data?.duplicateFaqId) {
+        setHighConfidenceDuplicate({
+          _id: data.duplicateFaqId,
+          title: data.duplicateTitle,
+          acceptedAnswer: { content: data.duplicateFaqAnswer }
+        });
+        setDuplicateType('faq');
+        setError('');
+        return;
+      }
+      if (data?.duplicateQueryId) {
+        setHighConfidenceDuplicate({
+          _id: data.duplicateQueryId,
+          title: data.duplicateTitle,
+          acceptedAnswer: data.acceptedAnswer
+        });
+        setDuplicateType('query');
+        setError('');
+        return;
+      }
+      setError(data?.error || 'Failed to submit query');
     } finally {
       setSubmitting(false);
     }
@@ -142,6 +160,18 @@ function RaiseQueryPage() {
         </div>
       )}
 
+      {!isInScope && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-4 mb-6 text-sm">
+          <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+            ⚠️ Your question may be outside the platform's scope
+          </p>
+          <p className="text-amber-700 dark:text-amber-300 text-xs">
+            This platform is for questions about the <strong>Vicharanashala Summership</strong> — VINS, ViBe LMS, Phase 1/2/3, NOC, offer letters, Rosetta, team formation, and related topics.{' '}
+            If your question is about something else (college exams, other programmes, off-topic), it may not get a relevant answer here.
+          </p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Title */}
         <div>
@@ -159,77 +189,111 @@ function RaiseQueryPage() {
           <p className="text-xs text-slate-400 mt-1 text-right">{form.title.length}/200</p>
         </div>
 
-        {/* Similarity panel — only shown when there are relevant results */}
-        {hasSuggestions && (
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden text-sm">
-            {/* High-confidence duplicate — takes priority */}
-            {highConfidenceDuplicate ? (
-              <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4">
-                <p className="font-medium text-emerald-800 dark:text-emerald-300 mb-1 flex items-center gap-1.5">
-                  <span>✓</span> This question already has an accepted answer
+        {/* High-confidence duplicate banner */}
+        {highConfidenceDuplicate && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 p-4 rounded-xl">
+            {duplicateType === 'faq' ? (
+              <>
+                <p className="font-semibold text-emerald-800 dark:text-emerald-200 mb-1 flex items-center gap-1.5">
+                  ✓ This question is already answered in our FAQ knowledge base
                 </p>
                 <p className="text-slate-700 dark:text-slate-300 font-medium mb-2">
                   {highConfidenceDuplicate.title}
                 </p>
-                <p className="text-slate-600 dark:text-slate-400 line-clamp-2 mb-3">
-                  {highConfidenceDuplicate.acceptedAnswer?.content}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => navigate('/community')}
-                  className="text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
-                >
-                  View in community →
-                </button>
-              </div>
+                {highConfidenceDuplicate.acceptedAnswer?.content && (
+                  <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 mb-3">
+                    {highConfidenceDuplicate.acceptedAnswer.content}
+                  </p>
+                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/wiki?highlight=${highConfidenceDuplicate._id}`)}
+                    className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
+                  >
+                    Read the full answer in Wiki →
+                  </button>
+                </div>
+              </>
             ) : (
               <>
-                {/* Similar FAQs */}
-                {similarFAQs.length > 0 && (
-                  <div className="p-4 border-b border-slate-100 dark:border-slate-700">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                      Similar FAQs
-                    </p>
-                    <ul className="space-y-2">
-                      {similarFAQs.map(faq => (
-                        <li key={faq._id}>
-                          <Link
-                            to={`/wiki?highlight=${faq._id}`}
-                            className="flex items-start gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg p-2 -m-2 transition-colors"
-                          >
-                            <span className="text-primary-400 mt-0.5">→</span>
-                            <div>
-                              <p className="text-slate-800 dark:text-slate-200 font-medium leading-snug">
-                                {faq.title}
-                              </p>
-                              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 line-clamp-1">
-                                {faq.finalAnswer}
-                              </p>
-                            </div>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                <p className="font-semibold text-emerald-800 dark:text-emerald-200 mb-1 flex items-center gap-1.5">
+                  ✓ This question is already answered in the community
+                </p>
+                <p className="text-slate-700 dark:text-slate-300 font-medium mb-2">
+                  {highConfidenceDuplicate.title}
+                </p>
+                {highConfidenceDuplicate.acceptedAnswer?.content && (
+                  <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 mb-3">
+                    {highConfidenceDuplicate.acceptedAnswer.content}
+                  </p>
                 )}
-
-                {/* Similar open queries */}
-                {similarQueries.length > 0 && (
-                  <div className="p-4">
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
-                      Open community queries
-                    </p>
-                    <ul className="space-y-1.5">
-                      {similarQueries.map(q => (
-                        <li key={q._id} className="flex items-center justify-between gap-3">
-                          <p className="text-slate-700 dark:text-slate-300 leading-snug">{q.title}</p>
-                          <span className="badge badge-yellow shrink-0">{q.status}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/community?highlight=${highConfidenceDuplicate._id}`)}
+                    className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
+                  >
+                    View in Community →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setHighConfidenceDuplicate(null); setForm({ ...form, title: '' }); }}
+                    className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                  >
+                    Ask a different question instead
+                  </button>
+                </div>
               </>
+            )}
+          </div>
+        )}
+
+        {/* Similarity panel */}
+        {hasSuggestions && !highConfidenceDuplicate && (
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden text-sm">
+            {similarFAQs.length > 0 && (
+              <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+                  Similar FAQs
+                </p>
+                <ul className="space-y-2">
+                  {similarFAQs.map(faq => (
+                    <li key={faq._id}>
+                      <Link
+                        to={`/wiki?highlight=${faq._id}`}
+                        className="flex items-start gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg p-2 -m-2 transition-colors"
+                      >
+                        <span className="text-primary-400 mt-0.5">→</span>
+                        <div>
+                          <p className="text-slate-800 dark:text-slate-200 font-medium leading-snug">
+                            {faq.title}
+                          </p>
+                          <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 line-clamp-1">
+                            {faq.finalAnswer}
+                          </p>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {similarQueries.length > 0 && (
+              <div className="p-4">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+                  Open community queries
+                </p>
+                <ul className="space-y-1.5">
+                  {similarQueries.map(q => (
+                    <li key={q._id} className="flex items-center justify-between gap-3">
+                      <p className="text-slate-700 dark:text-slate-300 leading-snug">{q.title}</p>
+                      <span className="badge badge-yellow shrink-0">{q.status}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         )}
@@ -254,7 +318,7 @@ function RaiseQueryPage() {
               <span className="text-xs font-normal text-slate-400 ml-1.5">(up to {MAX_TAGS})</span>
             </label>
             {detectingTags && (
-              <span className="text-xs text-indigo-400 animate-pulse">✦ detecting tags…</span>
+              <span className="text-xs text-indigo-400 animate-pulse">detecting tags…</span>
             )}
           </div>
           <TagInput

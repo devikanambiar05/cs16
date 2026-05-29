@@ -1,5 +1,6 @@
 const FAQ = require('../models/FAQ');
 const User = require('../models/User');
+const Pin = require('../models/Pin');
 
 // Get all FAQs with search, filter, pagination
 exports.getFAQs = async (req, res) => {
@@ -228,5 +229,18 @@ exports.createFAQ = async (req, res) => {
   } catch (error) {
     console.error('Create FAQ error:', error);
     res.status(500).json({ error: 'Failed to create FAQ' });
+  }
+};
+
+// Get pins for community board
+exports.getPins = async (req, res) => {
+  try {
+    const pins = await Pin.find({ deletedAt: null })
+      .populate('pinnedBy', 'name')
+      .populate('faqId', 'title finalAnswer tags')
+      .sort({ order: 1, createdAt: -1 });
+    res.json(pins);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch pins' });
   }
 };

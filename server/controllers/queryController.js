@@ -98,8 +98,47 @@ exports.getQueryById = async (req, res) => {
 exports.createQuery = async (req, res) => {
   try {
     const { title, description, tags } = req.body;
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ error: 'Admins cannot raise queries' });
+    }
     if (!title || !description) {
       return res.status(400).json({ error: 'Title and description are required' });
+    }
+
+    //Reject if this query is clearly a duplicate of an already-answered question
+    const { jaccardSimilarity } = require('./searchController');
+    const rawQueries = await Query.find({ status: { $ne: 'closed' }, deletedAt: null })
+      .select('_id title description').lean();
+    for (const q of rawQueries) {
+      const sim = jaccardSimilarity(title, q.title);
+      if (sim >= 0.85) {
+        const acceptedAnswer = await Answer.findOne({ queryId: q._id, isAccepted: true })
+          .select('_id content upvotes').lean();
+        return res.status(409).json({
+          error: 'This question already has an accepted answer in the community',
+          duplicateQueryId: q._id,
+          duplicateTitle: q.title,
+          acceptedAnswer: acceptedAnswer ? {
+            content: acceptedAnswer.content,
+          } : null
+        });
+      }
+    }
+
+    // Reject duplicates against resolved FAQs (title Jaccard ≥ 0.80)
+    const allFaqs = await FAQ.find({ status: 'resolved', deletedAt: null })
+      .select('_id title finalAnswer').lean();
+    for (const faq of allFaqs) {
+      const sim = jaccardSimilarity(title, faq.title);
+      if (sim >= 0.80) {
+        return res.status(409).json({
+          error: 'This question is already answered in the FAQ knowledge base',
+          duplicateQueryId: null,
+          duplicateTitle: faq.title,
+          duplicateFaqId: faq._id,
+          duplicateFaqAnswer: faq.finalAnswer
+        });
+      }
     }
 
     // Set 24hr SLA deadline
@@ -129,6 +168,9 @@ exports.claimQuery = async (req, res) => {
     const query = await Query.findById(req.params.id);
     if (!query) return res.status(404).json({ error: 'Query not found' });
     if (query.status === 'closed') return res.status(400).json({ error: 'This query is closed' });
+    if (query.createdBy.toString() === req.user._id.toString()) {
+      return res.status(400).json({ error: 'You cannot claim your own query' });
+    }
     if (query.assignedTo && query.assignedTo.toString() !== req.user._id.toString()) {
       return res.status(409).json({ error: 'This query has already been claimed by someone else' });
     }
@@ -215,6 +257,9 @@ exports.takeQuery = async (req, res) => {
       return res.status(404).json({ error: 'No open queries available for assignment' });
     }
 
+    if (query.createdBy.toString() === req.user._id.toString()) {
+      return res.status(400).json({ error: 'You cannot take your own query' });
+    }
     query.assignedTo = req.user._id;
     query.claimedAt = new Date();
     query.status = 'claimed';

@@ -12,6 +12,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import RaiseQueryPage from './pages/RaiseQueryPage';
+import RAGChatWidget from './components/RAGChatWidget';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
           </Routes>
+          <RAGChatWidget />
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
