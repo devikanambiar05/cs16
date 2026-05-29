@@ -1,168 +1,243 @@
-# FAQ App — Crowd-Sourced FAQ Management
+# FAQ App — Community FAQ Knowledge Base
 
-A MERN stack application where users search FAQs, raise queries, and get community answers.
+A MERN stack application where users search FAQs, raise queries, and receive community answers. Includes an admin dashboard for content moderation, a RAG-powered chat assistant, and a gamified reputation system.
 
 ## Tech Stack
 
-- **Frontend:** React 18, Vite, Tailwind CSS, React Router
-- **Backend:** Express.js, MongoDB (Mongoose), JWT Auth
-- **Styling:** Tailwind CSS
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, Tailwind CSS, React Router v6 |
+| Backend | Express.js, MongoDB (Mongoose), JWT Auth |
+| Real-time | RAG Chat Widget (semantic search over FAQ corpus) |
+| Auth | bcrypt, JWT (x-auth-token + Bearer header support) |
 
-## 3 Main Pages
+## Features
 
-### Page 1: FAQs Page (`/`)
-- Full-text search across all FAQs
-- Trending FAQs section (most upvoted)
-- Sort by recent or popular
-- Upvote useful FAQs
-- Tag-based filtering
+### For Users
+- Browse and search FAQs grouped by topic
+- Raise queries with similar FAQ detection (prevents duplicates)
+- Submit, upvote, and accept answers in the community forum
+- Upvote FAQs
+- Leaderboard ranked by reputation
+- RAG chat widget (searches entire FAQ knowledge base)
 
-### Page 2: Community Answers (`/community`)
-- Browse open/answered queries
-- Submit answers to queries
-- Upvote answers
-- Accept answer (query owner only)
+### For Admins
+- Admin Dashboard with analytics overview (query volume, SLA stats, community scores)
+- Pin announcements, overview posts, and specific FAQs to the home page
+- Soft-delete / restore FAQs and queries
+- Edit FAQ final answers with full audit trail (FAQHistory)
+- Ban / unban users
+- Convert resolved queries to FAQs
+- Close stale queries (SLA breach detection)
+- Moderation queue for flagged content
 
-### Page 3: Raise Query (`/ask`)
-- Submit new questions
-- Similar FAQ detection (while typing)
-- Tag support
-- Duplicate prevention
+### Gamification
+- Reputation system: +10 for accepted answers, +2 per FAQ/answer upvote, +20 for accepted answers, -20 on un-acceptance
+- Upvote rate-limiting (max 2 upvotes from same user to same author in 24h — anti-collusion via UpvoteLog)
+- Escalation tracking on stale claims (escalationCount, escalatedAt)
+
+## Pages
+
+| Route | Page | Auth |
+|---|---|---|
+| `/` | FAQs (grouped by topic, search, tag filter) | Public |
+| `/community` | Community forum (queries + answers) | Public |
+| `/leaderboard` | Top users by reputation | Public |
+| `/ask` | Raise a query | Protected |
+| `/login` | Login / Register | Public |
+| `/admin` | Admin Dashboard | Admin only |
 
 ## Quick Start
-
-### Prerequisites
-- Node.js 18+
-- MongoDB (local or Atlas)
 
 ### 1. Install Dependencies
 
 ```bash
-cd FAQ App-faq-app
-npm install && cd server && npm install && cd ../client && npm install
+npm run install:all   # installs client + server deps
 ```
 
-Or with concurrently:
-```bash
-npm run install:all
-```
-
-### 2. Configure Database
-
-Edit `server/.env`:
-```
-MONGO_URI=mongodb://localhost:27017/FAQ App
-PORT=5000
-JWT_SECRET=your-secret-key
-```
-
-### 3. Seed Sample Data
+### 2. Configure Environment
 
 ```bash
-npm run seed
+cp server/.env.example server/.env
+# Edit server/.env — defaults:
+#   MONGO_URI=mongodb://localhost:27017/faqapp
+#   JWT_SECRET=your-secret-key
+#   PORT=5000
+#   RESET_DB=false   # set true only to wipe and reseed
 ```
 
-This reads `FAQ.txt` from the project root and seeds all FAQs automatically.
-
-### 4. Run Servers
+### 3. Seed Data
 
 ```bash
-# In separate terminals:
-cd server && npm run dev    # API on :5000
-cd client && npm run dev    # UI on :3000
-
-# Or both together:
-npm run dev
+npm run seed           # seeds admin user + FAQs from server/FAQ.txt
+# Credentials: admin@faqapp.com / admin123
 ```
 
-### 5. Open App
+### 4. Run
 
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:5000/api
-
-## Demo Accounts
-
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@faqapp.com | admin123 |
+```bash
+npm run dev            # starts both client (:5173) and server (:5000) concurrently
+# Or separately:
+cd server && npm run dev
+cd client && npm run dev
+```
 
 ## API Endpoints
 
 ### Auth
-- `POST /api/auth/register` - Register
-- `POST /api/auth/login` - Login
-- `GET /api/auth/me` - Get current user
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/auth/register` | Register |
+| POST | `/api/auth/login` | Login |
+| GET | `/api/auth/me` | Current user |
+| POST | `/api/auth/forgot-password` | Request reset |
+| POST | `/api/auth/reset-password` | Reset with token |
+| GET | `/api/auth/verify-email` | Verify email token |
 
 ### FAQs
-- `GET /api/faqs` - List FAQs (params: q, sort, tag, page)
-- `GET /api/faqs/trending` - Trending FAQs
-- `GET /api/faqs/:id` - Single FAQ
-- `POST /api/faqs/:id/upvote` - Upvote FAQ
-- `POST /api/faqs` - Create FAQ
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/faqs` | List (params: q, tag, page, limit) |
+| GET | `/api/faqs/trending` | Most upvoted |
+| GET | `/api/faqs/pins` | Pinned FAQs |
+| GET | `/api/faqs/:id` | Single FAQ |
+| POST | `/api/faqs/:id/upvote` | Upvote |
+
+### Admin FAQs
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/admin/faqs` | Paginated list (params: page, limit, status, search, tag) |
+| PATCH | `/api/admin/faqs/:id` | Update finalAnswer (creates FAQHistory audit) or soft-delete/restore |
+| PATCH | `/api/admin/pins/:id` | Update pin (order, title, content) |
+| DELETE | `/api/admin/pins/:id` | Remove pin |
 
 ### Queries
-- `GET /api/queries` - List queries (params: status, sort, page)
-- `GET /api/queries/:id` - Single query with answers
-- `POST /api/queries` - Raise new query
-- `PATCH /api/queries/:id/close` - Close query
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/queries` | List (params: status, sort, page, limit, q) |
+| GET | `/api/queries/sla/stats` | SLA breach statistics |
+| GET | `/api/queries/community-candidates` | Hot queries by communityScore |
+| GET | `/api/queries/:id` | Single query + answers |
+| POST | `/api/queries` | Raise query |
+| POST | `/api/queries/:id/claim` | Claim (24h SLA; atomic — prevents race conditions) |
+| POST | `/api/queries/:id/release` | Release claim |
+| PATCH | `/api/queries/:id` | Owner edit (title, description, tags) |
+| PATCH | `/api/queries/:id/close` | Close query |
+| GET | `/api/admin/sla-stale-claims` | Release all stale claims |
 
 ### Answers
-- `POST /api/answers` - Submit answer
-- `POST /api/answers/:id/upvote` - Upvote answer
-- `POST /api/answers/:id/accept` - Accept answer (owner only)
-- `PUT /api/answers/:id` - Edit answer
-- `DELETE /api/answers/:id` - Delete answer
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/queries/:id/answers` | Submit answer |
+| POST | `/api/answers/:id/upvote` | Upvote (rate-limited) |
+| POST | `/api/answers/:id/accept` | Accept (owner only) |
+| PATCH | `/api/answers/:id` | Edit answer |
+| DELETE | `/api/answers/:id` | Delete (reverses rep) |
+| POST | `/api/admin/answers/:id/vet` | Admin verify answer |
 
-### Users
-- `GET /api/users/leaderboard` - Top users by reputation
-- `GET /api/users/:id` - User profile
+### Admin Analytics
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/admin/analytics` | Dashboard stats |
+| GET | `/api/admin/moderation` | Moderation queue |
+| GET | `/api/admin/pins` | All pins |
+
+### Search
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/search/similar` | Similar FAQ detection (BM25 + tag hybrid scoring) |
+| GET | `/api/search/detect-tags` | Tag detection from text |
+| POST | `/api/rag/chat` | RAG chat (semantic FAQ search) |
 
 ## Data Models
 
-- **User:** name, email, password, role (user/admin), reputation
-- **FAQ:** title, description, finalAnswer, tags, upvotes, status, createdBy
-- **Query:** title, description, tags, status (open/answered/closed), createdBy, answerCount
-- **Answer:** content, queryId, userId, upvotes, isAccepted
+### User
+```
+name, email, password, role (user/admin), reputation,
+isVerified, isBanned, acceptedAnswersCount, answersGiven
+```
 
-## Features
+### FAQ
+```
+title, description, finalAnswer, tags, upvotes,
+status (open/resolved/duplicate), createdBy,
+mergedFrom, mergedInto, duplicateOf, deletedAt
+```
 
-- ✅ JWT Authentication
-- ✅ Full-text search (MongoDB text indexes)
-- ✅ Upvotes with reputation system
-- ✅ Accepted answers
-- ✅ Similar FAQ detection (on query raise)
-- ✅ Tag filtering
-- ✅ Responsive Tailwind UI
-- ✅ Leaderboard
-- ✅ Duplicate detection
-- ✅ Community voting
+### Query
+```
+title, description, tags, status (open/claimed/answered/closed),
+createdBy, assignedTo, acceptedAnswer, communityScore,
+expiresAt, escalationCount, escalatedAt, lastActivityAt
+```
+
+### Answer
+```
+queryId, userId, content, upvotes, upvotedBy,
+isAccepted, isVetted, createdAt, updatedAt
+```
+
+### FAQHistory (audit trail)
+```
+faq, editedBy, previousTitle/Description/FinalAnswer/Tags,
+newTitle/Description/FinalAnswer/Tags, reason, createdAt
+```
+
+### UpvoteLog (anti-collusion)
+```
+upvoter, targetAuthor, targetType (faq/answer), targetId, createdAt
+```
 
 ## Project Structure
 
 ```
-faq-app/
+cs16/
 ├── client/
-│   ├── src/
-│   │   ├── components/Layout.jsx
-│   │   ├── context/AuthContext.jsx
-│   │   ├── pages/
-│   │   │   ├── FAQsPage.jsx
-│   │   │   ├── CommunityPage.jsx
-│   │   │   ├── RaiseQueryPage.jsx
-│   │   │   └── LoginPage.jsx
-│   │   ├── services/api.js
-│   │   └── App.jsx
-│   └── package.json
+│   └── src/
+│       ├── components/
+│       │   ├── Layout.jsx          # Navbar, footer, RAG chat widget
+│       │   ├── CommunityBoard.jsx  # Pinned posts on FAQ home
+│       │   ├── RAGChatWidget.jsx   # RAG-powered chat assistant
+│       │   ├── RichTextEditor.jsx  # Markdown editor with image paste
+│       │   ├── TagInput.jsx        # Chip-based tag input
+│       │   ├── ToastProvider.jsx   # Toast notification system
+│       │   └── ProtectedRoute.jsx  # Auth + role guard
+│       ├── context/
+│       │   ├── AuthContext.jsx     # User state, login/logout
+│       │   └── ThemeContext.jsx    # Dark/light mode
+│       ├── pages/
+│       │   ├── FAQsPage.jsx        # Merged FAQ + Wiki view
+│       │   ├── CommunityPage.jsx   # Query/answer forum
+│       │   ├── RaiseQueryPage.jsx   # Query submission
+│       │   ├── LoginPage.jsx        # Auth
+│       │   ├── LeaderboardPage.jsx  # Reputation ranking
+│       │   └── AdminDashboard.jsx   # Admin panel (pins, users, stats)
+│       ├── services/api.js          # All API calls
+│       └── App.jsx
 ├── server/
-│   ├── controllers/
-│   ├── models/
-│   ├── routes/
-│   ├── middleware/auth.js
-│   ├── seed.js
-│   └── server.js
+│   ├── controllers/    # Query, FAQ, Answer, User, Auth, Admin, Search, RAG
+│   ├── models/          # Mongoose schemas (User, FAQ, Query, Answer, etc.)
+│   ├── routes/          # Express routes
+│   ├── middleware/      # auth (protect, adminOnly)
+│   ├── utils/           # jwtHelper, connectDB
+│   ├── seed.js          # Seeds admin + FAQs from FAQ.txt
+│   ├── parseFaqTxt.js   # Parser for FAQ.txt format
+│   └── tests/           # Jest + property-based tests (api.test.js, gamification.test.js)
 └── package.json
 ```
 
----
+## Demo Account
 
-*FAQ App — Knowledge shared is knowledge multiplied.*
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@faqapp.com | admin123 |
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `MONGO_URI` | `mongodb://localhost:27017/faqapp` | MongoDB connection |
+| `JWT_SECRET` | _(set in .env)_ | JWT signing secret |
+| `PORT` | `5000` | Server port |
+| `RESET_DB` | `false` | Set `true` to wipe DB and reseed |
+| `FRONTEND_URL` | `http://localhost:5173` | CORS origin |
