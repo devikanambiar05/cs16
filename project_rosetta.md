@@ -89,3 +89,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Index building locked subsequent collection writes, crashing the parallel test suites.
 * **🛡️ Edge Cases Tested**: Initializing multiple server processes concurrently attempting to write identical search index rules.
 
+### 🗄️ v0.2: Knowledge Base Schema & Seed Verified
+* **Release Date**: May 29, 2026 - 18:00
+* **Details**: Full pre-alpha release verifying complete DB seeding and search indexes.
+* **🎨 Visual Wireframe & Layout**: Responsive sidebar category pills side-by-side with a central list of loaded FAQ cards.
+* **🧠 Team Thinking & Rationale**: Establish the primary public interface baseline so we can verify that search inputs match seeded text.
+* **💬 Discussions & Decisions**: Decided whether to load all FAQs on mount vs on-demand pagination. Chose to load all FAQs initially for instantaneous clientside filtering.
+* **⚠️ Errors & Roadblocks Faced**: Network lag on initial load when querying large text bodies.
+* **🛡️ Edge Cases Tested**: Querying categories that have zero active FAQs linked, confirming they render a graceful "No entries found" banner.
+
