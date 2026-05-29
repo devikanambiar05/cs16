@@ -71,3 +71,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Mongoose model initialization crashed due to missing field validations on optional sub-documents.
 * **🛡️ Edge Cases Tested**: Validating schemas with missing optional parameters, ensuring defaults (like `reputation: 0` and `pinned: false`) are written correctly.
 
+### 📂 v0.12: Raw FAQ text seeding script parsing
+* **Release Date**: May 29, 2026 - 12:00
+* **Details**: Build parser to migrate raw unstructured text documents to Mongo.
+* **🎨 Visual Wireframe & Layout**: Simple administrative loading indicators showing `[24/48] FAQs Parsed & Migrated` within startup logs.
+* **🧠 Team Thinking & Rationale**: To avoid manual content seeding, we created a custom parser that converts raw FAQ text files with standard separation boundaries directly into structured documents.
+* **💬 Discussions & Decisions**: Chose between rigid JSON data structures vs a regex-driven plain text parser. We selected the regex parser to accommodate unstructured input files.
+* **⚠️ Errors & Roadblocks Faced**: Double newline differences between Windows and Unix formatting (CRLF vs LF) caused the seeding script to group separate paragraphs into single fields.
+* **🛡️ Edge Cases Tested**: Parsing text files containing empty lines, invalid category headings, and duplicate question strings.
+
