@@ -10,7 +10,31 @@ async function seed() {
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/samagama');
     console.log('Connected to MongoDB');
 
-    // Clear existing data
+    // Guard: require RESET_DB=true to proceed with destructive seed
+    // Without it, seed is effectively a no-op (safe for shared dev environments)
+    if (process.env.RESET_DB !== 'true') {
+      // Still ensure admin exists and is admin (upsert)
+      let admin = await User.findOne({ email: 'admin@faqapp.com' });
+      if (!admin) {
+        admin = await User.create({
+          name: 'Admin',
+          email: 'admin@faqapp.com',
+          password: 'admin123',
+          role: 'admin',
+          reputation: 100,
+          isVerified: true
+        });
+        console.log('Created admin user: admin@faqapp.com / admin123');
+      } else {
+        console.log('Admin user already exists, skipping seed (RESET_DB=true not set)');
+      }
+      console.log('\nTo reset and reseed the database, run: RESET_DB=true npm run seed');
+      await mongoose.disconnect();
+      process.exit(0);
+    }
+
+    // ── Destructive seed begins ──────────────────────────────────────────────
+    console.log('RESET_DB=true — clearing existing data...');
     await Promise.all([
       User.deleteMany({}),
       FAQ.deleteMany({}),
