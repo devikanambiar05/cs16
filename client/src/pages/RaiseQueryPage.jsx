@@ -1,50 +1,101 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createQuery, getFAQs } from '../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { createQuery } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RichTextEditor from '../components/RichTextEditor';
+import TagInput from '../components/TagInput';
 
-const PRESET_TAGS = ['fees', 'admission', 'exams', 'hostel', 'scholarship', 'documents', 'courses', 'placement', 'library', 'sports', 'transport', 'calcutta', 'kolkata', 'general'];
+const MAX_TAGS = 3;
 
 function RaiseQueryPage() {
   const [form, setForm] = useState({ title: '', description: '' });
   const [tags, setTags] = useState([]);
-  const [tagInput, setTagInput] = useState('');
+  const [detectingTags, setDetectingTags] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Duplicate / similar results
   const [similarFAQs, setSimilarFAQs] = useState([]);
-  const [searchTimeout, setSearchTimeout] = useState(null);
+  const [similarQueries, setSimilarQueries] = useState([]);
+  const [resolvedQueries, setResolvedQueries] = useState([]);
+  const [highConfidenceDuplicate, setHighConfidenceDuplicate] = useState(null);
+
+  const searchTimerRef = useRef(null);
+  const tagTimerRef = useRef(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!user && !localStorage.getItem('token')) {
       navigate('/login', { state: { from: '/ask' } });
     }
   }, [user, navigate]);
 
-  // Debounced search for similar FAQs while typing title
+  // ── Duplicate search — fires 500ms after title stops changing ──────────────
   useEffect(() => {
+    clearTimeout(searchTimerRef.current);
+
     if (!form.title.trim() || form.title.length < 5) {
       setSimilarFAQs([]);
+      setSimilarQueries([]);
+      setResolvedQueries([]);
+      setHighConfidenceDuplicate(null);
       return;
     }
 
-    if (searchTimeout) clearTimeout(searchTimeout);
-
-    const timeout = setTimeout(async () => {
+    searchTimerRef.current = setTimeout(async () => {
       try {
-        const res = await getFAQs({ q: form.title, limit: 5 });
-        setSimilarFAQs(res.data.faqs.slice(0, 4));
+        const res = await fetch(
+          `/api/search/similar?q=${encodeURIComponent(form.title.trim())}`,
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } }
+        );
+        const data = await res.json();
+        setSimilarFAQs(data.faqs || []);
+        setSimilarQueries(data.queries || []);
+        setResolvedQueries(data.resolvedQueries || []);
+        setHighConfidenceDuplicate(data.highConfidenceDuplicate || null);
       } catch {
-        // Silently fail
+        // non-critical
       }
-    }, 400);
+    }, 500);
 
-    setSearchTimeout(timeout);
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(searchTimerRef.current);
   }, [form.title]);
+
+  // ── Tag auto-detection — fires 1s after BOTH title and description settle ──
+  // Only auto-applies if the user hasn't manually set tags yet.
+  useEffect(() => {
+    clearTimeout(tagTimerRef.current);
+
+    const text = `${form.title} ${form.description}`.trim();
+    if (text.length < 15) return;
+
+    tagTimerRef.current = setTimeout(async () => {
+      setDetectingTags(true);
+      try {
+        const res = await fetch(
+          `/api/search/detect-tags?title=${encodeURIComponent(form.title)}&description=${encodeURIComponent(form.description)}`,
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const detected = (data.detectedTags || []).slice(0, MAX_TAGS);
+        if (detected.length > 0) {
+          // Auto-apply, but don't overwrite tags the user has manually edited
+          setTags(prev => {
+            if (prev.length > 0) return prev; // user already has tags — don't clobber
+            return detected;
+          });
+        }
+      } catch {
+        // non-critical
+      } finally {
+        setDetectingTags(false);
+      }
+    }, 1000);
+
+    return () => clearTimeout(tagTimerRef.current);
+  }, [form.title, form.description]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,10 +105,7 @@ function RaiseQueryPage() {
       setError('Title and description are required');
       return;
     }
-    if (!user) {
-      navigate('/login');
-      return;
-    }
+    if (!user) { navigate('/login'); return; }
 
     try {
       setSubmitting(true);
@@ -74,212 +122,165 @@ function RaiseQueryPage() {
     }
   };
 
-  const addTag = (tag) => {
-    const clean = tag.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-    if (clean && !tags.includes(clean) && tags.length < 5) {
-      setTags([...tags, clean]);
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tag) => {
-    setTags(tags.filter(t => t !== tag));
-  };
-
-  const handleTagKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
-      e.preventDefault();
-      addTag(tagInput);
-    }
-    if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
-      setTags(tags.slice(0, -1));
-    }
-  };
-
-  const handleClearSimilar = () => {
-    setSimilarFAQs([]);
-  };
+  const hasSuggestions = similarFAQs.length > 0 || similarQueries.length > 0 || resolvedQueries.length > 0;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-1">
           Raise a Query
         </h1>
-        <p className="text-slate-600">
-          Can't find an answer? Ask the community — someone will help!
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Can't find an answer? Ask the community — someone will help within 24 hours.
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-6 text-sm">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Title */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Question Title *
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            Question <span className="text-red-400">*</span>
           </label>
           <input
             type="text"
-            className="input text-lg"
+            className="input"
             placeholder="e.g., How do I apply for fee concession?"
             value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            onChange={e => setForm({ ...form, title: e.target.value })}
             maxLength={200}
           />
-          <p className="text-xs text-slate-400 mt-1 text-right">
-            {form.title.length}/200
-          </p>
+          <p className="text-xs text-slate-400 mt-1 text-right">{form.title.length}/200</p>
         </div>
 
-        {/* Similar FAQs Warning */}
-        {similarFAQs.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-amber-500">⚠️</span>
-                <h4 className="font-medium text-amber-800">
-                  Similar FAQs already exist
-                </h4>
+        {/* Similarity panel — only shown when there are relevant results */}
+        {hasSuggestions && (
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden text-sm">
+            {/* High-confidence duplicate — takes priority */}
+            {highConfidenceDuplicate ? (
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4">
+                <p className="font-medium text-emerald-800 dark:text-emerald-300 mb-1 flex items-center gap-1.5">
+                  <span>✓</span> This question already has an accepted answer
+                </p>
+                <p className="text-slate-700 dark:text-slate-300 font-medium mb-2">
+                  {highConfidenceDuplicate.title}
+                </p>
+                <p className="text-slate-600 dark:text-slate-400 line-clamp-2 mb-3">
+                  {highConfidenceDuplicate.acceptedAnswer?.content}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/community')}
+                  className="text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:underline"
+                >
+                  View in community →
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleClearSimilar}
-                className="text-xs text-amber-600 hover:text-amber-800"
-              >
-                Dismiss
-              </button>
-            </div>
-            <div className="space-y-2">
-              {similarFAQs.map(faq => (
-                <div key={faq._id} className="bg-white rounded-lg p-3">
-                  <p className="text-sm font-medium text-slate-800">
-                    {faq.title}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1 line-clamp-1">
-                    {faq.finalAnswer}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-amber-700 mt-3">
-              Please check if your question is already answered above.
-            </p>
+            ) : (
+              <>
+                {/* Similar FAQs */}
+                {similarFAQs.length > 0 && (
+                  <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+                      Similar FAQs
+                    </p>
+                    <ul className="space-y-2">
+                      {similarFAQs.map(faq => (
+                        <li key={faq._id}>
+                          <Link
+                            to={`/wiki?highlight=${faq._id}`}
+                            className="flex items-start gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg p-2 -m-2 transition-colors"
+                          >
+                            <span className="text-primary-400 mt-0.5">→</span>
+                            <div>
+                              <p className="text-slate-800 dark:text-slate-200 font-medium leading-snug">
+                                {faq.title}
+                              </p>
+                              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 line-clamp-1">
+                                {faq.finalAnswer}
+                              </p>
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Similar open queries */}
+                {similarQueries.length > 0 && (
+                  <div className="p-4">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+                      Open community queries
+                    </p>
+                    <ul className="space-y-1.5">
+                      {similarQueries.map(q => (
+                        <li key={q._id} className="flex items-center justify-between gap-3">
+                          <p className="text-slate-700 dark:text-slate-300 leading-snug">{q.title}</p>
+                          <span className="badge badge-yellow shrink-0">{q.status}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Description *
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+            Description <span className="text-red-400">*</span>
           </label>
           <RichTextEditor
             value={form.description}
-            onChange={(val) => setForm({ ...form, description: val })}
-            placeholder="Provide more details about your question. Include any relevant context that might help others understand and answer..."
+            onChange={val => setForm({ ...form, description: val })}
+            placeholder="Provide more context — include course, semester, or any relevant details..."
           />
-          <p className="text-xs text-slate-400">Tip: use <strong>**bold**</strong>, <em>*italic*</em>, and <strong>-</strong> for bullet points in your description</p>
         </div>
 
-        {/* Tag Chips */}
+        {/* Tags */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Tags <span className="text-xs text-slate-400">(up to 5)</span>
-          </label>
-
-          {/* Chip input area */}
-          <div className="flex flex-wrap gap-2 p-3 border border-slate-200 rounded-lg bg-white focus-within:border-primary-400 focus-within:ring-1 focus-within:ring-primary-100 min-h-[48px]">
-            {tags.map(tag => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 bg-primary-50 text-primary-700 border border-primary-200 text-sm px-2.5 py-1 rounded-full"
-              >
-                #{tag}
-                <button
-                  type="button"
-                  onClick={() => removeTag(tag)}
-                  className="text-primary-400 hover:text-primary-700 font-bold leading-none ml-0.5"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            {tags.length < 5 && (
-              <input
-                type="text"
-                className="flex-1 min-w-[120px] text-sm border-none outline-none bg-transparent placeholder:text-slate-400"
-                placeholder={tags.length === 0 ? 'e.g., fees, admission, hostel' : 'Add a tag...'}
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleTagKeyDown}
-              />
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Tags
+              <span className="text-xs font-normal text-slate-400 ml-1.5">(up to {MAX_TAGS})</span>
+            </label>
+            {detectingTags && (
+              <span className="text-xs text-indigo-400 animate-pulse">✦ detecting tags…</span>
             )}
           </div>
+          <TagInput
+            tags={tags}
+            onChange={setTags}
+            maxTags={MAX_TAGS}
+          />
           <p className="text-xs text-slate-400 mt-1">
-            Press Enter, comma, or space to add a tag
+            Tags are auto-suggested as you type. You can edit them freely.
           </p>
-
-          {/* Preset suggestions */}
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {PRESET_TAGS.filter(t => !tags.includes(t)).slice(0, 10).map(tag => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => addTag(tag)}
-                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full transition-colors"
-              >
-                + {tag}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Submit */}
-        <div className="flex items-center gap-4 pt-4">
+        {/* Actions */}
+        <div className="flex items-center gap-3 pt-2">
           <button
             type="submit"
             disabled={submitting || !form.title.trim() || !form.description.trim()}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed px-6 py-2.5"
+            className="btn-primary px-6 py-2.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {submitting ? 'Submitting...' : 'Submit Query'}
+            {submitting ? 'Submitting…' : 'Submit Query'}
           </button>
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="btn-ghost text-slate-600"
-          >
+          <button type="button" onClick={() => navigate(-1)} className="btn-ghost text-slate-500">
             Cancel
           </button>
         </div>
       </form>
-
-      {/* Tips */}
-      <div className="mt-10 bg-slate-50 rounded-xl p-5">
-        <h3 className="font-semibold text-slate-800 mb-3">Tips for a good query</h3>
-        <ul className="space-y-2 text-sm text-slate-600">
-          <li className="flex items-start gap-2">
-            <span className="text-emerald-500 mt-0.5">✓</span>
-            Be specific — include course name, semester, or other details
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-emerald-500 mt-0.5">✓</span>
-            Check similar FAQs before posting to avoid duplicates
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-emerald-500 mt-0.5">✓</span>
-            Add relevant tags to help others find your question
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-emerald-500 mt-0.5">✓</span>
-            Be polite and patient — the community will respond!
-          </li>
-        </ul>
-      </div>
     </div>
   );
 }

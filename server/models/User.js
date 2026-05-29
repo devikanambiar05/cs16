@@ -56,6 +56,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'banned'],
     default: 'active'
+  },
+  // Notification preferences
+  emailNotifications: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

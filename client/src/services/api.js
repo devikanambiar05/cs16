@@ -62,6 +62,7 @@ export const resendVerification = () => api.post('/api/auth/resend-verification'
 
 // ─── FAQs ─────────────────────────────────────────────────────────────────────
 export const getFAQs = (params) => api.get('/api/faqs', params);
+export const getFAQ = (id) => api.get(`/api/faqs/${id}`);
 export const getTrendingFAQs = () => api.get('/api/faqs/trending');
 export const getFAQsByCategory = (tag, params) => api.get(`/api/faqs/category/${tag}`, params);
 export const upvoteFAQ = (id) => api.post(`/api/faqs/${id}/upvote`);
@@ -72,6 +73,12 @@ export const getCategories = () => api.get('/api/categories');
 
 // ─── Community Queries ─────────────────────────────────────────────────────────
 export const getQueries = (params) => api.get('/api/queries', params);
+export const getSimilarQueries = (title, excludeId) => {
+  const url = `http://localhost:5000/api/search/similar?q=${encodeURIComponent(title)}`;
+  return fetch(url, { headers: { 'x-auth-token': localStorage.getItem('token') || '' } })
+    .then(r => r.json())
+    .then(data => (data.queries || []).filter(q => q._id !== excludeId).slice(0, 3));
+};
 export const getCommunityCandidates = (params) => api.get('/api/queries/community-candidates', params);
 export const createQuery = (data) => api.post('/api/queries', data);
 export const updateQuery = (id, data) => api.put(`/api/queries/${id}`, data);
@@ -90,10 +97,22 @@ export const getFAQRequests = (params) => api.get('/api/faq-requests', params);
 export const approveFAQRequest = (id, data) => api.post(`/api/faq-requests/${id}/approve`, data);
 export const rejectFAQRequest = (id, data) => api.delete(`/api/faq-requests/${id}/reject`, data);
 
+// ─── Users / Leaderboard ───────────────────────────────────────────────────────
+export const getLeaderboard = (params) => api.get('/api/users/leaderboard', params);
+
+// ─── Admin ─────────────────────────────────────────────────────────────────────
+// ─── Pins ──────────────────────────────────────────────────────────────────────
+export const getPins = () => api.get('/api/faqs/pins');
+export const getAdminPins = () => api.get('/api/admin/pins');
+export const createPin = (data) => api.post('/api/admin/pins', data);
+export const updatePin = (id, data) => api.patch(`/api/admin/pins/${id}`, data);
+export const deletePin = (id) => api.delete(`/api/admin/pins/${id}`);
+
 // ─── Admin ─────────────────────────────────────────────────────────────────────
 export const getAdminStats = () => api.get('/api/users/admin/stats');
 export const getSlaStats = () => api.get('/api/admin/sla-stats');
 export const getAdminUsers = (params) => api.get('/api/users/admin/users', { params });
 export const banUser = (id) => api.patch(`/api/users/admin/ban/${id}`);
+export const getModerationQueue = () => api.get('/api/admin/moderation');
 
 export default api;

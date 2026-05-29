@@ -36,32 +36,20 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
-    // Generate email verification token
-    const verificationToken = generateRandomToken();
-
-    // Create new user
+    // Create new user (email verification bypassed for now)
     const user = new User({
       name,
       email: email.toLowerCase(),
       password,
-      verificationToken
+      isVerified: true
     });
 
     await user.save();
 
-    // Send verification email (non-blocking — don't fail registration if email fails)
-    const verifyUrl = `${APP_URL}/verify-email?token=${verificationToken}`;
-    sendEmail({
-      to: user.email,
-      subject: 'Verify your FAQ App account',
-      text: `Welcome ${user.name}!\n\nPlease verify your email by clicking this link:\n${verifyUrl}\n\nThis link expires in 24 hours.`,
-      html: `<h2>Welcome, ${user.name}!</h2><p>Please verify your email by clicking the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>This link expires in 24 hours.</p>`
-    }).catch(err => console.error('Verification email failed:', err.message));
-
     const token = generateToken(user._id);
 
     res.status(201).json({
-      message: 'Registration successful — please check your email to verify your account',
+      message: 'Registration successful',
       token,
       user: {
         id: user._id,

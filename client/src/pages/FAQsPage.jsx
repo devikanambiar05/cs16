@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getCategories, getFAQs, getTrendingFAQs, getFAQsByCategory, upvoteFAQ } from '../services/api';
+import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ } from '../services/api';
+import CommunityBoard from '../components/CommunityBoard';
 import { useAuth } from '../context/AuthContext';
 
 const PAGE_SIZE = 10;
@@ -45,8 +46,6 @@ function FAQsPage() {
   const { user } = useAuth();
 
   const [categories, setCategories] = useState([]);
-  const [trending, setTrending] = useState([]);
-  const [popular, setPopular] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryFAQs, setCategoryFAQs] = useState([]);
   const [faqPage, setFaqPage] = useState(1);
@@ -61,8 +60,6 @@ function FAQsPage() {
   // Load initial data
   useEffect(() => {
     loadCategories();
-    loadTrending();
-    loadPopular();
   }, []);
 
   // When category changes, load its FAQs
@@ -78,26 +75,6 @@ function FAQsPage() {
       setCategories(res.data);
     } catch (err) {
       console.error('Failed to load categories:', err);
-    }
-  };
-
-  const loadTrending = async () => {
-    try {
-      const res = await getTrendingFAQs();
-      setTrending(res.data);
-    } catch (err) {
-      console.error('Failed to load trending:', err);
-    }
-  };
-
-  const loadPopular = async () => {
-    try {
-      const res = await getFAQs({ sort: 'popular', limit: 6 });
-      setPopular(res.data.faqs);
-    } catch (err) {
-      console.error('Failed to load popular:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -144,12 +121,9 @@ function FAQsPage() {
     if (!user) return;
     try {
       const res = await upvoteFAQ(faqId);
-      // Update in all relevant lists
       const updateFAQ = (faqs) => faqs.map(f =>
         f._id === faqId ? { ...f, upvotes: res.data.upvotes } : f
       );
-      setTrending(updateFAQ);
-      setPopular(updateFAQ);
       setCategoryFAQs(updateFAQ);
       if (searchResults) setSearchResults(updateFAQ(searchResults));
     } catch (err) {
@@ -227,107 +201,101 @@ function FAQsPage() {
         </section>
       )}
 
-      {/* Category Cards + FAQs */}
+      {/* Main content — right panel */}
       {searchResults === null && (
-        <>
-          {/* Categories Grid */}
-          <section className="mb-10">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Browse by Topic</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => selectCategory(cat)}
-                  className={`card text-left transition-all duration-200 ${
-                    selectedCategory?.id === cat.id
-                      ? 'ring-2 ring-primary-500 bg-primary-50 border-primary-300'
-                      : 'hover:border-primary-300 hover:shadow-md'
-                  }`}
-                >
-                  <p className="font-semibold text-slate-800 text-sm leading-tight">{cat.name}</p>
-                  <p className="text-xs text-slate-400 mt-1">{cat.count} FAQs</p>
-                </button>
-              ))}
-            </div>
-          </section>
+        <div className="flex gap-10">
+          {/* ── Left: Main content ── */}
+          <div className="flex-1 min-w-0">
 
-          {/* Selected Category FAQs */}
-          {selectedCategory && (
-            <section className="mb-10">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {selectedCategory.name}
-                  <span className="font-normal text-slate-400 text-sm ml-2">({faqTotal} FAQs)</span>
-                </h2>
-                <button onClick={() => setSelectedCategory(null)} className="btn-ghost text-sm text-slate-500">
-                  ✕ Clear
-                </button>
-              </div>
+            {/* Selected Category FAQs */}
+            {selectedCategory ? (
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    {selectedCategory.name}
+                    <span className="font-normal text-slate-400 text-sm ml-2">({faqTotal} FAQs)</span>
+                  </h2>
+                  <button onClick={() => setSelectedCategory(null)} className="btn-ghost text-sm text-slate-500">
+                    ✕ Back to all
+                  </button>
+                </div>
+                {loading ? (
+                  <div className="flex justify-center py-10"><div className="spinner" /></div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {categoryFAQs.map(faq => (
+                        <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
+                      ))}
+                    </div>
+                    <Pagination
+                      page={faqPage}
+                      totalPages={Math.ceil(faqTotal / PAGE_SIZE)}
+                      onPage={(p) => loadCategoryFAQs(selectedCategory.tag, p)}
+                    />
+                  </>
+                )}
+              </section>
+            ) : (
+              <>
+                {/* Community Board — pinned FAQs, announcements, overview */}
+                <CommunityBoard />
 
-              {loading ? (
-                <div className="flex justify-center py-10"><div className="spinner" /></div>
-              ) : (
-                <>
-                  <div className="space-y-3">
-                    {categoryFAQs.map(faq => (
-                      <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
+                {/* Welcome state — invite to browse via sidebar */}
+                <div className="text-center py-12 px-4">
+                  <div className="text-5xl mb-4">📚</div>
+                  <h2 className="text-xl font-semibold text-slate-800 mb-2">Browse the Knowledge Base</h2>
+                  <p className="text-slate-500 text-sm mb-6 max-w-sm mx-auto">
+                    {categories.length} topics across {categories.reduce((s, c) => s + c.count, 0)} FAQs.
+                    Select a topic from the right panel to get started.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2 mb-8">
+                    {categories.slice(0, 5).map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => selectCategory(cat)}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-full transition-colors"
+                      >
+                        {cat.name}
+                      </button>
                     ))}
                   </div>
-                  <Pagination
-                    page={faqPage}
-                    totalPages={Math.ceil(faqTotal / PAGE_SIZE)}
-                    onPage={(p) => loadCategoryFAQs(selectedCategory.tag, p)}
-                  />
-                </>
-              )}
-            </section>
-          )}
-
-          {/* Trending FAQs */}
-          {!selectedCategory && (
-            <section className="mb-10">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                🔥 Trending FAQs
-              </h2>
-              {trending.length === 0 ? (
-                <p className="text-slate-400 text-sm py-4">No trending FAQs yet.</p>
-              ) : (
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {trending.slice(0, 6).map(faq => (
-                    <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} compact />
-                  ))}
+                  <Link to="/wiki" className="btn-outline text-sm">
+                    Browse all FAQs in the Wiki →
+                  </Link>
                 </div>
-              )}
-            </section>
-          )}
+              </>
+            )}
+          </div>
 
-          {/* Popular FAQs */}
-          {!selectedCategory && (
-            <section className="mb-10">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                ⭐ Popular FAQs
-              </h2>
-              {popular.length === 0 ? (
-                <p className="text-slate-400 text-sm py-4">No popular FAQs yet.</p>
-              ) : (
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {popular.map(faq => (
-                    <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} compact />
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-        </>
-      )}
-
-      {/* Wiki Link */}
-      {searchResults === null && !selectedCategory && (
-        <div className="text-center pt-4 border-t border-slate-200">
-          <p className="text-slate-500 text-sm mb-2">Looking for something specific?</p>
-          <Link to="/wiki" className="btn-outline text-sm">
-            Browse all {categories.reduce((sum, c) => sum + c.count, 0)} FAQs in the Wiki →
-          </Link>
+          {/* ── Right: Categories sidebar ── */}
+          <aside className="w-56 shrink-0">
+            <div className="sticky top-6">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Topics</h3>
+              <div className="space-y-0.5">
+                {[...categories].sort((a, b) => b.count - a.count).map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => selectCategory(cat)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
+                      selectedCategory?.id === cat.id
+                        ? 'bg-primary-100 text-primary-700 font-semibold'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="truncate">{cat.name}</span>
+                      <span className={`text-xs shrink-0 ${
+                        selectedCategory?.id === cat.id ? 'text-primary-500' : 'text-slate-400'
+                      }`}>
+                        {cat.count}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </aside>
         </div>
       )}
     </div>

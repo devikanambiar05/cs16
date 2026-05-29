@@ -1,8 +1,11 @@
 import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import RAGChatWidget from './RAGChatWidget';
 
 function Layout() {
   const { user, logout } = useAuth();
+  const { dark, toggle } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -54,16 +57,18 @@ function Layout() {
               >
                 Community
               </NavLink>
-              <NavLink
-                to="/leaderboard"
-                className={({ isActive }) =>
-                  `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive ? 'nav-link-active bg-primary-50' : 'nav-link hover:bg-slate-50'
-                  }`
-                }
-              >
-                🏆 Leaderboard
-              </NavLink>
+              {user && (
+                <NavLink
+                  to="/leaderboard"
+                  className={({ isActive }) =>
+                    `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive ? 'nav-link-active bg-primary-50' : 'nav-link hover:bg-slate-50'
+                    }`
+                  }
+                >
+                  🏆 Leaderboard
+                </NavLink>
+              )}
               <NavLink
                 to="/ask"
                 className={({ isActive }) =>
@@ -90,6 +95,14 @@ function Layout() {
 
             {/* User Actions */}
             <div className="flex items-center gap-2">
+              {/* Theme toggle */}
+              <button
+                onClick={toggle}
+                title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+                className="btn-ghost text-sm p-2 rounded-lg"
+              >
+                {dark ? <span className="text-lg">☀️</span> : <span className="text-lg">🌙</span>}
+              </button>
               {user ? (
                 <div className="flex items-center gap-3">
                   {user.role === 'admin' && (
@@ -134,6 +147,7 @@ function Layout() {
           Samagama — Crowd-Sourced FAQ Management
         </div>
       </footer>
+      <RAGChatWidget />
     </div>
   );
 }

@@ -1,7 +1,12 @@
 const Answer = require('../models/Answer');
 const Query = require('../models/Query');
 const FAQ = require('../models/FAQ');
+const FAQRequest = require('../models/FAQRequest');
 const User = require('../models/User');
+const { notifyQueryOwnerOfAnswer } = require('../services/emailService');
+
+// Threshold for auto-promoting an accepted answer to a pending FAQ request
+const COMMUNITY_FAQ_UPVOTE_THRESHOLD = 5;
 
 // ─── Submit an answer ──────────────────────────────────────────────────────────
 
@@ -25,14 +30,32 @@ exports.createAnswer = async (req, res) => {
     });
 
     query.answerCount = (query.answerCount || 0) + 1;
-    if (query.answerCount === 1) query.status = 'answered';
+    // Only promote to 'answered' when the claim-holder submits their first answer
+    // (signal to owner: your claim-holder has responded, please review)
+    if (query.answerCount === 1 && query.status === 'claimed') {
+      query.status = 'answered';
+    }
     // Refresh activity window on the query when claim-holder submits an answer
-    query.lastActivityAt = new Date();
+    if (query.status === 'claimed') {
+      query.lastActivityAt = new Date();
+    }
     await query.save();
 
     await User.findByIdAndUpdate(req.user._id, { $inc: { answersGiven: 1 } });
 
     await answer.populate('userId', 'name reputation');
+
+    // Notify query owner (unless they answered their own query)
+    if (query.createdBy.toString() !== req.user._id.toString()) {
+      const queryOwner = await User.findById(query.createdBy).select('email name emailNotifications');
+      notifyQueryOwnerOfAnswer({
+        queryOwner,
+        queryTitle: query.title,
+        answerAuthorName: answer.userId.name,
+        answerContent: answer.content,
+        queryId: query._id
+      }).catch(err => console.error('Failed to send answer notification:', err.message));
+    }
 
     res.status(201).json({ message: 'Answer added', answer });
   } catch (error) {
@@ -66,15 +89,17 @@ exports.upvoteAnswer = async (req, res) => {
       // Remove upvote
       answer.upvotes -= 1;
       answer.upvotedBy = answer.upvotedBy.filter(id => id.toString() !== userId.toString());
-      // Reverse the +2rep awarded on upvote
+      // Reverse the +2 rep awarded on upvote
       await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: -2 } });
+      // Reverse the +3 communityScore per removed upvote
+      await Query.findByIdAndUpdate(answer.queryId, { $inc: { communityScore: -3 } });
     } else {
       // Add upvote
       answer.upvotes += 1;
       answer.upvotedBy.push(userId);
       // +2 rep to answer author per upvote
       await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: 2 } });
-      // Also increment community score for auto-FAQ promotion (+3 per upvote)
+      // +3 communityScore per upvote for auto-FAQ promotion
       await Query.findByIdAndUpdate(answer.queryId, { $inc: { communityScore: 3 } });
     }
 
@@ -111,6 +136,9 @@ exports.acceptAnswer = async (req, res) => {
       // Reverse +20 rep from previously accepted answer
       await User.findByIdAndUpdate(currentAccepted.userId, { $inc: { reputation: -20 } });
 
+      // Reverse the acceptedAnswersCount bonus
+      await User.findByIdAndUpdate(currentAccepted.userId, { $inc: { acceptedAnswersCount: -1 } });
+
       // If it was converted to a FAQ, unlink it
       await FAQ.updateMany(
         { resolvedFAQ: currentAccepted._id },
@@ -129,10 +157,26 @@ exports.acceptAnswer = async (req, res) => {
     // Increment acceptedAnswersCount on the User model
     await User.findByIdAndUpdate(answer.userId, { $inc: { acceptedAnswersCount: 1 } });
 
-    // Mark query as answered
-    query.status = 'answered';
+    // Mark query as closed
+    query.status = 'closed';
+    query.answeredAt = new Date();
     query.resolvedFAQ = null;
     await query.save();
+
+    // Auto-promote high-confidence community answers to FAQ request
+    if (answer.upvotes >= COMMUNITY_FAQ_UPVOTE_THRESHOLD) {
+      const existingRequest = await FAQRequest.findOne({ answerId: answer._id, status: 'pending' });
+      if (!existingRequest) {
+        await FAQRequest.create({
+          queryId: query._id,
+          answerId: answer._id,
+          submittedBy: answer.userId,
+          proposedQuestion: query.title,
+          proposedAnswer: answer.content,
+          proposedTags: query.tags || []
+        });
+      }
+    }
 
     res.json({ message: 'Answer accepted', answer });
   } catch (error) {
@@ -163,7 +207,7 @@ exports.convertAnswerToFAQ = async (req, res) => {
 
     // Mark query as closed/resolved
     await Query.findByIdAndUpdate(answer.queryId, {
-      status: 'resolved',
+      status: 'closed',
       resolvedFAQ: faq._id
     });
 
@@ -212,6 +256,10 @@ exports.deleteAnswer = async (req, res) => {
     // Decrement answer count on query
     const query = await Query.findById(answer.queryId);
     if (query) {
+      // Revert answered status back to claimed if this was the claim-holder's first answer
+      if (query.status === 'answered' && answer.userId.toString() === query.assignedTo?.toString()) {
+        query.status = 'claimed';
+      }
       query.answerCount = Math.max(0, query.answerCount - 1);
       if (query.answerCount === 0) query.status = 'open';
       await query.save();
@@ -233,8 +281,8 @@ exports.deleteAnswer = async (req, res) => {
     }
 
     // Reverse upvote community score (+3 per upvote that was removed on answer)
-    if (upvotes > 0 && upvotedBy && upvotedBy.length > 0) {
-      await Query.findByIdAndUpdate(answer.queryId, { $inc: { communityScore: -(3 * upvotedBy.length) } });
+    if (answer.upvotes > 0 && answer.upvotedBy && answer.upvotedBy.length > 0) {
+      await Query.findByIdAndUpdate(answer.queryId, { $inc: { communityScore: -(3 * answer.upvotedBy.length) } });
     }
 
     // Reverse accepted answer community score bonus (+15)

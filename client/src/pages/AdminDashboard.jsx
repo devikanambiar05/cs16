@@ -13,6 +13,7 @@ function AdminDashboard() {
   const [queries, setQueries] = useState([]);
   const [users, setUsers] = useState([]);
   const [faqRequests, setFaqRequests] = useState([]);
+  const [recentEdits, setRecentEdits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [requestFilter, setRequestFilter] = useState('pending');
@@ -32,6 +33,11 @@ function AdminDashboard() {
       fetchFAQRequests();
     }
   }, [user, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'edit-history') fetchRecentEdits();
+    if (activeTab === 'community-board') { fetchPins(); fetchAvailableFAQs(); }
+  }, [activeTab]);
 
   const fetchStats = async () => {
     try {
@@ -66,6 +72,80 @@ function AdminDashboard() {
       console.error('Failed to load users:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecentEdits = async () => {
+    try {
+      setLoading(true);
+      const res = await getModerationQueue();
+      setRecentEdits(res.data.recentEdits || []);
+    } catch (err) {
+      console.error('Failed to load edit history:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPins = async () => {
+    try {
+      const res = await getAdminPins();
+      setPins(res.data || []);
+    } catch (err) {
+      console.error('Failed to load pins:', err);
+    }
+  };
+
+  const fetchAvailableFAQs = async () => {
+    try {
+      const res = await getFAQs({ limit: 200 });
+      setAvailableFAQs(res.data.faqs || []);
+    } catch (err) {
+      console.error('Failed to load FAQs for pin picker:', err);
+    }
+  };
+
+  const openCreatePin = () => {
+    setEditingPin(null);
+    setPinForm({ type: 'announcement', title: '', content: '', faqId: '', order: 0 });
+    setShowPinModal(true);
+  };
+
+  const openEditPin = (pin) => {
+    setEditingPin(pin);
+    setPinForm({
+      type: pin.type,
+      title: pin.title,
+      content: pin.content || '',
+      faqId: pin.faqId?._id || '',
+      order: pin.order || 0
+    });
+    setShowPinModal(true);
+  };
+
+  const handleSavePin = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = { ...pinForm, faqId: pinForm.type === 'faq' ? pinForm.faqId : null };
+      if (editingPin) {
+        await updatePin(editingPin._id, payload);
+      } else {
+        await createPin(payload);
+      }
+      setShowPinModal(false);
+      fetchPins();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to save pin');
+    }
+  };
+
+  const handleDeletePin = async (id) => {
+    if (!confirm('Remove this pin from the community board?')) return;
+    try {
+      await deletePin(id);
+      fetchPins();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete pin');
     }
   };
 
@@ -192,7 +272,7 @@ function AdminDashboard() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-slate-200 mb-8">
-        {['overview', 'queries', 'users', 'faq-requests'].map(tab => (
+        {['overview', 'queries', 'users', 'faq-requests', 'edit-history', 'community-board'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -487,6 +567,244 @@ function AdminDashboard() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Edit History Tab */}
+      {activeTab === 'edit-history' && (
+        <div>
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-sm text-slate-500">Audit trail of FAQ answer edits — last 7 days</p>
+            <span className="text-sm text-slate-500">{recentEdits.length} edit{recentEdits.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-12"><div className="spinner" /></div>
+          ) : recentEdits.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No FAQ edits in the last 7 days</div>
+          ) : (
+            <div className="space-y-4">
+              {recentEdits.map(edit => (
+                <div key={edit._id} className="card">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {edit.newTitle || edit.previousTitle || 'Untitled FAQ'}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Edited by {edit.editedBy?.name || 'Unknown'} &middot;{' '}
+                        {new Date(edit.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    {edit.reason && (
+                      <span className="badge badge-gray text-xs shrink-0">{edit.reason}</span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-red-50 border border-red-100 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2">Before</p>
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap line-clamp-4">
+                        {edit.previousFinalAnswer || <span className="italic text-slate-400">empty</span>}
+                      </p>
+                      {edit.previousTags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {edit.previousTags.map(tag => (
+                            <span key={tag} className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">#{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">After</p>
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap line-clamp-4">
+                        {edit.newFinalAnswer || <span className="italic text-slate-400">empty</span>}
+                      </p>
+                      {edit.newTags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {edit.newTags.map(tag => (
+                            <span key={tag} className="text-xs bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded">#{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Community Board Tab */}
+      {activeTab === 'community-board' && (
+        <div>
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-base font-semibold text-slate-800">Community Board</h2>
+              <p className="text-sm text-slate-500 mt-0.5">Pin FAQs, announcements, or overview notes to the landing page</p>
+            </div>
+            <button onClick={openCreatePin} className="btn-primary text-sm">
+              + New Pin
+            </button>
+          </div>
+
+          {pins.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No pins yet. Create one to get started.</div>
+          ) : (
+            <div className="space-y-3">
+              {pins.map(pin => (
+                <div key={pin._id} className="card">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`badge ${
+                          pin.type === 'faq' ? 'badge-primary' :
+                          pin.type === 'announcement' ? 'badge-yellow' : 'badge-green'
+                        }`}>
+                          {pin.type}
+                        </span>
+                        <span className="text-xs text-slate-400">Order: {pin.order}</span>
+                      </div>
+                      <h3 className="font-medium text-slate-800 mb-1">{pin.title}</h3>
+                      {pin.type === 'faq' && pin.faqId ? (
+                        <p className="text-sm text-slate-500 line-clamp-2">📌 {pin.faqId.title}</p>
+                      ) : pin.content ? (
+                        <p className="text-sm text-slate-500 line-clamp-2">{pin.content}</p>
+                      ) : null}
+                      <p className="text-xs text-slate-400 mt-1">
+                        Pinned by {pin.pinnedBy?.name} &middot; {new Date(pin.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button onClick={() => openEditPin(pin)} className="text-xs btn-ghost text-slate-500 px-2 py-1">Edit</button>
+                      <button onClick={() => handleDeletePin(pin._id)} className="text-xs btn-ghost text-red-500 px-2 py-1">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Pin Create/Edit Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowPinModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h3 className="font-semibold text-slate-800">{editingPin ? 'Edit Pin' : 'New Pin'}</h3>
+              <button onClick={() => setShowPinModal(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePin} className="p-6 space-y-4">
+              {/* Type */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                <div className="flex gap-2">
+                  {['announcement', 'overview', 'faq'].map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setPinForm(f => ({ ...f, type: t, faqId: '' }))}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                        pinForm.type === t
+                          ? 'bg-primary-100 text-primary-700 border-primary-300'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {t === 'announcement' ? '📢 Announcement' : t === 'overview' ? 'ℹ️ Overview' : '📌 FAQ'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Title *</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={150}
+                  value={pinForm.title}
+                  onChange={e => setPinForm(f => ({ ...f, title: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="e.g. Important: NOC deadline extended"
+                />
+              </div>
+
+              {/* FAQ Selector */}
+              {pinForm.type === 'faq' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Select FAQ *</label>
+                  <select
+                    required
+                    value={pinForm.faqId}
+                    onChange={e => {
+                      const faq = availableFAQs.find(f => f._id === e.target.value);
+                      setPinForm(f => ({
+                        ...f,
+                        faqId: e.target.value,
+                        title: faq ? `📌 ${faq.title}` : f.title
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Choose an FAQ...</option>
+                    {availableFAQs.map(faq => (
+                      <option key={faq._id} value={faq._id}>{faq.title}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Content (for announcement/overview) */}
+              {pinForm.type !== 'faq' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {pinForm.type === 'announcement' ? 'Announcement text *' : 'Overview content *'}
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={pinForm.content}
+                    onChange={e => setPinForm(f => ({ ...f, content: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                    placeholder={pinForm.type === 'announcement'
+                      ? 'Write your announcement here...'
+                      : 'Write a brief overview or summary...'
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Display order */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Display Order</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={pinForm.order}
+                  onChange={e => setPinForm(f => ({ ...f, order: parseInt(e.target.value) || 0 }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <p className="text-xs text-slate-400 mt-1">Lower numbers appear first (0 = top)</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowPinModal(false)} className="btn-ghost text-sm">Cancel</button>
+                <button type="submit" className="btn-primary text-sm">
+                  {editingPin ? 'Save Changes' : 'Create Pin'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

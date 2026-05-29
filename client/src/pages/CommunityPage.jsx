@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery, createFAQRequest, updateQuery } from '../services/api';
+import { getQueries, getSimilarQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery, createFAQRequest, updateQuery } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
 import RichTextEditor, { MarkdownContent } from '../components/RichTextEditor';
+import TagInput from '../components/TagInput';
 
 // ─── SLA helpers ──────────────────────────────────────────────────────────────
 
@@ -16,6 +17,15 @@ function getSlaStatus(expiresAt) {
   if (h < 12) return { label: `${Math.floor(h)}h left`, urgency: 'warning', msLeft };
   if (h < 20) return { label: `${Math.floor(h)}h left`, urgency: 'caution', msLeft };
   return { label: `${Math.floor(h)}h left`, urgency: 'ok', msLeft };
+}
+
+// Flags queries that are old, unanswered — encourages claiming over fresh queries
+function getUnansweredUrgency(createdAt, answerCount, status) {
+  if (status === 'closed' || answerCount > 0) return null;
+  const ageHours = (Date.now() - new Date(createdAt)) / (1000 * 60 * 60);
+  if (ageHours >= 72) return { label: `${Math.floor(ageHours / 24)}d unanswered`, urgency: 'critical' };
+  if (ageHours >= 48) return { label: `${Math.floor(ageHours / 24)}d unanswered`, urgency: 'warning' };
+  return null;
 }
 
 function SlaBadge({ expiresAt }) {
@@ -50,42 +60,29 @@ function SlaWarningBanner({ expiresAt }) {
   );
 }
 
-// ─── Tag Chip (shared between view and edit modes) ─────────────────────────────
-
-function TagInput({ tags, onChange }) {
-  const [input, setInput] = useState('');
-
-  const addTag = (raw) => {
-    const clean = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-    if (clean && !tags.includes(clean) && tags.length < 5) {
-      onChange([...tags, clean]);
-    }
-    setInput('');
+function UnansweredBadge({ createdAt, answerCount, status }) {
+  const info = getUnansweredUrgency(createdAt, answerCount, status);
+  if (!info) return null;
+  const classes = {
+    warning: 'bg-orange-100 text-orange-700 border-orange-200',
+    critical: 'bg-red-100 text-red-700 border-red-200 font-semibold'
   };
-
   return (
-    <div className="flex flex-wrap gap-2 p-2.5 border border-slate-200 rounded-lg bg-white min-h-[44px] focus-within:border-primary-400">
-      {tags.map(tag => (
-        <span key={tag} className="inline-flex items-center gap-1 bg-primary-50 text-primary-700 border border-primary-200 text-xs px-2 py-0.5 rounded-full">
-          #{tag}
-          <button type="button" onClick={() => onChange(tags.filter(t => t !== tag))} className="text-primary-400 hover:text-primary-700 font-bold leading-none ml-0.5">×</button>
-        </span>
-      ))}
-      {tags.length < 5 && (
-        <input
-          type="text"
-          className="flex-1 min-w-[100px] text-xs border-none outline-none bg-transparent placeholder:text-slate-400"
-          placeholder={tags.length === 0 ? 'Add tags...' : ''}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ',' || e.key === ' ') { e.preventDefault(); addTag(input); }
-            if (e.key === 'Backspace' && !input && tags.length > 0) onChange(tags.slice(0, -1));
-          }}
-        />
-      )}
-    </div>
+    <span className={`badge text-xs border ${classes[info.urgency]}`}>
+      ⏳ {info.label}
+    </span>
   );
+}
+
+// Confidence score: surfaces quality answers above raw vote counts.
+// Formula: upvotes + (isAccepted ? 50 : 0) + log10(rep+1)*5
+// Accepted answers get a large boost; established authors rank above newcomers at equal votes.
+function getConfidenceInfo(score) {
+  const pct = Math.min(100, Math.round((score / 80) * 100));
+  if (score >= 60) return { label: 'High', pct, color: 'bg-emerald-500', textColor: 'text-emerald-700', barBg: 'bg-emerald-100' };
+  if (score >= 30) return { label: 'Moderate', pct, color: 'bg-blue-500', textColor: 'text-blue-700', barBg: 'bg-blue-50' };
+  if (score >= 10) return { label: 'Growing', pct, color: 'bg-amber-500', textColor: 'text-amber-700', barBg: 'bg-amber-50' };
+  return { label: 'New', pct: Math.max(5, pct), color: 'bg-slate-300', textColor: 'text-slate-400', barBg: 'bg-slate-50' };
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -99,6 +96,8 @@ function CommunityPage() {
   const [answerContent, setAnswerContent] = useState({});
   const [editingQueryId, setEditingQueryId] = useState(null);
   const [editForm, setEditForm] = useState({ title: '', description: '', tags: [] });
+  const [similarQueries, setSimilarQueries] = useState([]);
+  const [checkingSimilar, setCheckingSimilar] = useState(null);
   const [submitting, setSubmitting] = useState(null);
   const [filter, setFilter] = useState('open');
   const [sort, setSort] = useState('recent');
@@ -343,7 +342,16 @@ function CommunityPage() {
                 key={query._id}
                 query={query}
                 isExpanded={expandedQuery === query._id}
-                onToggle={() => setExpandedQuery(expandedQuery === query._id ? null : query._id)}
+                onToggle={async () => {
+                  const next = expandedQuery === query._id ? null : query._id;
+                  setExpandedQuery(next);
+                  setSimilarQueries([]);
+                  if (next) {
+                    setCheckingSimilar(next);
+                    const similar = await getSimilarQueries(query.title, query._id);
+                    if (checkingSimilar === next) setSimilarQueries(similar);
+                  }
+                }}
                 answerContent={answerContent[query._id] || ''}
                 onAnswerChange={val => setAnswerContent({ ...answerContent, [query._id]: val })}
                 onSubmitAnswer={() => handleSubmitAnswer(query._id)}
@@ -358,6 +366,7 @@ function CommunityPage() {
                 onEditFormChange={setEditForm}
                 onSaveEdit={() => handleSaveEdit(query._id)}
                 onCancelEdit={handleCancelEdit}
+                similarQueries={similarQueries.filter(q => q._id === query._id)}
                 submitting={submitting}
                 currentUser={user}
               />
@@ -387,6 +396,7 @@ function QueryCard({
   onUpvoteAnswer, onAcceptAnswer, onRequestFAQ,
   onClaimQuery, onUnclaimQuery, onStartEdit,
   isEditing, editForm, onEditFormChange, onSaveEdit, onCancelEdit,
+  similarQueries,
   submitting, currentUser
 }) {
   const assignedToId = query.assignedTo ? (query.assignedTo._id || query.assignedTo) : null;
@@ -406,6 +416,7 @@ function QueryCard({
             <h3 className="font-medium text-slate-900 leading-snug">{query.title}</h3>
             <span className={`badge text-xs shrink-0 ${query.status === 'open' ? 'badge-blue' : query.status === 'claimed' ? 'badge-yellow' : query.status === 'answered' ? 'badge-green' : 'badge-gray'}`}>{query.status}</span>
             <SlaBadge expiresAt={query.expiresAt} />
+            <UnansweredBadge createdAt={query.createdAt} answerCount={query.answerCount} status={query.status} />
           </div>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {(query.tags || []).map(tag => (
@@ -484,27 +495,40 @@ function QueryCard({
               {query.answers && query.answers.length > 0 && (
                 <div className="space-y-3 mb-4">
                   <p className="text-sm font-semibold text-slate-700">{query.answers.length} Answer{query.answers.length !== 1 ? 's' : ''}</p>
-                  {query.answers.map(answer => (
-                    <div key={answer._id} className="bg-white border border-slate-200 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex-1 flex items-center gap-2">
-                          <span className="font-medium text-sm text-slate-800">{answer.userId?.name || 'Anonymous'}</span>
-                          <span className="text-xs text-slate-400">· {answer.userId?.reputation || 0} rep</span>
-                          {answer.isAccepted && <span className="badge badge-green text-xs">✓ Accepted</span>}
+                  {query.answers.map(answer => {
+                    const conf = getConfidenceInfo(answer.confidenceScore || 0);
+                    return (
+                    <div key={answer._id} className={`bg-white border rounded-lg p-4 ${answer.isAccepted ? 'border-emerald-300 ring-1 ring-emerald-100' : 'border-slate-200'}`}>
+                      <div className="flex items-start gap-3">
+                        {/* Confidence bar */}
+                        <div className="flex flex-col items-center gap-1.5 shrink-0 w-10">
+                          <span className={`text-xs font-medium ${conf.textColor}`} title={`Confidence: ${conf.label}`}>{conf.label}</span>
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div className={`${conf.color} h-full rounded-full transition-all`} style={{ width: `${conf.pct}%` }} />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => onUpvoteAnswer(answer._id)} className="text-xs text-slate-400 hover:text-primary-600">▲ {answer.upvotes || 0}</button>
-                          {isOwnedByCurrentUser && !answer.isAccepted && !query.resolvedFAQ && (
-                            <button onClick={() => onAcceptAnswer(answer._id)} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">Accept</button>
-                          )}
-                          {(isOwnedByCurrentUser || (currentUser && currentUser.role === 'admin')) && (
-                            <button onClick={() => onRequestFAQ(answer._id, query._id, query)} className="text-xs text-primary-600 hover:text-primary-700 font-medium">📋 Request to Add to FAQ</button>
-                          )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex-1 flex items-center gap-2">
+                              <span className="font-medium text-sm text-slate-800">{answer.userId?.name || 'Anonymous'}</span>
+                              <span className="text-xs text-slate-400">{answer.userId?.reputation || 0} rep</span>
+                              {answer.isAccepted && <span className="badge badge-green text-xs">✓ Accepted</span>}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => onUpvoteAnswer(answer._id)} className="text-xs text-slate-400 hover:text-primary-600">▲ {answer.upvotes || 0}</button>
+                              {isOwnedByCurrentUser && !answer.isAccepted && !query.resolvedFAQ && (
+                                <button onClick={() => onAcceptAnswer(answer._id)} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">Accept</button>
+                              )}
+                              {(isOwnedByCurrentUser || (currentUser && currentUser.role === 'admin')) && (
+                                <button onClick={() => onRequestFAQ(answer._id, query._id, query)} className="text-xs text-primary-600 hover:text-primary-700 font-medium">📋 Request to Add to FAQ</button>
+                              )}
+                            </div>
+                          </div>
+                          <MarkdownContent content={answer.content} />
                         </div>
                       </div>
-                      <MarkdownContent content={answer.content} />
-                    </div>
-                  ))}
+                    </div>);
+                  })}
                 </div>
               )}
 

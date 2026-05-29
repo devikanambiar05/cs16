@@ -55,14 +55,24 @@ exports.getFAQs = async (req, res) => {
   }
 };
 
-// Get trending/most upvoted FAQs
+// Get trending FAQs — most viewed in the last 30 days
 exports.getTrending = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
 
-    const faqs = await FAQ.find({ status: 'resolved', deletedAt: null })
+    // Only consider FAQs viewed in the last 30 days; fall back to all-time if no recent views
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const faqs = await FAQ.find({
+      status: 'resolved',
+      deletedAt: null,
+      $or: [
+        { lastViewed: { $gte: thirtyDaysAgo } },
+        { viewCount: { $gt: 0 }, lastViewed: null }  // legacy FAQs never viewed but have upvotes
+      ]
+    })
       .populate('createdBy', 'name')
-      .sort({ upvotes: -1, createdAt: -1 })
+      .sort({ viewCount: -1, createdAt: -1 })
       .limit(parseInt(limit));
 
     res.json(faqs);

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getQueries, getQueryById, createQuery, closeQuery, deleteQuery, takeQuery, claimQuery, unclaimQuery, getSlaStats, updateQuery, getCommunityCandidates, autoReleaseStaleClaims } = require('../controllers/queryController');
-const { protect, optionalAuth } = require('../middleware/auth');
+const { getQueries, getQueryById, createQuery, closeQuery, deleteQuery, takeQuery, claimQuery, unclaimQuery, getSlaStats, updateQuery, getCommunityCandidates } = require('../controllers/queryController');
+const { protect, optionalAuth, adminOnly } = require('../middleware/auth');
 
 // Get all queries (public)
 router.get('/', optionalAuth, getQueries);
@@ -22,7 +22,18 @@ router.post('/', protect, createQuery);
 router.get('/sla/stats', protect, getSlaStats);
 
 router.get('/community-candidates', getCommunityCandidates);
-router.get('/sla/stale-claims', protect, adminOnly, autoReleaseStaleClaims);
+router.get('/sla/stale-claims', protect, adminOnly, async (req, res) => {
+  try {
+    const AdminController = require('../controllers/adminController');
+    const handler = AdminController.autoReleaseStaleClaims;
+    if (typeof handler === 'function') {
+      return handler(req, res);
+    }
+    res.status(501).json({ error: 'Not implemented' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 router.get('/:id', optionalAuth, getQueryById);
 
 // Update query (owner only — PUT before wildcard /:id)

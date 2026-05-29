@@ -9,7 +9,7 @@ const SLA_24HR = 24 * 60 * 60 * 1000;
 // Get all queries with optional filters
 exports.getQueries = async (req, res) => {
   try {
-    const { status, tag, sort = 'recent', page = 1, limit = 20, claimed } = req.query;
+    const { status, tag, sort = 'recent', page = 1, limit = 20, claimed, q } = req.query;
     const query = {};
 
     if (status === 'open') query.status = 'open';
@@ -78,7 +78,17 @@ exports.getQueryById = async (req, res) => {
       .populate('userId', 'name reputation')
       .sort({ upvotes: -1, createdAt: 1 });
 
-    res.json({ query, answers });
+    // Attach a confidence score to each answer and sort by it
+    // Formula: upvotes + (isAccepted ? 50 : 0) + log10(authorReputation+1)*5
+    // This surfaces accepted answers from established users above raw upvote counts
+    const scoredAnswers = answers.map(a => {
+      const rep = a.userId?.reputation || 0;
+      const confidenceScore = a.upvotes + (a.isAccepted ? 50 : 0) + Math.log10(rep + 1) * 5;
+      return { ...a.toObject(), confidenceScore };
+    });
+    scoredAnswers.sort((a, b) => b.confidenceScore - a.confidenceScore);
+
+    res.json({ query, answers: scoredAnswers });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch query' });
   }

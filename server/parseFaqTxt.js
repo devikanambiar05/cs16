@@ -1,35 +1,40 @@
 /**
  * parseFaqTxt.js — Parses FAQ.txt into structured FAQ data
  *
- * Answer formats in FAQ.txt:
- *   - "§ Answer text"          — standalone answer line (sections 1-6, 8, 9, 11+)
- *   - "Q.M Question?  Answer"  — answer on same line as question (sections 7, 10)
+ * Strategy:
+ *  1. Split on the QA separator line to get TOC and QA sections.
+ *  2. Parse the TOC to get section titles and question IDs.
+ *  3. In the QA section, split on lines that START with "N.M " (strict line-start
+ *     match only) to avoid false splits on cross-references like "(see §4.5)".
+ *  4. Within each block, find the first "§" that follows the question text to
+ *     extract the answer.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 function parseFAQtxt() {
-  const content = fs.readFileSync(path.join(__dirname, '../../FAQ.txt'), 'utf8');
+  const raw = fs.readFileSync(path.join(__dirname, '../../FAQ.txt'), 'utf8');
 
-  const qaSeparator = '============QA=======================================QA=================================================QA===========================================QA==============';
-  const parts = content.split(qaSeparator);
-  const tocSection = parts[0];
-  const qaSection = parts[1];
+  // ── 1. Split TOC from QA ────────────────────────────────────────────────────
+  // The separator is a long line of "=" and "QA" repeated
+  const sepIdx = raw.indexOf('===');
+  if (sepIdx === -1) throw new Error('FAQ.txt: cannot find QA separator');
 
-  // === Parse TOC ===
-  const tocLines = tocSection.split(/\r?\n/);
+  const tocSection = raw.substring(0, sepIdx);
+  const qaSection  = raw.substring(sepIdx);
 
+  // ── 2. Parse TOC ────────────────────────────────────────────────────────────
   const sections = [];
   let currentSection = null;
 
-  for (const rawLine of tocLines) {
+  for (const rawLine of tocSection.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line) continue;
 
-    // Section heading: "N. Title" or "N. Title §"  (N = 1 or 2 digits)
+    // Section heading: "N. Title" (N = 1–2 digits, no decimal)
     const secMatch = line.match(/^(\d+)\.\s+(.+?)(?:\s*§)?\s*$/);
-    if (secMatch) {
+    if (secMatch && !line.match(/^\d+\.\d+/)) {
       if (currentSection) sections.push(currentSection);
       currentSection = {
         number: parseInt(secMatch[1]),
@@ -39,103 +44,116 @@ function parseFAQtxt() {
       continue;
     }
 
-    // Question line: "D.M Question?" — find ALL question refs in the line
-    // (handles concatenated "D.M?...D.M?..." on one line)
-    // Greedy .+ captures the full text; $ anchor forces match to consume to end of string,
-    // so for "1.1 Q1? Answer" the match fails (text continues after ?), but
-    // for "1.1 Q1?...1.2 Q2?...1.3 Q3?" the greedy .+ goes all the way to the last ?
-    // and then we use lastIndexOf to split each D.M question correctly
-    const questionPattern = /(\d+)\.(\d+)\s+(.+?)\?/g;
-    let match;
-    while ((match = questionPattern.exec(line)) !== null) {
+    // Question entries: one or more "N.M Question text" on the same line
+    // (some lines concatenate multiple questions without newlines)
+    const qPattern = /(\d+)\.(\d+)\s+([\s\S]+?)(?=\s*\d+\.\d+\s+|$)/g;
+    let m;
+    while ((m = qPattern.exec(line)) !== null) {
       if (currentSection) {
-        currentSection.questions.push({
-          id: `${match[1]}.${match[2]}`,
-          question: match[3].trim()
-        });
+        const qText = m[3].trim().replace(/\s*§\s*$/, '');
+        if (qText) {
+          currentSection.questions.push({
+            id: `${m[1]}.${m[2]}`,
+            question: qText
+          });
+        }
       }
     }
   }
   if (currentSection) sections.push(currentSection);
 
-  // === Parse QA answers ===
-  // Two formats:
-  //  1. "D.M Question?\n§ Answer"           — dedicated answer line (old format)
-  //  2. "D.M Question?  Answer on same line" — inline answer (new format, sections 7 & 10)
-  const qaLines = qaSection.split(/\r?\n/);
+  // ── 3. Split QA section into per-question blocks ────────────────────────────
+  // Only match "N.M " at the very start of a line (after optional whitespace).
+  // This prevents cross-references like "(see §4.5)" from being treated as headers.
+  const lines = qaSection.split(/\r?\n/);
+  const blocks = []; // { id, lines[] }
+  let currentBlock = null;
+
+  for (const line of lines) {
+    // Strict line-start match: optional leading whitespace, then "N.M " or "N.M\t"
+    const headerMatch = line.match(/^\s*(\d+)\.(\d+)\s+/);
+    if (headerMatch) {
+      if (currentBlock) blocks.push(currentBlock);
+      currentBlock = {
+        id: `${headerMatch[1]}.${headerMatch[2]}`,
+        lines: [line]
+      };
+    } else if (currentBlock) {
+      currentBlock.lines.push(line);
+    }
+  }
+  if (currentBlock) blocks.push(currentBlock);
+
+  // ── 4. Extract answer from each block ───────────────────────────────────────
+  // Each block looks like:
+  //   "N.M Question text"
+  //   "§ Answer text..."
+  //   (possibly more answer lines)
+  //
+  // The "§" marks the start of the answer. Everything before it (on the same
+  // line or on earlier lines) is the question text we already have from the TOC.
+
   const answerMap = {};
-  let currentQId = null;
-  let currentAnswer = [];
 
-  for (const rawLine of qaLines) {
-    const line = rawLine.trim();
-    if (!line) continue;
+  for (const block of blocks) {
+    const fullText = block.lines.join('\n');
 
-    // New format: answer follows "?" with 2+ spaces on the same line (no § prefix)
-    const inlineMatch = line.match(/^(\d+)\.(\d+)\s+(.+?\?)\s{2,}(.+)/);
-    if (inlineMatch) {
-      if (currentQId && currentAnswer.length > 0) {
-        answerMap[currentQId] = currentAnswer.join(' ').replace(/\s+/g, ' ').trim();
-      }
-      currentQId = `${inlineMatch[1]}.${inlineMatch[2]}`;
-      currentAnswer = [inlineMatch[4].trim()];
-      continue;
-    }
+    // Find the first "§" in the block — that's where the answer starts
+    const sepPos = fullText.indexOf('§');
+    if (sepPos === -1) continue;
 
-    // Standard question line
-    const qMatch = line.match(/^(\d+)\.(\d+)\s+(.+)/);
-    if (qMatch) {
-      if (currentQId && currentAnswer.length > 0) {
-        answerMap[currentQId] = currentAnswer.join(' ').replace(/\s+/g, ' ').trim();
-      }
-      currentQId = `${qMatch[1]}.${qMatch[2]}`;
-      const text = qMatch[3];
-      // Check for inline answer: "Question?  Answer" (answer after ? on same line)
-      const questionMarkIdx = text.indexOf('?');
-      if (questionMarkIdx !== -1 && questionMarkIdx < text.length - 1) {
-        const potentialAnswer = text.substring(questionMarkIdx + 1).trim();
-        if (potentialAnswer) {
-          answerMap[currentQId] = potentialAnswer;
-          currentQId = null;
-          currentAnswer = [];
-          continue;
-        }
-      }
-      currentAnswer = [];
-      continue;
-    }
+    const answerRaw = fullText.substring(sepPos + 1);
 
-    // Old format: standalone answer line starting with "§ "
-    if (line.startsWith('§ ')) {
-      const answerText = line.substring(2).trim();
-      if (answerText) currentAnswer.push(answerText);
+    // Clean up: collapse whitespace, remove stray section-title lines
+    const answer = answerRaw
+      .split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(l => {
+        if (!l) return false;
+        // Drop lines that are just section headings like "2. Timing and dates §"
+        if (/^\d+\.\s+[^.?!]+(?:\s*§)?\s*$/.test(l) && !l.includes('?')) return false;
+        return true;
+      })
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (answer) {
+      answerMap[block.id] = answer;
     }
   }
-  if (currentQId && currentAnswer.length > 0) {
-    answerMap[currentQId] = currentAnswer.join(' ').replace(/\s+/g, ' ').trim();
-  }
 
-  // === Combine into FAQ list ===
+  // ── 5. Build FAQ list ────────────────────────────────────────────────────────
   const faqs = [];
+
   for (const section of sections) {
-    const sectionTag = section.title.toLowerCase()
+    const sectionTag = section.title
+      .toLowerCase()
       .replace(/[^a-z0-9\s]/g, '')
       .replace(/\s+/g, '-')
       .substring(0, 30);
 
     for (const q of section.questions) {
       const answer = answerMap[q.id];
-      if (answer) {
-        faqs.push({
-          sectionNumber: section.number,
-          sectionTitle: section.title,
-          questionId: q.id,
-          title: q.question,
-          description: q.question,
-          finalAnswer: answer,
-          tags: [sectionTag, q.id]
-        });
-      }
+      if (!answer) continue;
+
+      // Sanity check: skip if the "answer" looks like a question (starts with a
+      // question word or ends with "?") — this catches any remaining parse errors.
+      const looksLikeQuestion =
+        /^(what|when|where|who|why|how|is|are|can|do|does|did|will|would|should|could)\b/i.test(answer) &&
+        answer.trim().endsWith('?');
+
+      if (looksLikeQuestion) continue;
+
+      faqs.push({
+        sectionNumber: section.number,
+        sectionTitle:  section.title,
+        questionId:    q.id,
+        title:         q.question,
+        description:   q.question,
+        finalAnswer:   answer,
+        tags:          [sectionTag, q.id]
+      });
     }
   }
 

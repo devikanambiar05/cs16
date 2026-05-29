@@ -3,6 +3,7 @@ const Query = require('../models/Query');
 const Answer = require('../models/Answer');
 const FAQRequest = require('../models/FAQRequest');
 const User = require('../models/User');
+const Pin = require('../models/Pin');
 
 // ─── FAQ History (for audit trail) ────────────────────────────────────────────
 
@@ -416,5 +417,71 @@ exports.getModerationQueue = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch moderation queue' });
+  }
+};
+
+// ─── Pin Management ─────────────────────────────────────────────────────────────
+
+exports.getPins = async (req, res) => {
+  try {
+    const pins = await Pin.find({ deletedAt: null })
+      .populate('pinnedBy', 'name')
+      .populate('faqId', 'title finalAnswer tags')
+      .sort({ order: 1, createdAt: -1 });
+    res.json(pins);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch pins' });
+  }
+};
+
+exports.createPin = async (req, res) => {
+  try {
+    const { type, title, content, faqId, order } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const pin = new Pin({
+      type,
+      title,
+      content: content || null,
+      faqId: faqId || null,
+      pinnedBy: user._id,
+      order: order || 0
+    });
+    await pin.save();
+    await pin.populate('pinnedBy', 'name');
+    await pin.populate('faqId', 'title finalAnswer tags');
+    res.status(201).json(pin);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create pin' });
+  }
+};
+
+exports.updatePin = async (req, res) => {
+  try {
+    const { title, content, order } = req.body;
+    const pin = await Pin.findById(req.params.id);
+    if (!pin) return res.status(404).json({ error: 'Pin not found' });
+    if (title !== undefined) pin.title = title;
+    if (content !== undefined) pin.content = content;
+    if (order !== undefined) pin.order = order;
+    await pin.save();
+    await pin.populate('pinnedBy', 'name');
+    await pin.populate('faqId', 'title finalAnswer tags');
+    res.json(pin);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update pin' });
+  }
+};
+
+exports.deletePin = async (req, res) => {
+  try {
+    const pin = await Pin.findById(req.params.id);
+    if (!pin) return res.status(404).json({ error: 'Pin not found' });
+    pin.deletedAt = new Date();
+    await pin.save();
+    res.json({ message: 'Pin removed' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete pin' });
   }
 };

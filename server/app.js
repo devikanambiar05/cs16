@@ -12,6 +12,8 @@ const userRoutes = require('./routes/userRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const faqRequestRoutes = require('./routes/faqRequestRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const searchRoutes = require('./routes/searchRoutes');
+const ragRoutes = require('./routes/ragRoutes');
 const connectDB = require('./utils/connectDB');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
@@ -53,6 +55,8 @@ app.use('/api/answers', answerRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/faq-requests', faqRequestRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/rag', ragRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth/forgot-password', resetLimiter);
 app.use('/api/auth/reset-password', resetLimiter);

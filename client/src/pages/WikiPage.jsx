@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getCategories, getFAQs, upvoteFAQ } from '../services/api';
+import { useSearchParams } from 'react-router-dom';
+import { getCategories, getFAQs, getFAQ, upvoteFAQ } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 function WikiPage() {
@@ -8,23 +9,63 @@ function WikiPage() {
   const [allFAQs, setAllFAQs] = useState([]);
   const [groupedFAQs, setGroupedFAQs] = useState({});
   const [selectedTag, setSelectedTag] = useState(null);
+  const [highlightedId, setHighlightedId] = useState(null);
+  const [highlightedFAQ, setHighlightedFAQ] = useState(null);
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     loadData();
+    const hl = searchParams.get('highlight');
+    if (hl) setHighlightedId(hl);
   }, []);
 
-  const loadData = async () => {
+  // Load highlighted FAQ when param is set
+  useEffect(() => {
+    if (!highlightedId) return;
+
+    const fetchHighlighted = async () => {
+      try {
+        const res = await getFAQ(highlightedId);
+        if (res.data && res.data._id) {
+          setHighlightedFAQ(res.data);
+          // Also add to the main list so it's visible in groups
+          setAllFAQs(prev => {
+            if (prev.some(f => f._id === res.data._id)) return prev;
+            return [res.data, ...prev];
+          });
+          setGroupedFAQs(prev => {
+            const tag = res.data.tags?.[0] || 'uncategorized';
+            const existing = prev[tag] || [];
+            if (existing.some(f => f._id === res.data._id)) return prev;
+            return { ...prev, [tag]: [res.data, ...existing] };
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load highlighted FAQ:', err);
+      }
+    };
+
+    fetchHighlighted();
+  }, [highlightedId]);
+
+  const loadData = async (pageNum = 1) => {
     try {
       setLoading(true);
       const [catRes, faqRes] = await Promise.all([
         getCategories(),
-        getFAQs({ limit: 200 })
+        getFAQs({ page: pageNum, limit: 20 })
       ]);
 
       setCategories(catRes.data);
       setAllFAQs(faqRes.data.faqs);
+      setPage(pageNum);
+      setTotal(faqRes.data.pagination?.total || 0);
+      setTotalPages(faqRes.data.pagination?.pages || 1);
 
       // Group FAQs by their first tag (section)
       const grouped = {};
@@ -41,18 +82,21 @@ function WikiPage() {
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const handleSearch = async (e, pageNum = 1) => {
+    e?.preventDefault();
     if (!searchQuery.trim()) {
       setSelectedTag(null);
-      loadData();
+      loadData(1);
       return;
     }
     setLoading(true);
     setSelectedTag(null);
     try {
-      const res = await getFAQs({ q: searchQuery, limit: 200 });
+      const res = await getFAQs({ q: searchQuery, page: pageNum, limit: 20 });
       setAllFAQs(res.data.faqs);
+      setPage(pageNum);
+      setTotal(res.data.pagination?.total || 0);
+      setTotalPages(res.data.pagination?.pages || 1);
       const grouped = {};
       for (const faq of res.data.faqs) {
         const tag = faq.tags?.[0] || 'uncategorized';
@@ -85,16 +129,43 @@ function WikiPage() {
     }
   };
 
-  const filterByTag = (tag) => {
+  const filterByTagPage = async (tag, pageNum) => {
+    setLoading(true);
+    try {
+      const res = await getFAQs({ tag, page: pageNum, limit: 20 });
+      setAllFAQs(res.data.faqs);
+      setPage(pageNum);
+      setTotal(res.data.pagination?.total || 0);
+      setTotalPages(res.data.pagination?.pages || 1);
+      setGroupedFAQs({ [tag]: res.data.faqs });
+    } catch (err) {
+      console.error('Tag page failed:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterByTag = async (tag) => {
     setSearchQuery('');
     if (selectedTag === tag) {
       setSelectedTag(null);
-      loadData();
+      loadData(1);
     } else {
       setSelectedTag(tag);
-      const filtered = allFAQs.filter(f => f.tags?.[0] === tag);
-      const grouped = { [tag]: filtered };
-      setGroupedFAQs(grouped);
+      setLoading(true);
+      try {
+        const res = await getFAQs({ tag, page: 1, limit: 20 });
+        setAllFAQs(res.data.faqs);
+        setPage(1);
+        setTotal(res.data.pagination?.total || 0);
+        setTotalPages(res.data.pagination?.pages || 1);
+        const grouped = { [tag]: res.data.faqs };
+        setGroupedFAQs(grouped);
+      } catch (err) {
+        console.error('Tag filter failed:', err);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -129,7 +200,7 @@ function WikiPage() {
       {/* Category Filter Pills */}
       <div className="flex flex-wrap gap-2 mb-8">
         <button
-          onClick={() => { setSelectedTag(null); setSearchQuery(''); loadData(); }}
+          onClick={() => { setSelectedTag(null); setSearchQuery(''); loadData(1); }}
           className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
             !selectedTag && !searchQuery
               ? 'bg-primary-600 text-white'
@@ -163,6 +234,46 @@ function WikiPage() {
         </div>
       ) : (
         <div className="space-y-10">
+
+          {/* Highlighted FAQ — shown at top when arriving via ?highlight= */}
+          {highlightedFAQ && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-semibold text-primary-600 uppercase tracking-wide">🔗 Linked from your query</span>
+              </div>
+              <div className="bg-primary-50 rounded-xl border border-primary-200 overflow-hidden shadow-md">
+                {/* Question */}
+                <div className="px-6 py-4 border-b border-primary-100">
+                  <h3 className="font-semibold text-primary-900 text-base">{highlightedFAQ.title}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    {(highlightedFAQ.tags || []).slice(0, 3).map(t => (
+                      <span key={t} className="badge badge-gray text-xs">#{t}</span>
+                    ))}
+                  </div>
+                </div>
+                {/* Answer — always expanded for highlighted */}
+                <div className="px-6 py-4">
+                  <div className="bg-white rounded-lg p-4 border-l-4 border-primary-400">
+                    <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line">{highlightedFAQ.finalAnswer}</p>
+                  </div>
+                </div>
+                {/* Footer */}
+                <div className="px-6 py-3 bg-primary-100 border-t border-primary-100 flex items-center justify-between">
+                  <span className="text-xs text-primary-600">
+                    by {highlightedFAQ.createdBy?.name || 'Community'} &middot; {highlightedFAQ.upvotes} upvotes
+                  </span>
+                  {user && (
+                    <button
+                      onClick={() => handleUpvote(highlightedFAQ._id)}
+                      className="btn-ghost text-xs py-1 px-2 text-primary-600"
+                    >
+                      👍 Upvote
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           {sortedTags.map(tag => {
             const catInfo = categories.find(c => c.tag === tag);
             const faqs = groupedFAQs[tag];
@@ -183,8 +294,13 @@ function WikiPage() {
 
                 {/* FAQ List */}
                 <div className="space-y-4">
-                  {faqs.map(faq => (
-                    <div key={faq._id} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  {faqs
+                    .filter(faq => faq._id !== highlightedId)
+                    .map(faq => (
+                    <div
+                      key={faq._id}
+                      className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-primary-300 hover:shadow-md transition-all"
+                    >
                       {/* Question */}
                       <div className="px-5 py-4">
                         <h3 className="font-semibold text-slate-900 text-base">{faq.title}</h3>
@@ -228,11 +344,34 @@ function WikiPage() {
         </div>
       )}
 
-      {/* Footer stats */}
+      {/* Footer stats + Pagination */}
       {!loading && (
-        <div className="mt-12 text-center text-sm text-slate-400">
-          {allFAQs.length} FAQs across {sortedTags.length} topics
-          {searchQuery && ` matching "${searchQuery}"`}
+        <div className="mt-12">
+          <div className="text-center text-sm text-slate-400 mb-4">
+            Showing {allFAQs.length} of {total} FAQs across {sortedTags.length} topics
+            {searchQuery && ` matching "${searchQuery}"`}
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => selectedTag ? filterByTagPage(selectedTag, page - 1) : searchQuery ? handleSearch(null, page - 1) : loadData(page - 1)}
+                disabled={page <= 1}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50 transition-colors"
+              >
+                ← Previous
+              </button>
+              <span className="text-sm text-slate-500 px-2">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => selectedTag ? filterByTagPage(selectedTag, page + 1) : searchQuery ? handleSearch(null, page + 1) : loadData(page + 1)}
+                disabled={page >= totalPages}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-sm disabled:opacity-40 hover:bg-slate-50 transition-colors"
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

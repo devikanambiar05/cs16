@@ -24,6 +24,14 @@ const faqSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  viewCount: {
+    type: Number,
+    default: 0
+  },
+  lastViewed: {
+    type: Date,
+    default: null
+  },
   upvoters: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
