@@ -241,26 +241,32 @@ function FAQsPage() {
                 {/* Community Board — pinned FAQs, announcements, overview */}
                 <CommunityBoard />
 
-                {/* Welcome state — invite to browse via sidebar */}
-                <div className="text-center py-12 px-4">
-                  <div className="text-5xl mb-4">📚</div>
-                  <h2 className="text-xl font-semibold text-slate-800 mb-2">Browse the Knowledge Base</h2>
-                  <p className="text-slate-500 text-sm mb-6 max-w-sm mx-auto">
-                    {categories.length} topics across {categories.reduce((s, c) => s + c.count, 0)} FAQs.
-                    Select a topic from the right panel to get started.
+                {/* Hero section */}
+                <div className="text-center py-10 px-4 mb-6">
+                  <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+                    <span>📚</span>
+                    <span>{categories.reduce((s, c) => s + c.count, 0)} FAQs across {categories.length} topics</span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                    Find answers, instantly
+                  </h2>
+                  <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
+                    Can't find what you're looking for? Use the chat assistant below — it searches the entire knowledge base for you.
                   </p>
-                  <div className="flex flex-wrap justify-center gap-2 mb-8">
-                    {categories.slice(0, 5).map(cat => (
+                  {/* Quick topic pills */}
+                  <div className="flex flex-wrap justify-center gap-2 mb-4">
+                    {categories.slice(0, 6).map(cat => (
                       <button
                         key={cat.id}
                         onClick={() => selectCategory(cat)}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-full transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-primary-300 hover:bg-primary-50 text-slate-600 hover:text-primary-700 text-sm rounded-full transition-all shadow-sm"
                       >
-                        {cat.name}
+                        <span>{cat.name}</span>
+                        <span className="text-xs text-slate-400">{cat.count}</span>
                       </button>
                     ))}
                   </div>
-                  <Link to="/wiki" className="btn-outline text-sm">
+                  <Link to="/wiki" className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors">
                     Browse all FAQs in the Wiki →
                   </Link>
                 </div>
