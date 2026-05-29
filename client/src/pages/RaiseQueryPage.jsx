@@ -134,6 +134,10 @@ function RaiseQueryPage() {
         setError('');
         return;
       }
+      if (err.response?.status === 429) {
+        setError(data?.error || 'Cooldown active');
+        return;
+      }
       setError(data?.error || 'Failed to submit query');
     } finally {
       setSubmitting(false);

@@ -2,6 +2,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const User = require('./models/User');
 const FAQ = require('./models/FAQ');
+const Pin = require('./models/Pin');
 const parseFAQtxt = require('./parseFaqTxt');
 
 async function seed() {
@@ -10,7 +11,11 @@ async function seed() {
     console.log('Connected to MongoDB');
 
     // Clear existing data
-    await Promise.all([User.deleteMany({}), FAQ.deleteMany({})]);
+    await Promise.all([
+      User.deleteMany({}),
+      FAQ.deleteMany({}),
+      Pin.deleteMany({})
+    ]);
     console.log('Cleared existing data');
 
     // Create a default admin user
@@ -19,7 +24,8 @@ async function seed() {
       email: 'admin@faqapp.com',
       password: 'admin123',
       role: 'admin',
-      reputation: 100
+      reputation: 100,
+      isVerified: true
     });
     console.log('Created admin user: admin@faqapp.com / admin123');
 
@@ -39,6 +45,35 @@ async function seed() {
 
     const inserted = await FAQ.insertMany(faqDocs);
     console.log(`Inserted ${inserted.length} FAQs into database`);
+
+    // Insert default community board pins
+    const announcementPin = await Pin.create({
+      type: 'announcement',
+      title: 'Vicharanashala 2026 Summership is Live!',
+      content: 'Welcome all interns! Please make sure to check ViBe LMS daily for course announcements and progress score updates.',
+      pinnedBy: admin._id,
+      order: 0
+    });
+
+    const overviewPin = await Pin.create({
+      type: 'overview',
+      title: 'About Samagama FAQ Portal',
+      content: 'Samagama is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!',
+      pinnedBy: admin._id,
+      order: 1
+    });
+
+    // Pin the first FAQ
+    if (inserted.length > 0) {
+      await Pin.create({
+        type: 'faq',
+        title: `Pinned FAQ: ${inserted[0].title}`,
+        faqId: inserted[0]._id,
+        pinnedBy: admin._id,
+        order: 2
+      });
+    }
+    console.log('Created default community board pins');
 
     // Summary by section
     console.log('\n=== FAQ Count by Section ===');

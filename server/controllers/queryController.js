@@ -105,6 +105,27 @@ exports.createQuery = async (req, res) => {
       return res.status(400).json({ error: 'Title and description are required' });
     }
 
+    // Cooldown: max 3 queries per 24 hours
+    const COOLDOWN_LIMIT = 3;
+    const COOLDOWN_WINDOW_MS = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const userDoc = await User.findById(req.user._id).select('recentQueryTimestamps');
+    const recentTs = (userDoc?.recentQueryTimestamps || []).filter(ts => now - ts < COOLDOWN_WINDOW_MS);
+    if (recentTs.length >= COOLDOWN_LIMIT) {
+      const oldestAllowed = now - COOLDOWN_WINDOW_MS;
+      const nextAvailable = [...recentTs].sort()[0];
+      const waitMs = nextAvailable + COOLDOWN_WINDOW_MS - now;
+      const waitMins = Math.ceil(waitMs / 60000);
+      const hours = Math.floor(waitMins / 60);
+      const mins = waitMins % 60;
+      const waitStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      return res.status(429).json({
+        error: `You can only raise 3 queries every 24 hours`,
+        nextAvailableAt: new Date(now + waitMs),
+        waitStr
+      });
+    }
+
     //Reject if this query is clearly a duplicate of an already-answered question
     const { jaccardSimilarity } = require('./searchController');
     const rawQueries = await Query.find({ status: { $ne: 'closed' }, deletedAt: null })
@@ -154,6 +175,11 @@ exports.createQuery = async (req, res) => {
     });
 
     await query.populate('createdBy', 'name reputation');
+
+    // Record this submission timestamp for cooldown tracking
+    await User.findByIdAndUpdate(req.user._id, {
+      $push: { recentQueryTimestamps: { $each: [new Date()], $slice: -3 } }
+    });
 
     res.status(201).json({ message: 'Query raised successfully', query });
   } catch (error) {

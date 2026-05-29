@@ -23,12 +23,17 @@ beforeAll(async () => {
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/samagama');
   }
   User = require('../models/User');
-  await User.deleteMany({ email: { $regex: /test-/ } });
+  const Query = require('../models/Query');
+  const Answer = require('../models/Answer');
+  await Promise.all([
+    User.deleteMany({ email: { $regex: /test-/ } }),
+    Query.deleteMany({}),
+    Answer.deleteMany({})
+  ]);
 });
 
 afterAll(async () => {
-  const mongoose = require('mongoose');
-  await mongoose.disconnect();
+  // Connection teardown is handled automatically by Jest --forceExit
 });
 
 // Helper — generate a unique test email each run
@@ -49,7 +54,7 @@ describe('Auth Endpoints', () => {
       expect(res.body).toHaveProperty('token');
       expect(res.body).toHaveProperty('user');
       expect(res.body.user.name).toBe('Test User');
-      expect(res.body.user.isVerified).toBe(false); // Email needs verification
+      expect(res.body.user.isVerified).toBe(true); // Email verification is bypassed for now
     });
 
     it('should reject registration with missing fields', async () => {

@@ -23,7 +23,7 @@ function tokenize(text) {
     .filter(t => t.length > 2 && !STOPWORDS.has(t));
 }
 
-// ─── TF-IDF tag detection (pre-computed, cached 10 min) ───────────────────────
+// ─── TF-IDF tag detection (pre-computed, cached 10 min) ──────────────────────
 
 const IDF_CACHE_TTL_MS = 10 * 60 * 1000;
 let idfCache = null;
@@ -105,7 +105,7 @@ function scoreTags(text, knownTags, idf, limit = 5) {
   return scored.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
-// ─── FAQ BM25 search (handles short queries against small corpora) ─────────────
+// ─── FAQ BM25 search (handles short queries against small corpora) ───────────
 // BM25 solves the zero-IDF problem: TF-IDF cosine similarity gives 0 similarity
 // when a term is absent from the FAQ corpus. BM25 uses Robertson-Sparck Jones
 // IDF which stays positive even when a term appears in every document.
@@ -127,7 +127,6 @@ async function buildFaqBm25Index() {
     return faqBm25Cache;
   }
 
-  // df[term] = number of FAQs containing this term (document frequency)
   const df = {};
   for (const faq of faqs) {
     for (const term of new Set(tokenize(`${faq.title} ${faq.finalAnswer || ''}`))) {
@@ -135,7 +134,6 @@ async function buildFaqBm25Index() {
     }
   }
 
-  // Pre-tokenize each FAQ and store alongside
   const processed = faqs.map(faq => {
     const allText = `${faq.title} ${(faq.finalAnswer || '').substring(0, 500)}`;
     const tokens = tokenize(allText);
@@ -147,20 +145,16 @@ async function buildFaqBm25Index() {
   return faqBm25Cache;
 }
 
-// Robertson-Sparck Jones IDF: log((N - df + 0.5) / (df + 0.5) + 1)
-// Always positive even when df == N (every document has the term)
 function rsjIdf(df, N) {
   return Math.log((N - df + 0.5) / (df + 0.5) + 1);
 }
 
-// BM25 scoring — token array version (for FAQ index)
 function bm25Score(queryTokens, docTokens, docLength, avgDL, df, idf, N, k1 = 1.5, b = 0.75) {
   const docTf = {};
   for (const t of docTokens) docTf[t] = (docTf[t] || 0) + 1;
   return bm25ScoreTf(queryTokens, docTf, docLength, avgDL, df, N, k1, b);
 }
 
-// BM25 scoring — pre-computed TF map version (for query scoring)
 function bm25ScoreTf(queryTokens, docTf, docLength, avgDL, df, N, k1 = 1.5, b = 0.75) {
   let score = 0;
   for (const term of queryTokens) {
@@ -184,7 +178,6 @@ async function scoreFaqsAgainstQuery(queryText, limit = 5) {
 
   const avgDL = faqs.reduce((sum, f) => sum + f._docLen, 0) / faqs.length;
 
-  // Score every FAQ
   const scored = faqs
     .map(faq => ({
       _id: faq._id,
@@ -199,11 +192,6 @@ async function scoreFaqsAgainstQuery(queryText, limit = 5) {
 
   if (scored.length === 0) return [];
 
-  // Use the TOP result's score as the relevance ceiling, not the input threshold.
-  // Only return FAQs that score >= 35% of the best match — this cleanly filters
-  // out low-relevance results for truly unrelated queries. An absolute floor of
-  // 0.8 prevents a low-scoring result from appearing solely because the corpus
-  // is tiny and everything scores poorly.
   const topScore = scored[0].score;
   const MIN_RELATIVE_SCORE = 0.35;
   const MIN_ABSOLUTE_SCORE = 0.8;
@@ -214,7 +202,7 @@ async function scoreFaqsAgainstQuery(queryText, limit = 5) {
     .map(f => ({ _id: f._id, title: f.title, finalAnswer: f.finalAnswer, tags: f.tags, upvotes: f.upvotes, similarity: Math.round(f.score * 1000) / 1000 }));
 }
 
-// ─── Jaccard (for query duplicate detection) ───────────────────────────────────
+// ─── Jaccard (for query duplicate detection) ─────────────────────────────────
 
 const EXACT_DUPLICATE_THRESHOLD = 0.85;
 
@@ -225,6 +213,7 @@ function jaccardSimilarity(a, b) {
   const intersection = [...setA].filter(t => setB.has(t)).length;
   return intersection / new Set([...setA, ...setB]).size;
 }
+exports.jaccardSimilarity = jaccardSimilarity;
 
 // ─── Routes ────────────────────────────────────────────────────────────────────
 
@@ -235,7 +224,6 @@ exports.searchSimilar = async (req, res) => {
       return res.json({ faqs: [], queries: [], resolvedQueries: [], highConfidenceDuplicate: null, isInScope: true });
     }
 
-    // Scope check — does the query mention anything related to the platform/internship?
     const scopeKeywords = [
       'vicharanashala', 'vins', 'vise', 'summership', 'iit ropar', 'internship',
       'noc', 'offer letter', 'certificate', 'rosetta', 'vibe', 'yaksha', 'samagama',
@@ -248,10 +236,8 @@ exports.searchSimilar = async (req, res) => {
     const matchedScope = scopeKeywords.filter(k => queryLower.includes(k));
     const isInScope = matchedScope.length > 0;
 
-    // FAQs — BM25 (handles short queries, zero-IDF edge cases)
     const faqs = await scoreFaqsAgainstQuery(q, 5);
 
-    // Queries — full BM25 scoring, filter to relative relevance threshold
     const allRawQueries = await Query.find({
       status: { $ne: 'closed' },
       deletedAt: null
@@ -262,7 +248,6 @@ exports.searchSimilar = async (req, res) => {
     const qTokens = tokenize(q);
     let topRawQueries = [];
     if (qTokens.length > 0) {
-      // Separate idf/N for query corpus — compute document frequency across all queries
       const qdf = {};
       for (const r of allRawQueries) {
         for (const term of new Set(tokenize(`${r.title} ${r.description}`))) {
@@ -278,7 +263,7 @@ exports.searchSimilar = async (req, res) => {
         const rTf = {};
         for (const t of rTokens) rTf[t] = (rTf[t] || 0) + 1;
         const s = bm25ScoreTf(qTokens, rTf, rdl, avgQL || rdl, qdf, qN);
-       if (s >= 0.5) scoreMap[r._id.toString()] = s;
+        if (s >= 0.5) scoreMap[r._id.toString()] = s;
       }
       const topScore = Object.values(scoreMap)[0] || 0;
       const MIN_RELATIVE = 0.35;
@@ -352,38 +337,42 @@ exports.detectTags = async (req, res) => {
     const { text = '' } = req.query;
     if (!text || text.length < 10) return res.json({ detectedTags: [], confidence: [] });
 
-    const scoreTags = require('./searchController').scoreTags || (async () => []);
-    const extractKeywords = (text) => text
-      .toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/)
-      .filter(t => t.length > 2);
-
+    // Harvest all known tags from FAQs AND queries (case-insensitive)
     const knownTags = new Set();
-    const allFAQs = await FAQ.find({ status: 'resolved', deletedAt: null }).select('tags').lean();
-    for (const f of allFAQs) { (f.tags || []).forEach(t => knownTags.add(t)); }
+    const [faqTags, queryTags] = await Promise.all([
+      FAQ.find({ status: 'resolved', deletedAt: null }).select('tags').lean(),
+      Query.find({ deletedAt: null }).select('tags').lean()
+    ]);
+    for (const f of faqTags) { (f.tags || []).forEach(t => knownTags.add(t)); }
+    for (const q of queryTags) { (q.tags || []).forEach(t => knownTags.add(t)); }
 
     if (!knownTags.size) {
-      const kw = extractKeywords(text).slice(0, 3);
+      // No tags in DB at all — use unfiltered keywords as fallback
+      const raw = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length > 2);
+      const kw = [...new Set(raw)].slice(0, 3);
       return res.json({ detectedTags: kw, confidence: kw.map(t => ({ tag: t, score: 1 })) });
     }
 
-    // Only suggest tags that already exist in the FAQ database
-    const tokens = extractKeywords(text);
-    const suggestions = tokens.filter(t => knownTags.has(t)).slice(0, 3);
-    return res.json({ detectedTags: suggestions, confidence: suggestions.map(t => ({ tag: t, score: 1 })) });
+    // Split without stopword filtering — we want "noc" to match even after "in/the"
+    const rawTokens = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length > 2);
+
+    // Exact matches: token exactly equals a known tag
+    const exact = rawTokens.filter(t => knownTags.has(t));
+
+    // Partial matches: token is a prefix/suffix of a known tag or vice versa
+    const partial = rawTokens
+      .map(token => [...knownTags].find(k => k.startsWith(token) || token.startsWith(k)))
+      .filter((v, i, arr) => v !== undefined && arr.indexOf(v) === i);
+
+    const suggestions = exact.length > 0 ? exact : partial;
+    return res.json({
+      detectedTags: suggestions.slice(0, 3),
+      confidence: suggestions.slice(0, 3).map(t => ({ tag: t, score: exact.includes(t) ? 1 : 0.8 }))
+    });
   } catch (error) {
     console.error('Tag detection error:', error);
-    res.status(500).json({ error: 'Failed to detect tags' });
+    // Never let tag detection break the form
+    const raw = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length > 2);
+    return res.json({ detectedTags: [...new Set(raw)].slice(0, 3), confidence: [] });
   }
 };
-
-// Fallback: extract meaningful tokens from text as candidate tags
-// when no tag vocabulary exists in the database yet
-function extractKeywords(text) {
-  const tokens = tokenize(text);
-  const tf = {};
-  for (const t of tokens) tf[t] = (tf[t] || 0) + 1;
-  return Object.entries(tf)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([t]) => t);
-}
