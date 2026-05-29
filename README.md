@@ -1,4 +1,4 @@
-# Samagama — Crowd-Sourced FAQ Management
+# FAQ App — Crowd-Sourced FAQ Management
 
 A MERN stack application where users search FAQs, raise queries, and get community answers.
 
@@ -38,7 +38,7 @@ A MERN stack application where users search FAQs, raise queries, and get communi
 ### 1. Install Dependencies
 
 ```bash
-cd samagama-faq-app
+cd FAQ App-faq-app
 npm install && cd server && npm install && cd ../client && npm install
 ```
 
@@ -51,7 +51,7 @@ npm run install:all
 
 Edit `server/.env`:
 ```
-MONGO_URI=mongodb://localhost:27017/samagama
+MONGO_URI=mongodb://localhost:27017/FAQ App
 PORT=5000
 JWT_SECRET=your-secret-key
 ```
@@ -165,4 +165,4 @@ faq-app/
 
 ---
 
-*Samagama — Knowledge shared is knowledge multiplied.*
+*FAQ App — Knowledge shared is knowledge multiplied.*

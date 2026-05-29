@@ -7,7 +7,7 @@ const parseFAQtxt = require('./parseFaqTxt');
 
 async function seed() {
   try {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/samagama');
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/FAQ App');
     console.log('Connected to MongoDB');
 
     // Guard: require RESET_DB=true to proceed with destructive seed
@@ -81,8 +81,8 @@ async function seed() {
 
     const overviewPin = await Pin.create({
       type: 'overview',
-      title: 'About Samagama FAQ Portal',
-      content: 'Samagama is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!',
+      title: 'About FAQ App FAQ Portal',
+      content: 'FAQ App is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!',
       pinnedBy: admin._id,
       order: 1
     });

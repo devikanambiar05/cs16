@@ -1,7 +1,7 @@
 {
   "name": "faq-app-server",
   "version": "1.0.0",
-  "description": "Samagama - Crowd-Sourced FAQ Management API",
+  "description": "FAQ App - Crowd-Sourced FAQ Management API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
