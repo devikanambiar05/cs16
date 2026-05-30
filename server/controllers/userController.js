@@ -9,7 +9,7 @@ exports.getLeaderboard = async (req, res) => {
   try {
     const { limit = 20 } = req.query;
 
-    const users = await User.find({ status: 'active' })
+    const users = await User.find({ status: 'active', role: { $ne: 'admin' } })
       .select('name reputation questionsAsked answersGiven role')
       .sort({ reputation: -1 })
       .limit(parseInt(limit));
