@@ -68,7 +68,19 @@ const userSchema = new mongoose.Schema({
     ref: 'FAQ'
   }]
 }, {
-  timestamps: true
+  timestamps: true,
+  toObject: {
+    transform: function (doc, ret) {
+      delete ret.password;
+      return ret;
+    }
+  }
+});
+
+// Clamp reputation to 0 before validation checks run
+userSchema.pre('validate', function(next) {
+  if (this.reputation < 0) this.reputation = 0;
+  next();
 });
 
 // Hash password before saving

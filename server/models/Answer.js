@@ -39,6 +39,14 @@ const answerSchema = new mongoose.Schema({
   isVetted: {
     type: Boolean,
     default: true
+  },
+  acceptedRepAwarded: {
+    type: Number,
+    default: 0
+  },
+  vettedRepAwarded: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

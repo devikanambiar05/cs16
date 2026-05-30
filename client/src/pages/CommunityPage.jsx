@@ -718,6 +718,16 @@ function QueryCard({
             </span>
             <SlaBadge expiresAt={query.expiresAt} />
             <UnansweredBadge createdAt={query.createdAt} answerCount={query.answerCount} status={query.status} />
+            {(!isClosed && (query.escalationCount > 0 || (Date.now() - new Date(query.createdAt)) >= 12 * 60 * 60 * 1000)) && (
+              <span className="badge bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 animate-pulse">
+                🔥 Double Rep Active
+              </span>
+            )}
+            {(!isClosed && query.skipCount >= 3) && (
+              <span className="badge bg-red-500/10 text-red-600 dark:text-red-450 border border-red-500/20 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
+                🚨 Escalated to Admin
+              </span>
+            )}
           </div>
           
           <div className="flex flex-wrap gap-2 mt-3 items-center">

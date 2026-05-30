@@ -164,8 +164,9 @@ exports.acceptAnswer = async (req, res) => {
       currentAccepted.isAccepted = false;
       await currentAccepted.save();
 
-      // Reverse +20 rep from previously accepted answer
-      await User.findByIdAndUpdate(currentAccepted.userId, { $inc: { reputation: -20 } });
+      // Reverse exact rep awarded from previously accepted answer
+      const repToDeduct = currentAccepted.acceptedRepAwarded || 20;
+      await User.findByIdAndUpdate(currentAccepted.userId, { $inc: { reputation: -repToDeduct } });
 
       // Reverse the acceptedAnswersCount bonus
       await User.findByIdAndUpdate(currentAccepted.userId, { $inc: { acceptedAnswersCount: -1 } });
@@ -177,13 +178,18 @@ exports.acceptAnswer = async (req, res) => {
       );
     }
 
+    // Calculate if query is escalated (older than 12 hours or has SLA breaches)
+    const isEscalated = query.escalationCount > 0 || (Date.now() - new Date(query.createdAt)) >= 12 * 60 * 60 * 1000;
+    const repToAward = isEscalated ? 40 : 20;
+
     // Accept the new answer
     answer.isAccepted = true;
     answer.acceptedAt = new Date();
+    answer.acceptedRepAwarded = repToAward;
     await answer.save();
 
-    // Award +20 rep to answer author
-    await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: 20 } });
+    // Award rep to answer author (Double if escalated)
+    await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: repToAward } });
 
     // Increment acceptedAnswersCount on the User model
     await User.findByIdAndUpdate(answer.userId, { $inc: { acceptedAnswersCount: 1 } });
@@ -301,11 +307,18 @@ exports.deleteAnswer = async (req, res) => {
       await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: -(2 * answer.upvotes) } });
     }
 
-    // Reverse accepted answer rep bonus (-20 to author)
+    // Reverse accepted answer rep bonus
     if (answer.isAccepted) {
-      await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: -20 } });
+      const repToDeduct = answer.acceptedRepAwarded || 20;
+      await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: -repToDeduct } });
       // Also reverse the answer count bonus received on accept
       await User.findByIdAndUpdate(answer.userId, { $inc: { acceptedAnswersCount: -1 } });
+    }
+
+    // Reverse vetted answer rep bonus (anti-abuse patch)
+    if (answer.isVetted) {
+      const repToDeduct = answer.vettedRepAwarded || 5;
+      await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: -repToDeduct } });
     }
 
     // Reverse upvote community score (+3 per upvote that was removed on answer)
@@ -349,11 +362,17 @@ exports.vetAnswer = async (req, res) => {
       return res.status(403).json({ error: 'Only admins or contributors with 100+ reputation can verify answers' });
     }
 
+    // Calculate if query is escalated (older than 12 hours or has SLA breaches)
+    const query = await Query.findById(answer.queryId);
+    const isEscalated = query && (query.escalationCount > 0 || (Date.now() - new Date(query.createdAt)) >= 12 * 60 * 60 * 1000);
+    const repToAward = isEscalated ? 10 : 5;
+
     answer.isVetted = true;
+    answer.vettedRepAwarded = repToAward;
     await answer.save();
 
-    // Award +5 reputation to the answer author
-    await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: 5 } });
+    // Award reputation to the answer author (Double if escalated)
+    await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: repToAward } });
 
     await answer.populate('userId', 'name reputation');
 

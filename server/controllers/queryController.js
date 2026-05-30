@@ -113,7 +113,13 @@ exports.getQueryById = async (req, res) => {
     });
     scoredAnswers.sort((a, b) => b.confidenceScore - a.confidenceScore);
 
-    res.json({ query, answers: scoredAnswers });
+    const acceptedAnswerDoc = answers.find(a => a.isAccepted);
+    const queryObj = {
+      ...query.toObject(),
+      acceptedAnswer: acceptedAnswerDoc ? acceptedAnswerDoc.toObject() : null
+    };
+
+    res.json({ query: queryObj, answers: scoredAnswers });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch query' });
   }
@@ -206,6 +212,10 @@ exports.createQuery = async (req, res) => {
       $push: { recentQueryTimestamps: { $each: [new Date()], $slice: -3 } }
     });
 
+    // Notify matching growing contributors (< 100 reputation) who answer matching tags
+    const { notifyTieredContributors } = require('../services/notificationService');
+    notifyTieredContributors(query, false).catch(err => console.error('Failed to notify growing contributors:', err));
+
     res.status(201).json({ message: 'Query raised successfully', query });
   } catch (error) {
     console.error('Create query error:', error);
@@ -219,7 +229,7 @@ exports.claimQuery = async (req, res) => {
     const query = await Query.findById(req.params.id);
     if (!query) return res.status(404).json({ error: 'Query not found' });
     if (query.status === 'closed') return res.status(400).json({ error: 'This query is closed' });
-    if (query.createdBy.toString() === req.user._id.toString()) {
+    if (query.createdBy && query.createdBy.toString() === req.user._id.toString()) {
       return res.status(400).json({ error: 'You cannot claim your own query' });
     }
     if (query.assignedTo && query.assignedTo.toString() !== req.user._id.toString()) {
@@ -296,6 +306,14 @@ exports.unclaimQuery = async (req, res) => {
     query.claimedAt = null;
     query.status = 'open';
     query.expiresAt = new Date(Date.now() + SLA_24HR);
+    query.skipCount = (query.skipCount || 0) + 1;
+
+    // Direct Admin Escalation if skipped 3 or more times
+    if (query.skipCount >= 3) {
+      const { notifyAdminsOfEscalatedQuery } = require('../services/notificationService');
+      notifyAdminsOfEscalatedQuery(query).catch(err => console.error('Failed to notify admins of skipped query:', err));
+    }
+
     await query.save();
 
     const populated = await Query.findById(query._id)
@@ -321,7 +339,7 @@ exports.takeQuery = async (req, res) => {
       return res.status(404).json({ error: 'No open queries available for assignment' });
     }
 
-    if (query.createdBy.toString() === req.user._id.toString()) {
+    if (query.createdBy && query.createdBy.toString() === req.user._id.toString()) {
       return res.status(400).json({ error: 'You cannot take your own query' });
     }
     query.assignedTo = req.user._id;

@@ -117,6 +117,28 @@ async function runSlaCron() {
       }
     }
 
+    // ── 3. Unclaimed open queries older than 12 hours — notify experts ───────
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+    const staleUnclaimed = await Query.find({
+      status: 'open',
+      assignedTo: null,
+      expertsNotified: { $ne: true },
+      createdAt: { $lt: twelveHoursAgo }
+    });
+
+    for (const query of staleUnclaimed) {
+      console.log(`  📣 Escalating unclaimed query (12h+): "${query.title}" to topic experts`);
+      
+      const { notifyTieredContributors } = require('../services/notificationService');
+      await notifyTieredContributors(query, true);
+      
+      query.expertsNotified = true;
+      query.escalationCount += 1;
+      query.escalatedAt = query.escalatedAt || new Date();
+      await query.save();
+      actionCount++;
+    }
+
     console.log(`[${new Date().toISOString()}] ✅ SLA Cron complete — ${actionCount} query(s) processed`);
 
   } catch (error) {

@@ -74,12 +74,35 @@ const querySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  expertsNotified: {
+    type: Boolean,
+    default: false
+  },
+  skipCount: {
+    type: Number,
+    default: 0
+  },
   deletedAt: {
     type: Date,
     default: null
   }
 }, {
   timestamps: true
+});
+
+// Enforce invariant: closed query cannot be re-opened via normal save
+querySchema.post('init', function(doc) {
+  doc._originalStatus = doc.status;
+});
+
+querySchema.pre('save', function(next) {
+  if (this.isNew) {
+    this._originalStatus = this.status;
+  }
+  if (this.isModified('status') && this._originalStatus === 'closed') {
+    this.status = 'closed';
+  }
+  next();
 });
 
 querySchema.index({ status: 1, expiresAt: 1 });

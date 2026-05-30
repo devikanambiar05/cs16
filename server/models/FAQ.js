@@ -93,6 +93,12 @@ const faqSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Enforce invariant: upvotes is always >= 0
+faqSchema.pre('validate', function(next) {
+  if (this.upvotes < 0) this.upvotes = 0;
+  next();
+});
+
 // Text index for full-text search on title, description, finalAnswer, tags
 faqSchema.index({ title: 'text', description: 'text', finalAnswer: 'text', tags: 'text' });
 
