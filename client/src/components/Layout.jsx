@@ -19,7 +19,6 @@ export default function Layout() {
 
   const navLinks = [
     { to: '/', label: 'FAQs' },
-    { to: '/wiki', label: 'Wiki' },
     { to: '/community', label: 'Community' },
     { to: '/leaderboard', label: 'Leaderboard' },
   ];
@@ -190,7 +189,6 @@ export default function Layout() {
             </div>
             <div className="flex items-center gap-4">
               <Link to="/" className="hover:text-primary-600 transition-colors">FAQs</Link>
-              <Link to="/wiki" className="hover:text-primary-600 transition-colors">Wiki</Link>
               <Link to="/community" className="hover:text-primary-600 transition-colors">Community</Link>
               <Link to="/leaderboard" className="hover:text-primary-600 transition-colors">Leaderboard</Link>
             </div>
