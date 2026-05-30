@@ -20,7 +20,7 @@ export default function Layout() {
   const navLinks = [
     { to: '/', label: 'FAQs' },
     { to: '/community', label: 'Community' },
-    { to: '/leaderboard', label: 'Leaderboard' },
+    ...(user ? [{ to: '/leaderboard', label: 'Leaderboard' }] : []),
   ];
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
@@ -199,7 +199,7 @@ export default function Layout() {
             <div className="flex items-center gap-4">
               <Link to="/" className="hover:text-primary-600 transition-colors">FAQs</Link>
               <Link to="/community" className="hover:text-primary-600 transition-colors">Community</Link>
-              <Link to="/leaderboard" className="hover:text-primary-600 transition-colors">Leaderboard</Link>
+              {user && <Link to="/leaderboard" className="hover:text-primary-600 transition-colors">Leaderboard</Link>}
             </div>
           </div>
         </div>

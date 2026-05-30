@@ -12,37 +12,42 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import RaiseQueryPage from './pages/RaiseQueryPage';
 import RAGChatWidget from './components/RAGChatWidget';
+import { ToastProvider } from './components/ToastProvider';
+import WikiTagsPage from './pages/WikiTagsPage';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<FAQsPage />} />
-              <Route path="community" element={<CommunityPage />} />
-              <Route path="ask" element={
-                <ProtectedRoute>
-                  <RaiseQueryPage />
-                </ProtectedRoute>
-              } />
-              <Route path="login" element={<LoginPage />} />
-              <Route path="admin" element={
-                <ProtectedRoute adminOnly>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="leaderboard" element={
-                <ProtectedRoute>
-                  <LeaderboardPage />
-                </ProtectedRoute>
-              } />
-            </Route>
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
-          </Routes>
-          <RAGChatWidget />
+          <ToastProvider>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<FAQsPage />} />
+                <Route path="community" element={<CommunityPage />} />
+                <Route path="wiki" element={<WikiTagsPage />} />
+                <Route path="ask" element={
+                  <ProtectedRoute>
+                    <RaiseQueryPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="login" element={<LoginPage />} />
+                <Route path="admin" element={
+                  <ProtectedRoute adminOnly>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="leaderboard" element={
+                  <ProtectedRoute>
+                    <LeaderboardPage />
+                  </ProtectedRoute>
+                } />
+              </Route>
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+            </Routes>
+            <RAGChatWidget />
+          </ToastProvider>
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
