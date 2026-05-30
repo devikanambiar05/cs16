@@ -37,6 +37,10 @@
     @apply antialiased;
   }
 
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+
   /* Light Theme Anthropic-like Overrides */
   .bg-slate-50 { background-color: #f9f6f0 !important; }
   .bg-white { background-color: #fbfaf7 !important; }

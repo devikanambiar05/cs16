@@ -1,17 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getFAQs } from '../services/api';
+import { getFAQs, getCategories } from '../services/api';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
 
 export default function WikiTagsPage() {
   const [faqs, setFaqs] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaqId, setExpandedFaqId] = useState(null);
 
   useEffect(() => {
     loadAllFAQs();
+    loadCategories();
   }, []);
 
   const loadAllFAQs = async () => {
@@ -26,13 +29,29 @@ export default function WikiTagsPage() {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const res = await getCategories();
+      setCategories(res.data || []);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    }
+  };
+
   // Group FAQs by tag, then group tags by A-Z starting letter
   const groupedData = useMemo(() => {
     const grouped = {};
     const query = searchQuery.trim().toLowerCase();
     
-    // Filter FAQs by search query
+    // Filter FAQs by search query AND selected category tag
     const filteredFaqs = faqs.filter(faq => {
+      // Category filter check
+      if (selectedCategory) {
+        const catTag = selectedCategory.tag.toLowerCase().trim();
+        const hasTag = faq.tags?.some(t => t.toLowerCase().trim() === catTag);
+        if (!hasTag) return false;
+      }
+
       if (!query) return true;
       return (
         faq.title?.toLowerCase().includes(query) ||
@@ -75,7 +94,7 @@ export default function WikiTagsPage() {
     });
 
     return letterMap;
-  }, [faqs, searchQuery]);
+  }, [faqs, searchQuery, selectedCategory]);
 
   const activeLetters = useMemo(() => new Set(Object.keys(groupedData)), [groupedData]);
 
@@ -106,9 +125,38 @@ export default function WikiTagsPage() {
         </p>
       </div>
 
-      {/* Mini Inline Search Box */}
-      <div className="mb-8">
-        <div className="relative max-w-sm">
+      {/* Category Pills Bevels */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-6 select-none">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-150 ${
+              !selectedCategory
+                ? 'bg-primary-600 text-white shadow-sm'
+                : 'bg-slate-100/80 text-slate-650 hover:bg-slate-200/60 dark:bg-slate-800/40 dark:text-slate-400 dark:hover:bg-slate-800/80'
+            }`}
+          >
+            All
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat._id || cat.tag}
+              onClick={() => setSelectedCategory(selectedCategory?.tag === cat.tag ? null : cat)}
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-150 ${
+                selectedCategory?.tag === cat.tag
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-slate-100/80 text-slate-650 hover:bg-slate-200/60 dark:bg-slate-800/40 dark:text-slate-400 dark:hover:bg-slate-800/80'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Mini Inline Search Box & Info */}
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="relative max-w-sm flex-1">
           <input
             type="text"
             className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all placeholder:text-slate-400"
@@ -125,6 +173,17 @@ export default function WikiTagsPage() {
             </button>
           )}
         </div>
+        {selectedCategory && (
+          <div className="text-xs text-slate-500 flex items-center gap-1.5 select-none">
+            <span>Filtering by category:</span>
+            <span className="font-semibold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/20 px-2 py-0.5 rounded-lg border border-primary-200/30 dark:border-primary-900/20">
+              {selectedCategory.name}
+            </span>
+            <button onClick={() => setSelectedCategory(null)} className="text-[10px] text-slate-400 hover:text-slate-650 hover:underline">
+              [Clear]
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Clean Alphabet Shortcut Strip */}
@@ -140,7 +199,7 @@ export default function WikiTagsPage() {
               className={`transition-colors font-bold ${
                 isActive
                   ? 'text-primary-600 dark:text-primary-400 hover:underline cursor-pointer'
-                  : 'text-slate-300 dark:text-slate-700'
+                  : 'text-slate-350 dark:text-slate-700'
               }`}
             >
               {letter}
@@ -155,7 +214,7 @@ export default function WikiTagsPage() {
           <div className="spinner" />
         </div>
       ) : Object.keys(groupedData).length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-10">No matching tags or FAQs found.</p>
+        <p className="text-sm text-slate-400 text-center py-10 font-serif">No matching tags or FAQs found.</p>
       ) : (
         <div className="space-y-12">
           {ALPHABET.filter(letter => activeLetters.has(letter)).map(letter => (
@@ -204,7 +263,7 @@ export default function WikiTagsPage() {
                                   : 'max-h-0 opacity-0'
                               }`}
                             >
-                              <p className="text-slate-600 dark:text-slate-350 leading-relaxed whitespace-pre-wrap select-text pr-4">
+                              <p className="text-slate-600 dark:text-slate-350 leading-relaxed whitespace-pre-wrap select-text pr-4 font-sans">
                                 {faq.finalAnswer}
                               </p>
                               <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400 select-none">
