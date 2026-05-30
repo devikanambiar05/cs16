@@ -225,21 +225,21 @@ function FAQsPage() {
       <div className="flex gap-8 lg:gap-10">
         {/* ── Left Sidebar: Platform Overview ── */}
         <aside className="w-60 shrink-0 hidden md:block">
-          <div className="sticky top-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-[0_1px_3px_0_rgb(0_0_0/0.03)] flex flex-col gap-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800/60 select-none">
-              <div className="w-7 h-7 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center font-bold">
+          <div className="sticky top-20 flex flex-col gap-3 select-none px-1">
+            <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200 dark:border-slate-800">
+              <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded flex items-center justify-center font-bold">
                 ℹ️
               </div>
-              <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm truncate">
-                {overview?.title || 'About Portal'}
-              </h3>
+              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                Overview
+              </h2>
             </div>
             
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap mt-1">
               {overview?.content || 'FAQ App is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
             </p>
 
-            <div className="mt-1 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-[10px] text-slate-400 dark:text-slate-500 space-y-2 select-none">
+            <div className="mt-1 pt-3 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 dark:text-slate-500 space-y-2 select-none">
               <div className="flex items-center gap-2">
                 <span>📚</span>
                 <span>Self-serve platform</span>
@@ -418,10 +418,10 @@ function FAQItem({ faq, onUpvote, onPin, user, compact = false }) {
           
           <div
             className={`transition-all duration-300 overflow-hidden ${
-              isExpanded ? 'max-h-[500px] mt-2' : compact ? 'max-h-0' : 'max-h-12 mt-1'
+              isExpanded ? 'max-h-[1000px] mt-2.5' : 'max-h-0'
             }`}
           >
-            <p className={`text-sm text-slate-600 ${isExpanded ? 'whitespace-pre-line' : 'line-clamp-2'}`}>
+            <p className="text-sm text-slate-600 dark:text-slate-350 whitespace-pre-line">
               {faq.finalAnswer}
             </p>
           </div>

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export default function RAGChatWidget() {
+  const location = useLocation();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -8,6 +10,10 @@ export default function RAGChatWidget() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+
+  if (['/login', '/reset-password', '/verify-email'].includes(location.pathname)) {
+    return null;
+  }
 
   useEffect(() => {
     if (dialogOpen && bottomRef.current) {
