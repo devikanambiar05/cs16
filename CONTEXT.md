@@ -85,7 +85,7 @@ $env:RESET_DB='true'; npm run seed
 |---|-------|--------|
 | #2 | Fix: RAG system indexes 0 FAQs despite 118 in database | Fixed in `a13097f` |
 | #3 | Fix: Backend server crashes repeatedly with EADDRINUSE on port 5000 | Fixed in `a13097f` |
-| #4 | Enhancement: Build Pins management UI in Admin Dashboard | Open |
+| #4 | Enhancement: Build Pins management UI in Admin Dashboard | ✅ Closed (commit `604c77f`) |
 | #5 | Enhancement: Implement WikiPage — currently renders nothing | Open |
 | #6 | Fix: HMR breaks useAuth causing full page reload | Fixed in `a13097f` |
 | #7 | Enhancement: RAG Chat widget has no conversation history | Open |
@@ -176,6 +176,18 @@ Nodemon spawned a new `node server.js` process on every file change without clos
 - **Vite OOM on Node 22 + Windows**: crashes with `Fatal process out of memory: Zone`. Workaround: set `NODE_OPTIONS=--max-old-space-size=4096` before running Vite, or run client separately with increased memory.
 - **Kill stale processes**: `Get-NetTCPConnection -LocalPort 5000,5173 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }`
 - **FAQ.txt canonical location**: `cs16/FAQ.txt` (project root, next to `package.json`)
+
+---
+
+### ✅ Pins Admin UI (commit `604c77f`)
+
+| Feature | Details |
+|---------|---------|
+| **Routes** | `PATCH /api/admin/pins/:id` + `DELETE /api/admin/pins/:id` added to `adminRoutes.js` |
+| **API** | `updatePin(id, data)` and `deletePin(id)` added to `api.js` |
+| **UI** | Full CRUD in Admin Dashboard → Pins tab: list cards, create/edit modal, remove with confirm |
+| **Pin types** | `announcement`, `overview`, `faq` — each with appropriate fields (content vs faqId) |
+| **Edit modal** | Pre-fills existing pin data; reuses create form with `editingPin` state |
 
 ---
 
