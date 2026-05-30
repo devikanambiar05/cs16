@@ -38,7 +38,8 @@ const userSchema = new mongoose.Schema({
   // Gamification
   reputation: {
     type: Number,
-    default: 0
+    default: 0,
+    min: 0
   },
   questionsAsked: {
     type: Number,

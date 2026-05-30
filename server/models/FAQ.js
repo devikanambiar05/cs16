@@ -22,7 +22,8 @@ const faqSchema = new mongoose.Schema({
   }],
   upvotes: {
     type: Number,
-    default: 0
+    default: 0,
+    min: 0
   },
   viewCount: {
     type: Number,
