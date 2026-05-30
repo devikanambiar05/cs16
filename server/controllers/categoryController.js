@@ -7,33 +7,19 @@ const NUMERIC_TAG_RE = /^\d+\.\d+$/;
 // Categories with this many or fewer FAQs get grouped into MISC
 const MISC_THRESHOLD = 2;
 
-// Get all categories derived from FAQ sectionTitles, sorted/filtered by views in last 7 days
+// Get all categories derived from FAQ sectionTitles
 exports.getCategories = async (req, res) => {
   try {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const isRecentOnly = req.query.recent === 'true';
+    let categories;
 
-    // 1. Try to get categories active (viewed) in the last 7 days, sorted by view activity
-    let categories = await FAQ.aggregate([
-      { $match: { status: 'resolved', lastViewed: { $gte: sevenDaysAgo } } },
-      { $project: { firstTag: { $arrayElemAt: ['$tags', 0] }, title: 1, viewCount: 1 } },
-      { $match: { firstTag: { $not: NUMERIC_TAG_RE } } },
-      {
-        $group: {
-          _id: '$firstTag',
-          count: { $sum: 1 },
-          recentViews: { $sum: '$viewCount' },
-          sampleFAQ: { $first: '$title' }
-        }
-      },
-      { $sort: { recentViews: -1, count: -1, _id: 1 } }
-    ]);
+    if (isRecentOnly) {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // 2. Fallback: if no FAQs were viewed in the last 7 days (e.g. fresh database seeding),
-    // get all active categories sorted by total viewCount / sizes so the dashboard has rich content!
-    if (categories.length === 0) {
+      // Try to get categories active (viewed) in the last 7 days, sorted by view activity
       categories = await FAQ.aggregate([
-        { $match: { status: 'resolved' } },
+        { $match: { status: 'resolved', lastViewed: { $gte: sevenDaysAgo } } },
         { $project: { firstTag: { $arrayElemAt: ['$tags', 0] }, title: 1, viewCount: 1 } },
         { $match: { firstTag: { $not: NUMERIC_TAG_RE } } },
         {
@@ -45,6 +31,42 @@ exports.getCategories = async (req, res) => {
           }
         },
         { $sort: { recentViews: -1, count: -1, _id: 1 } }
+      ]);
+
+      // Fallback: if no FAQs were viewed in the last 7 days (e.g. fresh database seeding),
+      // get all active categories sorted by total viewCount / sizes so the dashboard has rich content!
+      if (categories.length === 0) {
+        categories = await FAQ.aggregate([
+          { $match: { status: 'resolved' } },
+          { $project: { firstTag: { $arrayElemAt: ['$tags', 0] }, title: 1, viewCount: 1 } },
+          { $match: { firstTag: { $not: NUMERIC_TAG_RE } } },
+          {
+            $group: {
+              _id: '$firstTag',
+              count: { $sum: 1 },
+              recentViews: { $sum: '$viewCount' },
+              sampleFAQ: { $first: '$title' }
+            }
+          },
+          { $sort: { recentViews: -1, count: -1, _id: 1 } }
+        ]);
+      }
+    } else {
+      // Standard: return all resolved categories (unfiltered by time), sorted by size/count
+      categories = await FAQ.aggregate([
+        { $match: { status: 'resolved' } },
+        // Project only the first tag (index 0) — the section category tag
+        { $project: { firstTag: { $arrayElemAt: ['$tags', 0] }, title: 1 } },
+        // Filter out any firstTag that matches the numeric question-ID pattern
+        { $match: { firstTag: { $not: NUMERIC_TAG_RE } } },
+        {
+          $group: {
+            _id: '$firstTag',
+            count: { $sum: 1 },
+            sampleFAQ: { $first: '$title' }
+          }
+        },
+        { $sort: { count: -1, _id: 1 } }
       ]);
     }
 

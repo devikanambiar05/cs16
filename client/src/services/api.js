@@ -144,7 +144,7 @@ export const approveAnswer = (id) => api.post(`/api/admin/answers/${id}/approve`
 export const rejectAnswer = (id) => api.post(`/api/admin/answers/${id}/reject`);
 
 // Categories
-export const getCategories = () => api.get('/api/categories');
+export const getCategories = (params) => api.get('/api/categories', params);
 
 // Search
 export const searchSimilar = (q) => api.get('/api/search/similar', { q });

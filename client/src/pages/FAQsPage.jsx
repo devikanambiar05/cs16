@@ -47,6 +47,7 @@ function FAQsPage() {
   const { user } = useAuth();
 
   const [categories, setCategories] = useState([]);
+  const [recentCategories, setRecentCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryFAQs, setCategoryFAQs] = useState([]);
   const [faqPage, setFaqPage] = useState(1);
@@ -86,6 +87,7 @@ function FAQsPage() {
 
   const loadCategories = async () => {
     try {
+      // 1. Fetch standard, unfiltered categories for the top bevels
       const res = await getCategories();
       const rawCategories = res.data || [];
       
@@ -110,6 +112,10 @@ function FAQsPage() {
       }).filter(c => c.count > 0);
 
       setCategories(filtered);
+
+      // 2. Fetch recent 7-day viewed categories exclusively for the "This Week" sidebar
+      const resRecent = await getCategories({ recent: true });
+      setRecentCategories(resRecent.data || []);
     } catch (err) {
       console.error('Failed to load categories:', err);
     }
@@ -397,7 +403,7 @@ function FAQsPage() {
 
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">This Week</h3>
             <div className="space-y-0.5">
-              {categories.map(cat => (
+              {recentCategories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => selectCategory(cat)}
