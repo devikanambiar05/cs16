@@ -2,7 +2,7 @@
 A Crowd-Sourced FAQ & Knowledge Base
 
 <div align="center">
-<img src="cs16\assets\images\logo.png" alt="Granth Logo"/>
+  <img src="./client/src/assets/Granth-Repo-Logo.png" alt="Granth Logo" width="280" />
 </div>
 
 <p align="center">

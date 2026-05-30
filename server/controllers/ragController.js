@@ -290,6 +290,42 @@ exports.ragChat = async (req, res) => {
       ? scored.map(f => `**${f.title}**\n${f.content}`).join('\n\n')
       : 'No relevant FAQs found for this question.';
 
+    const ollamaOk = await isOllamaAvailable();
+    if (!ollamaOk) {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Transfer-Encoding', 'chunked');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      // Send the JSON frame header immediately
+      res.write(JSON.stringify({ sources, faqsFound: scored.length }) + '\n');
+
+      let responseText = '';
+      if (scored.length > 0) {
+        const topFaq = scored[0];
+        responseText = `I searched Granth resolved FAQs and found a highly relevant match for your query:\n\n**${topFaq.title}**\n${topFaq.content}\n\n`;
+        if (scored.length > 1) {
+          responseText += `You can also check out these related topics:\n`;
+          scored.slice(1, 3).forEach(f => {
+            responseText += `• **${f.title}**\n`;
+          });
+        }
+      } else {
+        responseText = `I searched Granth FAQs but couldn't find a direct match. You can raise a new query in the community and a peer or mentor will answer it soon!`;
+      }
+
+      // Stream the fallback chunk by chunk to simulate natural typing!
+      const words = responseText.split(/(\s+)/);
+      for (const word of words) {
+        if (!word) continue;
+        res.write(JSON.stringify({ token: word }) + '\n');
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+
+      res.write(JSON.stringify({ done: true }) + '\n');
+      res.end();
+      return;
+    }
+
     // 3. Stream answer via Ollama
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Transfer-Encoding', 'chunked');
