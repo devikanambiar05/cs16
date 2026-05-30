@@ -1,5 +1,27 @@
 import { useState, useEffect } from 'react';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
 import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 import { useNavigate } from 'react-router-dom';
 import {
   getAnalytics,
@@ -62,7 +84,22 @@ export default function AdminDashboard() {
         getAnalytics(),
         getQueryStats()
       ]);
-      setStats({ ...analyticsRes.data, queryStats: queryRes.data });
+      const data = analyticsRes.data;
+      setStats({
+        totalUsers: data.totals?.totalUsers ?? 0,
+        totalFaqs: data.totals?.totalFAQs ?? 0,
+        totalAnswers: data.totals?.totalAnswers ?? 0,
+        totalQueries: data.totals?.totalQueries ?? 0,
+        monthly: data.monthly,
+        growth: data.growth,
+        openQueries: data.openQueries ?? 0,
+        slaBreachRate: data.slaBreachRate ?? 0,
+        slaBreachedQueries: data.slaBreachedQueries ?? 0,
+        popularTags: data.popularTags ?? [],
+        topContributors: data.topContributors ?? [],
+        dailyStats: [],
+        queryStats: queryRes.data
+      });
     } catch (err) {
       showToast('Failed to load stats', 'error');
     }

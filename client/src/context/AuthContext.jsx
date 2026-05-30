@@ -11,7 +11,6 @@ export function AuthProvider({ children }) {
   // Check if user is logged in on mount
   useEffect(() => {
     if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchUser();
     } else {
       setLoading(false);
