@@ -188,6 +188,41 @@ function FAQsPage() {
         </div>
       </form>
 
+      {/* Category Filter Pills */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button
+            onClick={() => { setSelectedCategory(null); setSearchResults(null); setSearchQuery(''); }}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              !selectedCategory && !searchResults
+                ? 'bg-primary-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            All
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat._id || cat.tag}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setSearchResults(null);
+                setSearchQuery('');
+                loadCategoryFAQs(cat.tag, 1);
+              }}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                selectedCategory?.tag === cat.tag
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {cat.name}
+              {cat.count != null && <span className="ml-1 text-xs opacity-70">({cat.count})</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Search Results */}
       {searchResults !== null && (
         <section className="mb-10">
