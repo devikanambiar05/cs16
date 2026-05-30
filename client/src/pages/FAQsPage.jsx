@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq } from '../services/api';
-import CommunityBoard from '../components/CommunityBoard';
 import { useAuth } from '../context/AuthContext';
 
 const PAGE_SIZE = 10;
@@ -56,10 +55,12 @@ function FAQsPage() {
   const [searchPage, setSearchPage] = useState(1);
   const [searchTotal, setSearchTotal] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [allFAQs, setAllFAQs] = useState([]);
 
   // Load initial data
   useEffect(() => {
     loadCategories();
+    loadAllFAQs();
   }, []);
 
   // When category changes, load its FAQs
@@ -75,6 +76,18 @@ function FAQsPage() {
       setCategories(res.data);
     } catch (err) {
       console.error('Failed to load categories:', err);
+    }
+  };
+
+  const loadAllFAQs = async () => {
+    try {
+      setLoading(true);
+      const res = await getFAQs({ page: 1, limit: 20 });
+      setAllFAQs(res.data?.faqs || res.data || []);
+    } catch (err) {
+      console.error('Failed to load all FAQs:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -201,6 +214,25 @@ function FAQsPage() {
           {/* ── Left: Community Board + FAQs ── */}
           <div className="flex-1 min-w-0">
 
+            {/* All FAQs (no category selected) */}
+            {!selectedCategory && (
+              <section>
+                {loading ? (
+                  <div className="flex justify-center py-10"><div className="spinner" /></div>
+                ) : allFAQs.length === 0 ? (
+                  <p className="text-slate-400 text-sm py-8 text-center">No FAQs yet. Be the first to add one!</p>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {allFAQs.map(faq => (
+                        <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+            )}
+
             {/* Selected Category FAQs */}
             {selectedCategory ? (
               <section>
@@ -231,9 +263,6 @@ function FAQsPage() {
                 )}
               </section>
             ) : (
-              <>
-                {/* Community Board — pinned FAQs, announcements, overview */}
-                <CommunityBoard />
               </>
             )}
           </div>
