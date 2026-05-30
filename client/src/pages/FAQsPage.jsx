@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq } from '../services/api';
+import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq, getPins } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import CommunityBoard from '../components/CommunityBoard';
 
@@ -57,12 +57,24 @@ function FAQsPage() {
   const [searchTotal, setSearchTotal] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
   const [allFAQs, setAllFAQs] = useState([]);
+  const [overview, setOverview] = useState(null);
 
   // Load initial data
   useEffect(() => {
     loadCategories();
     loadAllFAQs();
+    loadOverview();
   }, []);
+
+  const loadOverview = async () => {
+    try {
+      const res = await getPins();
+      const ov = res.data?.find(p => p.type === 'overview');
+      if (ov) setOverview(ov);
+    } catch (err) {
+      console.error('Failed to load overview:', err);
+    }
+  };
 
   // When category changes, load its FAQs
   useEffect(() => {
@@ -210,7 +222,40 @@ function FAQsPage() {
       )}
 
       {/* Main content */}
-      <div className="flex gap-10">
+      <div className="flex gap-8 lg:gap-10">
+        {/* ── Left Sidebar: Platform Overview ── */}
+        <aside className="w-60 shrink-0 hidden md:block">
+          <div className="sticky top-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-[0_1px_3px_0_rgb(0_0_0/0.03)] flex flex-col gap-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800/60 select-none">
+              <div className="w-7 h-7 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center font-bold">
+                ℹ️
+              </div>
+              <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm truncate">
+                {overview?.title || 'About Portal'}
+              </h3>
+            </div>
+            
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+              {overview?.content || 'FAQ App is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
+            </p>
+
+            <div className="mt-1 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-[10px] text-slate-400 dark:text-slate-500 space-y-2 select-none">
+              <div className="flex items-center gap-2">
+                <span>📚</span>
+                <span>Self-serve platform</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🤝</span>
+                <span>Collaborative learning</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>💡</span>
+                <span>Verified student answers</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
         {/* ── Left/Center: Community Board + FAQs OR Search Results ── */}
         <div className="flex-1 min-w-0">
           {searchResults === null ? (
