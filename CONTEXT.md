@@ -79,6 +79,9 @@ $env:RESET_DB='true'; npm run seed
 | `0bfd153` | **FAQsPage Search Layout**: refactored the layout so that topics sidebar and search box remain visible during searches, and added paginated search results |
 | **Theme Fixes** | **Community Board dark mode**: configured custom dark gradient backgrounds, border settings, and footer borders so posts blend with the dark theme |
 | **Theme Fixes** | **RAG Chat Widget dark mode**: fully styled overlay dialogue panels, message bubbles, source lists, textareas, inputs, and persistent launcher bars |
+| **Theme & UI** | **Community Board Card Cleanup**: removed redundant top-right corner emojis from post cards, keeping only the clean top-left type badges |
+| **Theme & UI** | **Sleek Floating Chat Inputs**: transformed all RAG Chat input fields (dialog & launcher bar) into sleek, glassmorphic, floating panels with embedded send buttons exactly like ChatGPT |
+| **Theme & UI** | **Standard Send Icon**: replaced the non-standard `+` send button with a highly polished standard arrow icon pointing right |
 | **Git Config** | **Git Author rewrite**: replaced college ID (`21f3002068`) with personal ID (`Vaibhav satish9@gmail.com`) for all 29 commits, and set global Git defaults |
 
 ### 🟡 Partially Built Features
@@ -241,4 +244,4 @@ WikiPage was redundant with FAQsPage after FAQsPage gained category pills + grou
 
 ## Last Updated
 
-`2026-05-30 18:05` — Vee / Antigravity
+`2026-05-30 18:20` — Vee / Antigravity

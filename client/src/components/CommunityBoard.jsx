@@ -62,12 +62,11 @@ export default function CommunityBoard() {
               style={{ minHeight: '140px' }}
             >
               {/* Type badge */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center">
                 <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${cfg.badge}`}>
                   <span>{cfg.icon}</span>
                   <span>{cfg.label}</span>
                 </span>
-                <span className="text-sm opacity-40">{cfg.icon}</span>
               </div>
 
               {/* Title */}
