@@ -161,61 +161,39 @@ function FAQsPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-      {/* Search — compact, above sidebar Topics */}
-      <div className="flex gap-4 mb-5">
-        <form onSubmit={handleSearch} className="flex-1">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              className="input pl-10 py-2 text-sm shadow-sm"
-              placeholder="Search FAQs..."
-              value={searchQuery}
-              onChange={e => {
-                setSearchQuery(e.target.value);
-                if (!e.target.value) setSearchResults(null);
-              }}
-            />
-          </div>
-        </form>
-        {/* Category pills inline with search — smaller */}
-        {categories.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 items-center">
+      {/* Category pills — search lives in sidebar */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-5">
+          <button
+            onClick={() => { setSelectedCategory(null); setSearchResults(null); setSearchQuery(''); }}
+            className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+              !selectedCategory && !searchResults
+                ? 'bg-primary-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            All
+          </button>
+          {categories.map(cat => (
             <button
-              onClick={() => { setSelectedCategory(null); setSearchResults(null); setSearchQuery(''); }}
+              key={cat._id || cat.tag}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setSearchResults(null);
+                setSearchQuery('');
+                loadCategoryFAQs(cat.tag, 1);
+              }}
               className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-                !selectedCategory && !searchResults
+                selectedCategory?.tag === cat.tag
                   ? 'bg-primary-600 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              All
+              {cat.name}
             </button>
-            {categories.map(cat => (
-              <button
-                key={cat._id || cat.tag}
-                onClick={() => {
-                  setSelectedCategory(cat);
-                  setSearchResults(null);
-                  setSearchQuery('');
-                  loadCategoryFAQs(cat.tag, 1);
-                }}
-                className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-                  selectedCategory?.tag === cat.tag
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Main content */}
       {searchResults === null && (
