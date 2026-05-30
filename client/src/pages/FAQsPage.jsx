@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import CommunityBoard from '../components/CommunityBoard';
 
 const PAGE_SIZE = 10;
 
@@ -213,6 +214,7 @@ function FAQsPage() {
         <div className="flex gap-10">
           {/* ── Left: Community Board + FAQs ── */}
           <div className="flex-1 min-w-0">
+            <CommunityBoard />
 
             {/* No category selected — show all FAQs */}
             {!selectedCategory && (
