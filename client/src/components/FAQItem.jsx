@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useToast } from './ToastProvider';
 
 const CATEGORY_COLORS = {
   'General': 'border-l-slate-400',
@@ -15,6 +16,7 @@ const CATEGORY_COLORS = {
 const DEFAULT_COLOR = 'border-l-slate-300';
 
 export default function FAQItem({ faq, onUpvote, user, compact = false, highlight = false }) {
+  const toast = useToast();
   const [expanded, setExpanded] = useState(false);
   const [voted, setVoted] = useState(false);
 
@@ -78,16 +80,38 @@ export default function FAQItem({ faq, onUpvote, user, compact = false, highligh
                 {faq.finalAnswer}
               </p>
             </div>
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center justify-between mt-2 select-none">
               <span className="text-xs text-slate-400">
                 {faq.createdBy?.name && `by ${faq.createdBy.name}`}
               </span>
-              <Link
-                to={`/wiki?highlight=${faq._id}`}
-                onClick={e => e.stopPropagation()}
-                className="text-xs text-primary-600 hover:text-primary-700 font-medium hover:underline">
-                View in Wiki →
-              </Link>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const url = `${window.location.origin}/wiki?highlight=${faq._id}`;
+                    try {
+                      await navigator.clipboard.writeText(url);
+                      toast.success('📋 Share link copied to clipboard!');
+                    } catch (err) {
+                      toast.error('Failed to copy link');
+                    }
+                  }}
+                  className="text-xs text-slate-450 hover:text-primary-600 transition-colors inline-flex items-center gap-1"
+                  title="Share FAQ"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 10.742l5.474-3.285M8.684 13.258l5.474 3.285M19 6.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm0 11a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM7 12a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  </svg>
+                  Share
+                </button>
+                <Link
+                  to={`/wiki?highlight=${faq._id}`}
+                  onClick={e => e.stopPropagation()}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-medium hover:underline">
+                  View in Wiki →
+                </Link>
+              </div>
             </div>
           </div>
         )}

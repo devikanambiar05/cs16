@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getQueries, getSimilarQueries, createAnswer, upvoteAnswer, acceptAnswer, claimQuery, unclaimQuery, createFAQRequest, updateQuery, vetAnswer } from '../services/api';
+import { 
+  getQueries, 
+  getSimilarQueries, 
+  createAnswer, 
+  upvoteAnswer, 
+  acceptAnswer, 
+  claimQuery, 
+  unclaimQuery, 
+  createFAQRequest, 
+  updateQuery, 
+  vetAnswer,
+  getLeaderboard,
+  getQueryStats
+} from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
 import RichTextEditor, { MarkdownContent } from '../components/RichTextEditor';
@@ -32,10 +45,10 @@ function SlaBadge({ expiresAt }) {
   const status = getSlaStatus(expiresAt);
   if (!status) return null;
   const classes = {
-    ok: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    caution: 'bg-amber-50 text-amber-700 border-amber-200',
-    warning: 'bg-orange-50 text-orange-700 border-orange-200',
-    critical: 'bg-red-50 text-red-700 border-red-200 font-semibold'
+    ok: 'bg-emerald-50 text-emerald-700 border-emerald-250 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+    caution: 'bg-amber-50 text-amber-700 border-amber-250 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+    warning: 'bg-orange-50 text-orange-700 border-orange-250 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20',
+    critical: 'bg-red-50 text-red-700 border-red-250 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 font-semibold'
   };
   return (
     <span className={`badge text-xs border ${classes[status.urgency]}`}>
@@ -48,13 +61,13 @@ function SlaWarningBanner({ expiresAt }) {
   const status = getSlaStatus(expiresAt);
   if (!status || status.urgency === 'ok' || status.urgency === 'caution') return null;
   return (
-    <div className={`mt-3 px-4 py-2.5 rounded-lg text-sm ${
+    <div className={`mt-3 px-4 py-2.5 rounded-xl text-sm border ${
       status.urgency === 'warning'
-        ? 'bg-orange-50 border border-orange-200 text-orange-700'
-        : 'bg-red-50 border border-red-200 text-red-700 font-medium'
+        ? 'bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400'
+        : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 font-medium'
     }`}>
       {status.urgency === 'warning'
-        ? '⚠�� This query needs an answer soon — SLA deadline approaching'
+        ? '⚠️ This query needs an answer soon — SLA deadline approaching'
         : '🚨 SLA breached! Answer immediately or claim will be released'}
     </div>
   );
@@ -64,8 +77,8 @@ function UnansweredBadge({ createdAt, answerCount, status }) {
   const info = getUnansweredUrgency(createdAt, answerCount, status);
   if (!info) return null;
   const classes = {
-    warning: 'bg-orange-100 text-orange-700 border-orange-200',
-    critical: 'bg-red-100 text-red-700 border-red-200 font-semibold'
+    warning: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-450 dark:border-orange-500/20',
+    critical: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-450 dark:border-red-500/20 font-semibold'
   };
   return (
     <span className={`badge text-xs border ${classes[info.urgency]}`}>
@@ -79,10 +92,10 @@ function UnansweredBadge({ createdAt, answerCount, status }) {
 // Accepted answers get a large boost; established authors rank above newcomers at equal votes.
 function getConfidenceInfo(score) {
   const pct = Math.min(100, Math.round((score / 80) * 100));
-  if (score >= 60) return { label: 'High', pct, color: 'bg-emerald-500', textColor: 'text-emerald-700', barBg: 'bg-emerald-100' };
-  if (score >= 30) return { label: 'Moderate', pct, color: 'bg-blue-500', textColor: 'text-blue-700', barBg: 'bg-blue-50' };
-  if (score >= 10) return { label: 'Growing', pct, color: 'bg-amber-500', textColor: 'text-amber-700', barBg: 'bg-amber-50' };
-  return { label: 'New', pct: Math.max(5, pct), color: 'bg-slate-300', textColor: 'text-slate-400', barBg: 'bg-slate-50' };
+  if (score >= 60) return { label: 'High', pct, color: 'bg-emerald-500', textColor: 'text-emerald-700 dark:text-emerald-400', barBg: 'bg-emerald-100 dark:bg-emerald-950' };
+  if (score >= 30) return { label: 'Moderate', pct, color: 'bg-blue-500', textColor: 'text-blue-700 dark:text-blue-400', barBg: 'bg-blue-50 dark:bg-blue-950' };
+  if (score >= 10) return { label: 'Growing', pct, color: 'bg-amber-500', textColor: 'text-amber-700 dark:text-amber-400', barBg: 'bg-amber-50 dark:bg-amber-950' };
+  return { label: 'New', pct: Math.max(5, pct), color: 'bg-slate-300 dark:bg-slate-700', textColor: 'text-slate-400 dark:text-slate-500', barBg: 'bg-slate-50 dark:bg-slate-900' };
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -99,32 +112,84 @@ function CommunityPage() {
   const [similarQueries, setSimilarQueries] = useState([]);
   const [checkingSimilar, setCheckingSimilar] = useState(null);
   const [submitting, setSubmitting] = useState(null);
-  const [filter, setFilter] = useState('open');
+  const [filter, setFilter] = useState('all'); // Tabs: all, my-claims, unclaimed-sla, closed
   const [sort, setSort] = useState('recent');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Sidebar stats and leaderboard
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [stats, setStats] = useState({ total: 0, open: 0, breached: 0, claimed: 0, answered: 0 });
+
   const PAGE_SIZE = 10;
 
-  useEffect(() => { fetchQueries(); }, [filter, sort, page, searchQuery]);
+  useEffect(() => {
+    fetchQueries();
+    fetchLeaderboard();
+    fetchStats();
+  }, [filter, sort, page, searchQuery]);
+
+  const fetchStats = async () => {
+    if (!user) return;
+    try {
+      const res = await getQueryStats();
+      setStats(res.data);
+    } catch (err) {
+      console.warn('Failed to load community SLA statistics');
+    }
+  };
+
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await getLeaderboard({ limit: 5 });
+      setLeaderboard(res.data || []);
+    } catch (err) {
+      console.warn('Failed to load community leaderboard');
+    }
+  };
 
   const fetchQueries = async () => {
     try {
       setLoading(true);
       const params = { sort, page, limit: PAGE_SIZE };
-      if (filter === 'open') params.status = 'open';
-      else if (filter === 'answered') params.status = 'answered';
-      else if (filter === 'claimed') params.claimed = 'true';
-      if (searchQuery) params.q = searchQuery;
-      const res = await getQueries(params);
-      let list = res.data.queries;
-      if (filter === 'sla-breached') {
-        list = list.filter(q => q.expiresAt && new Date(q.expiresAt) < new Date() && q.status !== 'closed');
+      
+      // Map frontend tab selections to backend queries
+      if (filter === 'closed') {
+        params.status = 'closed';
+      } else if (filter === 'my-claims') {
+        params.claimed = 'true';
+      } else if (filter === 'unclaimed-sla') {
+        params.status = 'open';
       }
+      
+      if (searchQuery) {
+        params.q = searchQuery;
+      }
+      
+      const res = await getQueries(params);
+      let list = res.data.queries || [];
+      
+      // Perform localized client-side processing for more complex tab queries
+      if (filter === 'my-claims') {
+        list = list.filter(q => {
+          const claimantId = q.assignedTo?._id || q.assignedTo;
+          const currentUserId = user?._id || user?.id;
+          return claimantId && currentUserId && claimantId === currentUserId;
+        });
+      } else if (filter === 'unclaimed-sla') {
+        list = list.filter(q => !q.assignedTo);
+      } else if (filter === 'all') {
+        // By default, hide closed queries in the active feed so it remains focused on action items
+        list = list.filter(q => q.status !== 'closed');
+      }
+      
       setQueries(list);
-      if (res.data.pagination) setTotalPages(res.data.pagination.pages || 1);
+      if (res.data.pagination) {
+        setTotalPages(res.data.pagination.pages || 1);
+      }
     } catch (err) {
       toast.error('Failed to load queries');
     } finally {
@@ -136,8 +201,10 @@ function CommunityPage() {
     if (!user) { toast.warning('Please sign in to claim a query'); return; }
     try {
       const res = await claimQuery(queryId);
-      setQueries(queries.map(q => q._id === queryId ? { ...q, assignedTo: { _id: user._id, name: user.name } } : q));
+      setQueries(queries.map(q => q._id === queryId ? { ...q, assignedTo: { _id: user._id, name: user.name }, status: 'claimed' } : q));
       toast.success('Query claimed!');
+      fetchStats();
+      fetchLeaderboard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to claim query');
     }
@@ -147,8 +214,10 @@ function CommunityPage() {
     if (!user) return;
     try {
       await unclaimQuery(queryId);
-      setQueries(queries.map(q => q._id === queryId ? { ...q, assignedTo: null } : q));
+      setQueries(queries.map(q => q._id === queryId ? { ...q, assignedTo: null, status: 'open' } : q));
       toast.success('Claim released');
+      fetchStats();
+      fetchLeaderboard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to release claim');
     }
@@ -164,6 +233,8 @@ function CommunityPage() {
       setAnswerContent({ ...answerContent, [queryId]: '' });
       toast.success('Answer submitted!');
       fetchQueries();
+      fetchStats();
+      fetchLeaderboard();
       setExpandedQuery(queryId);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to submit answer');
@@ -178,6 +249,7 @@ function CommunityPage() {
       await upvoteAnswer(answerId);
       toast.success('Upvoted!');
       fetchQueries();
+      fetchLeaderboard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to upvote');
     }
@@ -189,6 +261,8 @@ function CommunityPage() {
       await acceptAnswer(answerId);
       toast.success('Answer accepted! Query closed.');
       fetchQueries();
+      fetchStats();
+      fetchLeaderboard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to accept answer');
     }
@@ -200,18 +274,25 @@ function CommunityPage() {
       await vetAnswer(answerId);
       toast.success('Answer successfully verified!');
       fetchQueries();
+      fetchLeaderboard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to verify answer');
     }
   };
 
   const handleRequestFAQ = async (answerId, queryId, query) => {
-    if (!user) { toast.warning('Please sign in to request a FAQ'); return; }
+    if (!user) { toast.warning('Please sign in to request an FAQ'); return; }
     const answer = query.answers?.find(a => a._id === answerId);
     if (!answer) return;
     if (!confirm(`Request to add this answer as an FAQ for "${query.title}"?`)) return;
     try {
-      await createFAQRequest({ queryId, answerId, proposedQuestion: query.title, proposedAnswer: answer.content, proposedTags: query.tags || [] });
+      await createFAQRequest({ 
+        queryId, 
+        answerId, 
+        proposedQuestion: query.title, 
+        proposedAnswer: answer.content, 
+        proposedTags: query.tags || [] 
+      });
       toast.success('FAQ request submitted! An admin will review it.');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to submit FAQ request');
@@ -238,6 +319,8 @@ function CommunityPage() {
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 300);
       fetchQueries();
+      fetchStats();
+      fetchLeaderboard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to claim query');
     } finally {
@@ -274,132 +357,319 @@ function CommunityPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Community Answers</h1>
-          <p className="text-slate-600">Browse open queries — claim or auto-assign, answer within 24h SLA</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handleTakeQuestion} disabled={loading} className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 transition-colors flex items-center gap-1.5 shadow-sm">
-            🎯 Take a Question
-          </button>
-          <Link to="/ask" className="btn-primary">Raise a Query</Link>
-        </div>
-      </div>
-
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-5 py-3 mb-6 flex items-center gap-4">
-        <span className="text-2xl">⏱</span>
-        <div>
-          <p className="text-sm font-semibold text-amber-800">24-Hour SLA Policy</p>
-          <p className="text-xs text-amber-700">Every query must be answered within 24 hours. Unanswered claims are auto-released. Queries past SLA are escalated.</p>
-        </div>
-      </div>
-
-      <div mb-6>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search open queries..."
-            value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') { setSearchQuery(searchInput); setPage(1); }
-              if (e.key === 'Escape') { setSearchInput(''); setSearchQuery(''); }
-            }}
-            className="w-full pl-10 pr-12 py-2.5 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-100 placeholder:text-slate-400"
-          />
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
-          {searchInput && (
-            <button
-              onClick={() => { setSearchInput(''); setSearchQuery(''); setPage(1); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-lg font-bold leading-none"
-            >×</button>
-          )}
-        </div>
-        {searchQuery && (
-          <p className="text-xs text-slate-500 mt-1.5">Searching: <strong>"{searchQuery}"</strong> — <button onClick={() => { setSearchQuery(''); setSearchInput(''); setPage(1); }} className="text-primary-600 hover:text-primary-700 underline">clear</button></p>
-        )}
-      </div>
-
-
-      <div className="flex items-center gap-3 mb-6">
-        <div className="flex gap-1.5">
-          {['all', 'open', 'claimed', 'sla-breached', 'answered'].map(f => (
-            <button key={f} onClick={() => { setFilter(f); setPage(1); }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === f ? 'bg-primary-100 text-primary-700' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-              {f === 'sla-breached' ? '⚠�� SLA Breached' : f.charAt(0).toUpperCase() + f.slice(1)}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      
+      {/* Premium Header Banner */}
+      <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 mb-8 shadow-sm transition-all duration-300 relative overflow-hidden">
+        {/* Subtle decorative background gradient */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-orange-500/10 to-transparent rounded-full pointer-events-none" />
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 dark:text-slate-100 mb-3 tracking-tight">
+              Community Answers
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 max-w-xl text-sm md:text-base leading-relaxed">
+              Join forces with other developers to resolve active queries. Take ownership, contribute accurate answers, and build your community reputation under our 24-hour SLA framework.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button 
+              onClick={handleTakeQuestion} 
+              disabled={loading} 
+              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+            >
+              🎯 Take a Question
             </button>
-          ))}
-        </div>
-        <div className="ml-auto">
-          <select value={sort} onChange={e => { setSort(e.target.value); setPage(1); }}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-600 focus:outline-none focus:border-primary-400">
-            <option value="recent">Most Recent</option>
-            <option value="trending">🔥 Trending</option>
-          </select>
+            <Link 
+              to="/ask" 
+              className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 text-center"
+            >
+              Raise a Query
+            </Link>
+          </div>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-16"><div className="spinner" /></div>
-      ) : queries.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
-          <div className="text-5xl mb-3">🔍</div>
-          <p className="text-lg font-medium text-slate-600">No queries found</p>
-          <Link to="/ask" className="btn-primary mt-4 inline-block">Raise a Query</Link>
-        </div>
-      ) : (
-        <>
-          <div className="space-y-4">
-            {queries.map(query => (
-              <QueryCard
-                key={query._id}
-                query={query}
-                isExpanded={expandedQuery === query._id}
-                onToggle={async () => {
-                  const next = expandedQuery === query._id ? null : query._id;
-                  setExpandedQuery(next);
-                  setSimilarQueries([]);
-                  if (next) {
-                    setCheckingSimilar(next);
-                    const similar = await getSimilarQueries(query.title, query._id);
-                    if (checkingSimilar === next) setSimilarQueries(similar);
-                  }
+      {/* Main Split-Pane Grid Layout */}
+      <div className="grid grid-cols-12 gap-8">
+        
+        {/* LEFT COLUMN: ACTIVE FEED (Col 8) */}
+        <div className="col-span-12 lg:col-span-8 space-y-6">
+          
+          {/* Controls Bar: Search & Tabs */}
+          <div className="bg-white dark:bg-[#22211e] rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm space-y-4">
+            
+            {/* Search Input */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search community queries..."
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { setSearchQuery(searchInput); setPage(1); }
+                  if (e.key === 'Escape') { setSearchInput(''); setSearchQuery(''); }
                 }}
-                answerContent={answerContent[query._id] || ''}
-                onAnswerChange={val => setAnswerContent({ ...answerContent, [query._id]: val })}
-                onSubmitAnswer={() => handleSubmitAnswer(query._id)}
-                onUpvoteAnswer={handleUpvoteAnswer}
-                onAcceptAnswer={handleAcceptAnswer}
-                onRequestFAQ={handleRequestFAQ}
-                onVetAnswer={handleVetAnswer}
-                onClaimQuery={() => handleClaimQuery(query._id)}
-                onUnclaimQuery={() => handleUnclaimQuery(query._id)}
-                onStartEdit={() => handleStartEdit(query)}
-                isEditing={editingQueryId === query._id}
-                editForm={editForm}
-                onEditFormChange={setEditForm}
-                onSaveEdit={() => handleSaveEdit(query._id)}
-                onCancelEdit={handleCancelEdit}
-                similarQueries={similarQueries.filter(q => q._id === query._id)}
-                submitting={submitting}
-                currentUser={user}
+                className="w-full pl-10 pr-12 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-white dark:bg-[#191816] focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
-            ))}
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+              {searchInput && (
+                <button
+                  onClick={() => { setSearchInput(''); setSearchQuery(''); setPage(1); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 text-lg font-bold leading-none"
+                >×</button>
+              )}
+            </div>
+            {searchQuery && (
+              <p className="text-xs text-slate-500 mt-1">
+                Searching: <strong>"{searchQuery}"</strong> —{' '}
+                <button onClick={() => { setSearchQuery(''); setSearchInput(''); setPage(1); }} className="text-primary-600 hover:text-primary-700 underline font-medium">clear</button>
+              </p>
+            )}
+
+            {/* Tabs & Filter Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-[#191816] p-1 rounded-xl">
+                {[
+                  { id: 'all', label: 'All Queries' },
+                  ...(user ? [{ id: 'my-claims', label: 'My Claims' }] : []),
+                  { id: 'unclaimed-sla', label: 'Unclaimed SLA' },
+                  { id: 'closed', label: 'Closed' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setFilter(tab.id); setPage(1); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-150 ${
+                      filter === tab.id
+                        ? 'bg-white dark:bg-[#22211e] text-primary-600 dark:text-primary-400 shadow-sm border border-slate-200/50 dark:border-slate-850'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-250'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="shrink-0">
+                <select
+                  value={sort}
+                  onChange={e => { setSort(e.target.value); setPage(1); }}
+                  className="text-xs md:text-sm border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-slate-600 dark:text-slate-400 focus:outline-none focus:border-primary-400 dark:bg-[#191816]"
+                >
+                  <option value="recent">Most Recent</option>
+                  <option value="trending">🔥 Trending</option>
+                </select>
+              </div>
+            </div>
+
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 mt-8">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="btn-outline text-sm py-1.5 px-4 disabled:opacity-40">← Prev</button>
-              <span className="text-sm text-slate-500">Page {page} of {totalPages}</span>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="btn-outline text-sm py-1.5 px-4 disabled:opacity-40">Next →</button>
+          {/* Queries Feed */}
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <div className="relative w-12 h-12">
+                <div className="absolute top-0 left-0 w-full h-full border-4 border-slate-200 dark:border-slate-800 rounded-full" />
+                <div className="absolute top-0 left-0 w-full h-full border-4 border-t-primary-500 rounded-full animate-spin" />
+              </div>
+            </div>
+          ) : queries.length === 0 ? (
+            <div className="text-center py-16 bg-white dark:bg-[#22211e] border border-slate-200 dark:border-slate-800 rounded-2xl p-8">
+              <div className="text-5xl mb-4">🔍</div>
+              <h3 className="text-lg font-serif font-bold text-slate-850 dark:text-slate-200 mb-2">No queries found</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xs mx-auto mb-4">
+                We couldn't find any queries matching your active filters or search criteria.
+              </p>
+              <Link to="/ask" className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold inline-block">
+                Raise a Query
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {queries.map(query => (
+                  <QueryCard
+                    key={query._id}
+                    query={query}
+                    isExpanded={expandedQuery === query._id}
+                    onToggle={async () => {
+                      const next = expandedQuery === query._id ? null : query._id;
+                      setExpandedQuery(next);
+                      setSimilarQueries([]);
+                      if (next) {
+                        setCheckingSimilar(next);
+                        const similar = await getSimilarQueries(query.title, query._id);
+                        if (checkingSimilar === next) setSimilarQueries(similar);
+                      }
+                    }}
+                    answerContent={answerContent[query._id] || ''}
+                    onAnswerChange={val => setAnswerContent({ ...answerContent, [query._id]: val })}
+                    onSubmitAnswer={() => handleSubmitAnswer(query._id)}
+                    onUpvoteAnswer={handleUpvoteAnswer}
+                    onAcceptAnswer={handleAcceptAnswer}
+                    onRequestFAQ={handleRequestFAQ}
+                    onVetAnswer={handleVetAnswer}
+                    onClaimQuery={() => handleClaimQuery(query._id)}
+                    onUnclaimQuery={() => handleUnclaimQuery(query._id)}
+                    onStartEdit={() => handleStartEdit(query)}
+                    isEditing={editingQueryId === query._id}
+                    editForm={editForm}
+                    onEditFormChange={setEditForm}
+                    onSaveEdit={() => handleSaveEdit(query._id)}
+                    onCancelEdit={handleCancelEdit}
+                    similarQueries={similarQueries}
+                    submitting={submitting}
+                    currentUser={user}
+                  />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 mt-8">
+                  <button 
+                    onClick={() => setPage(p => Math.max(1, p - 1))} 
+                    disabled={page === 1}
+                    className="px-4 py-2 border border-slate-350 dark:border-slate-800 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
+                  >
+                    ← Prev
+                  </button>
+                  <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button 
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+                    disabled={page === totalPages}
+                    className="px-4 py-2 border border-slate-350 dark:border-slate-800 rounded-xl text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40"
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+        </div>
+
+        {/* RIGHT COLUMN: SIDEBAR (Col 4) */}
+        <div className="col-span-12 lg:col-span-4 space-y-6">
+
+          {/* SLA Warning / Policy Card */}
+          <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-amber-500/5 dark:to-orange-500/5 border border-amber-500/20 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+            <div className="flex items-start gap-4">
+              <span className="text-3xl shrink-0">⏱</span>
+              <div>
+                <h4 className="font-serif font-bold text-amber-800 dark:text-amber-300 text-base mb-1.5">
+                  24-Hour SLA Policy
+                </h4>
+                <p className="text-xs md:text-sm text-amber-900/80 dark:text-amber-400/80 leading-relaxed">
+                  Every community query is subject to a strict 24-hour Service Level Agreement.
+                </p>
+                <ul className="list-disc list-inside text-[11px] md:text-xs text-amber-900/70 dark:text-amber-400/70 space-y-1 mt-2.5">
+                  <li>Claimed queries must receive an answer within 24h.</li>
+                  <li>Unanswered claims are released automatically.</li>
+                  <li>Breached queries receive elevated public visibility.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Global Community Statistics Card */}
+          {user && (
+            <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+              <h4 className="font-serif font-bold text-slate-800 dark:text-slate-200 text-lg mb-4 flex items-center gap-2">
+                📊 Board Statistics
+              </h4>
+              <div className="grid grid-cols-2 gap-3.5">
+                <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
+                  <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Open Queries</span>
+                  <span className="text-2xl font-bold text-slate-850 dark:text-slate-100">{stats.open}</span>
+                </div>
+                <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
+                  <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Claims</span>
+                  <span className="text-2xl font-bold text-amber-600 dark:text-amber-450">{stats.claimed}</span>
+                </div>
+                <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
+                  <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">SLA Breached</span>
+                  <span className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.breached}</span>
+                </div>
+                <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
+                  <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Closed</span>
+                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-450">{stats.answered}</span>
+                </div>
+              </div>
             </div>
           )}
-        </>
-      )}
+
+          {/* Leaderboard Card */}
+          <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+            <h4 className="font-serif font-bold text-slate-800 dark:text-slate-200 text-lg mb-4 flex items-center gap-2">
+              🏆 Top Contributors
+            </h4>
+            {leaderboard.length === 0 ? (
+              <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-4">Loading leaderboard...</p>
+            ) : (
+              <div className="space-y-3">
+                {leaderboard.slice(0, 3).map((item, index) => {
+                  const rankStyles = [
+                    { bg: 'bg-yellow-500/10 border-yellow-500/30', badge: '🥇', text: 'text-yellow-700 dark:text-yellow-400' },
+                    { bg: 'bg-slate-500/10 border-slate-500/20', badge: '🥈', text: 'text-slate-700 dark:text-slate-400' },
+                    { bg: 'bg-amber-600/10 border-amber-600/20', badge: '🥉', text: 'text-amber-700 dark:text-amber-500' }
+                  ][index] || { bg: 'bg-slate-50 dark:bg-[#191816] border-slate-100 dark:border-slate-800', badge: `${index + 1}.`, text: 'text-slate-600 dark:text-slate-400' };
+
+                  return (
+                    <div 
+                      key={item._id} 
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-all hover:scale-[1.02] ${rankStyles.bg}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-xl shrink-0 select-none">{rankStyles.badge}</span>
+                        <div className="min-w-0">
+                          <span className="block font-semibold text-xs md:text-sm text-slate-850 dark:text-slate-200 truncate">
+                            {item.name}
+                          </span>
+                          <span className="block text-[10px] text-slate-500 dark:text-slate-400">
+                            {item.answersGiven || 0} answer{item.answersGiven !== 1 ? 's' : ''} given
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className={`block text-xs font-bold ${rankStyles.text}`}>
+                          {item.reputation || 0}
+                        </span>
+                        <span className="block text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider">Rep</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* SLA Guidelines Card */}
+          <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3.5">
+            <h4 className="font-serif font-bold text-slate-850 dark:text-slate-250 text-base flex items-center gap-2">
+              📖 Contribution Guidelines
+            </h4>
+            <div className="space-y-3 text-xs text-slate-650 dark:text-slate-400 leading-relaxed">
+              <div className="flex gap-2">
+                <span className="text-primary-600 dark:text-primary-400 font-bold shrink-0">1.</span>
+                <p><strong>Claim responsibility:</strong> Only claim a query if you possess a high-confidence answer. Be respectful of the 24h timer.</p>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-primary-600 dark:text-primary-400 font-bold shrink-0">2.</span>
+                <p><strong>Provide clear markdown:</strong> Detail step-by-step instructions. Use code snippets and diagrams where appropriate.</p>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-primary-600 dark:text-primary-400 font-bold shrink-0">3.</span>
+                <p><strong>Review and upvote:</strong> Vet your peers' answers to raise their confidence score. Admins can verify high-quality inputs.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
     </div>
   );
 }
@@ -424,49 +694,90 @@ function QueryCard({
   const isEditSubmitting = submitting === 'edit-' + query._id;
 
   return (
-    <div id={`query-card-${query._id}`} className={`card transition-all ${isClosed ? 'opacity-60' : ''}`}>
+    <div 
+      id={`query-card-${query._id}`} 
+      className={`bg-white dark:bg-[#22211e] rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-[0_1px_3px_0_rgb(0_0_0/0.06)] hover:shadow-[0_4px_12px_0_rgb(0_0_0/0.08)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 ${isClosed ? 'opacity-70' : ''}`}
+    >
       {/* Header — always visible */}
-      <div className="flex items-start gap-3 cursor-pointer" onClick={onToggle}>
+      <div className="flex items-start gap-4 cursor-pointer" onClick={onToggle}>
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2 flex-wrap">
-            <h3 className="font-medium text-slate-900 leading-snug">{query.title}</h3>
-            <span className={`badge text-xs shrink-0 ${query.status === 'open' ? 'badge-blue' : query.status === 'claimed' ? 'badge-yellow' : query.status === 'answered' ? 'badge-green' : 'badge-gray'}`}>{query.status}</span>
+            <h3 className="font-serif font-bold text-slate-850 dark:text-slate-100 text-lg leading-snug">
+              {query.title}
+            </h3>
+            <span className={`badge text-xs shrink-0 px-2.5 py-0.5 rounded-full font-medium ${
+              query.status === 'open' 
+                ? 'badge-blue' 
+                : query.status === 'claimed' 
+                ? 'badge-yellow' 
+                : query.status === 'answered' 
+                ? 'badge-green' 
+                : 'badge-gray'
+            }`}>
+              {query.status}
+            </span>
             <SlaBadge expiresAt={query.expiresAt} />
             <UnansweredBadge createdAt={query.createdAt} answerCount={query.answerCount} status={query.status} />
           </div>
-          <div className="flex flex-wrap gap-1.5 mt-2">
+          
+          <div className="flex flex-wrap gap-2 mt-3 items-center">
             {(query.tags || []).map(tag => (
-              <span key={tag} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">#{tag}</span>
+              <span key={tag} className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-0.5 rounded-full">
+                #{tag}
+              </span>
             ))}
-            <span className="text-xs text-slate-400">by {query.createdBy?.name || 'Unknown'}</span>
-            <span className="text-xs text-slate-400">· {query.answerCount || 0} answer{query.answerCount !== 1 ? 's' : ''}</span>
-            {query.escalationCount > 0 && <span className="text-xs text-red-500">· ⚠�� escalated {query.escalationCount}x</span>}
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              by <span className="font-medium text-slate-500 dark:text-slate-400">{query.createdBy?.name || 'Unknown'}</span>
+            </span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">·</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              {query.answerCount || 0} answer{query.answerCount !== 1 ? 's' : ''}
+            </span>
+            {query.escalationCount > 0 && (
+              <>
+                <span className="text-xs text-slate-400 dark:text-slate-500">·</span>
+                <span className="text-xs text-red-500 font-semibold flex items-center gap-0.5">
+                  ⚠️ escalated {query.escalationCount}x
+                </span>
+              </>
+            )}
           </div>
         </div>
+        
         {!isExpanded && assignedToId && (
-          <div className="shrink-0">
-            {isAssignedToCurrentUser
-              ? <span className="badge bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs">🎯 Claimed by You</span>
-              : <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-xs">🔒 {query.assignedTo?.name}</span>}
+          <div className="shrink-0 self-center">
+            {isAssignedToCurrentUser ? (
+              <span className="badge bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 text-xs font-semibold px-2.5 py-1">
+                🎯 Claimed by You
+              </span>
+            ) : (
+              <span className="badge bg-amber-50 text-amber-700 border border-amber-250 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 text-xs font-semibold px-2.5 py-1">
+                🔒 {query.assignedTo?.name}
+              </span>
+            )}
           </div>
         )}
       </div>
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="mt-4" onClick={e => e.stopPropagation()}>
+        <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800" onClick={e => e.stopPropagation()}>
 
           {isEditing ? (
             // ─── Edit Mode ────────────────────────────────────────────────────
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Edit Title</label>
-                <input type="text" value={editForm.title}
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Edit Title</label>
+                <input 
+                  type="text" 
+                  value={editForm.title}
                   onChange={e => onEditFormChange({ ...editForm, title: e.target.value })}
-                  className="input text-sm" maxLength={200} />
+                  className="input text-sm" 
+                  maxLength={200} 
+                />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Edit Description</label>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Edit Description</label>
                 <RichTextEditor
                   value={editForm.description}
                   onChange={val => onEditFormChange({ ...editForm, description: val })}
@@ -474,15 +785,23 @@ function QueryCard({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Edit Tags</label>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Edit Tags</label>
                 <TagInput tags={editForm.tags} onChange={tags => onEditFormChange({ ...editForm, tags })} />
               </div>
-              <div className="flex gap-2">
-                <button onClick={onSaveEdit} disabled={isEditSubmitting}
-                  className="btn-primary text-sm py-1.5 disabled:opacity-50">
+              <div className="flex gap-2.5 pt-2">
+                <button 
+                  onClick={onSaveEdit} 
+                  disabled={isEditSubmitting}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-all duration-150 disabled:opacity-50"
+                >
                   {isEditSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
-                <button onClick={onCancelEdit} className="btn-outline text-sm py-1.5">Cancel</button>
+                <button 
+                  onClick={onCancelEdit} 
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold transition-all duration-150"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           ) : (
@@ -490,93 +809,200 @@ function QueryCard({
             <>
               <SlaWarningBanner expiresAt={query.expiresAt} />
 
-              <div className="bg-slate-50 rounded-lg p-4 mb-4 border border-slate-100">
-                <p className="text-sm font-medium text-slate-700 mb-1.5">Description</p>
-                <MarkdownContent content={query.description} />
+              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 md:p-5 mb-4 border border-slate-100 dark:border-slate-800/60 mt-3">
+                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">
+                  Description
+                </p>
+                <div className="text-slate-800 dark:text-slate-200 text-sm prose dark:prose-invert max-w-none leading-relaxed">
+                  <MarkdownContent content={query.description} />
+                </div>
               </div>
 
               {/* Action buttons */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {canClaim && <button onClick={onClaimQuery} className="btn-primary text-sm py-1.5">🎯 Claim to Answer</button>}
-                {canRelease && <button onClick={onUnclaimQuery} className="btn-outline text-sm py-1.5">✖ Release Claim</button>}
-                {isOwnedByCurrentUser && !isClosed && (
-                  <button onClick={onStartEdit} className="btn-outline text-sm py-1.5">✏ Edit Query</button>
+              <div className="flex flex-wrap gap-2.5 mb-5 items-center">
+                {canClaim && (
+                  <button onClick={onClaimQuery} className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-all duration-150 shadow-sm">
+                    🎯 Claim to Answer
+                  </button>
+                )}
+                {canRelease && (
+                  <button onClick={onUnclaimQuery} className="px-4 py-2 border border-red-200 dark:border-red-950 text-red-650 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl text-sm font-semibold transition-all duration-150">
+                    ✖ Release Claim
+                  </button>
                 )}
                 {isOwnedByCurrentUser && !isClosed && (
-                  <span className="text-xs text-slate-400 self-center">You asked this</span>
+                  <button onClick={onStartEdit} className="px-4 py-2 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all duration-150">
+                    ✏️ Edit Query
+                  </button>
+                )}
+                {isOwnedByCurrentUser && !isClosed && (
+                  <span className="text-xs text-slate-400 dark:text-slate-500 font-medium italic select-none">
+                    (You asked this query)
+                  </span>
                 )}
               </div>
 
+              {/* Similar Queries Jaccard overlaps */}
+              {similarQueries && similarQueries.length > 0 && (
+                <div className="mb-6 bg-slate-50/50 dark:bg-[#191816]/30 rounded-xl p-4 border border-slate-100 dark:border-slate-800/40">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                    💡 Similar Community Queries
+                  </p>
+                  <div className="space-y-2.5">
+                    {similarQueries.map(sim => (
+                      <div key={sim._id} className="text-xs flex items-center justify-between gap-3">
+                        <span className="text-slate-700 dark:text-slate-300 font-medium truncate">
+                          {sim.title}
+                        </span>
+                        <span className={`badge shrink-0 text-[10px] ${
+                          sim.status === 'open' 
+                            ? 'badge-blue' 
+                            : sim.status === 'claimed' 
+                            ? 'badge-yellow' 
+                            : sim.status === 'answered' 
+                            ? 'badge-green' 
+                            : 'badge-gray'
+                        }`}>
+                          {sim.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Answers */}
               {query.answers && query.answers.length > 0 && (
-                <div className="space-y-3 mb-4">
-                  <p className="text-sm font-semibold text-slate-700">{query.answers.length} Answer{query.answers.length !== 1 ? 's' : ''}</p>
+                <div className="space-y-4 mb-6">
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    💬 {query.answers.length} Answer{query.answers.length !== 1 ? 's' : ''} Submitted
+                  </p>
+                  
                   {query.answers.map(answer => {
                     const conf = getConfidenceInfo(answer.confidenceScore || 0);
                     return (
-                    <div key={answer._id} className={`bg-white border rounded-lg p-4 ${answer.isAccepted ? 'border-emerald-300 ring-1 ring-emerald-100' : 'border-slate-200'}`}>
-                      <div className="flex items-start gap-3">
-                        {/* Confidence bar */}
-                        <div className="flex flex-col items-center gap-1.5 shrink-0 w-10">
-                          <span className={`text-xs font-medium ${conf.textColor}`} title={`Confidence: ${conf.label}`}>{conf.label}</span>
-                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div className={`${conf.color} h-full rounded-full transition-all`} style={{ width: `${conf.pct}%` }} />
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="flex-1 flex items-center gap-2 flex-wrap">
-                              <span className="font-medium text-sm text-slate-800">{answer.userId?.name || 'Anonymous'}</span>
-                              <span className="text-xs text-slate-400">{answer.userId?.reputation || 0} rep</span>
-                              {answer.isAccepted ? (
-                                <span className="badge badge-green text-xs">✓ Accepted</span>
-                              ) : answer.isVetted ? (
-                                <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5 font-medium">
-                                  🟢 Verified
-                                </span>
-                              ) : (
-                                <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5 font-medium">
-                                  🟡 Unverified
-                                </span>
-                              )}
+                      <div 
+                        key={answer._id} 
+                        className={`bg-white dark:bg-[#22211e] border rounded-xl p-4 transition-all ${
+                          answer.isAccepted 
+                            ? 'border-emerald-400 dark:border-emerald-800 ring-2 ring-emerald-50 dark:ring-emerald-950/20' 
+                            : 'border-slate-200 dark:border-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          
+                          {/* Confidence bar & label */}
+                          <div className="flex flex-col items-center gap-1 shrink-0 w-12 mr-1 text-center">
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${conf.textColor}`} title={`Confidence: ${conf.label}`}>
+                              {conf.label}
+                            </span>
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                              <div className={`${conf.color} h-full rounded-full transition-all duration-300`} style={{ width: `${conf.pct}%` }} />
                             </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <button onClick={() => onUpvoteAnswer(answer._id)} className="text-xs text-slate-400 hover:text-primary-600">▲ {answer.upvotes || 0}</button>
-                              {!answer.isVetted && currentUser && (currentUser.role === 'admin' || currentUser.reputation >= 100) && (
-                                <button onClick={() => onVetAnswer(answer._id)} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">Verify 🪄</button>
-                              )}
-                              {isOwnedByCurrentUser && !answer.isAccepted && !query.resolvedFAQ && (
-                                <button onClick={() => onAcceptAnswer(answer._id)} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">Accept</button>
-                              )}
-                              {(isOwnedByCurrentUser || (currentUser && currentUser.role === 'admin')) && (
-                                <button onClick={() => onRequestFAQ(answer._id, query._id, query)} className="text-xs text-primary-600 hover:text-primary-700 font-medium">📋 Request to Add to FAQ</button>
-                              )}
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">{conf.pct}% score</span>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-100">
+                                  {answer.userId?.name || 'Anonymous User'}
+                                </span>
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold px-2 py-0.5 bg-slate-50 dark:bg-[#191816] rounded-md border border-slate-100 dark:border-slate-850">
+                                  {answer.userId?.reputation || 0} Rep
+                                </span>
+                                
+                                {answer.isAccepted ? (
+                                  <span className="badge badge-green text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
+                                    ✓ Accepted
+                                  </span>
+                                ) : answer.isVetted ? (
+                                  <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                                    🛡️ Verified
+                                  </span>
+                                ) : (
+                                  <span className="badge bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                                    ⏳ Unverified
+                                  </span>
+                                )}
+                              </div>
+                              
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => onUpvoteAnswer(answer._id)} 
+                                  className="text-xs bg-slate-50 dark:bg-[#191816] hover:bg-primary-50 dark:hover:bg-primary-950/20 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 px-2 py-1 rounded-lg transition-all duration-150 flex items-center gap-1 font-semibold"
+                                >
+                                  ▲ {answer.upvotes || 0}
+                                </button>
+                                
+                                {!answer.isVetted && currentUser && (currentUser.role === 'admin' || currentUser.reputation >= 100) && (
+                                  <button 
+                                    onClick={() => onVetAnswer(answer._id)} 
+                                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline font-semibold"
+                                  >
+                                    Verify 🪄
+                                  </button>
+                                )}
+                                
+                                {isOwnedByCurrentUser && !answer.isAccepted && !query.resolvedFAQ && (
+                                  <button 
+                                    onClick={() => onAcceptAnswer(answer._id)} 
+                                    className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
+                                  >
+                                    Accept ✓
+                                  </button>
+                                )}
+                                
+                                {(isOwnedByCurrentUser || (currentUser && currentUser.role === 'admin')) && (
+                                  <button 
+                                    onClick={() => onRequestFAQ(answer._id, query._id, query)} 
+                                    className="text-[11px] text-primary-600 dark:text-primary-400 hover:underline font-semibold flex items-center gap-0.5"
+                                  >
+                                    📋 FAQ Request
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="text-slate-700 dark:text-slate-350 text-xs md:text-sm prose dark:prose-invert max-w-none leading-relaxed mt-2.5">
+                              <MarkdownContent content={answer.content} />
                             </div>
                           </div>
-                          <MarkdownContent content={answer.content} />
+
                         </div>
                       </div>
-                    </div>);
+                    );
                   })}
                 </div>
               )}
 
               {/* Answer input */}
               {!isClosed && (!currentUser || (currentUser && !isOwnedByCurrentUser)) && (
-                <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">Your Answer</p>
-                  <RichTextEditor value={answerContent} onChange={onAnswerChange} placeholder="Write your answer here..." />
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    ✏️ Your Answer
+                  </p>
+                  <RichTextEditor 
+                    value={answerContent} 
+                    onChange={onAnswerChange} 
+                    placeholder="Write a step-by-step resolution, using Markdown formats..." 
+                  />
                   <div className="flex justify-end mt-3">
-                    <button onClick={onSubmitAnswer} disabled={submitting === query._id || !answerContent?.trim()}
-                      className="btn-primary text-sm py-2 disabled:opacity-50">
-                      {submitting === query._id ? 'Submitting...' : 'Submit Answer'}
+                    <button 
+                      onClick={onSubmitAnswer} 
+                      disabled={submitting === query._id || !answerContent?.trim()}
+                      className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
+                    >
+                      {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
                     </button>
                   </div>
                 </div>
               )}
 
               {isClosed && (
-                <div className="bg-slate-100 rounded-lg px-4 py-3 text-sm text-slate-500 text-center">✓ This query has been closed</div>
+                <div className="bg-slate-100/70 dark:bg-[#191816] rounded-xl px-4 py-3 text-xs md:text-sm text-slate-500 dark:text-slate-400 text-center font-medium border border-slate-200/50 dark:border-slate-850 flex items-center justify-center gap-1.5 mt-3">
+                  ✓ This query has been successfully resolved and closed.
+                </div>
               )}
             </>
           )}

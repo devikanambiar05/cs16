@@ -156,3 +156,17 @@ exports.getBookmarks = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch bookmarks' });
   }
 };
+
+// Get resolve FAQs upvoted/liked by the user
+exports.getLikedFAQs = async (req, res) => {
+  try {
+    const faqs = await FAQ.find({
+      upvoters: req.user._id,
+      status: 'resolved',
+      deletedAt: null
+    }).select('title finalAnswer tags upvotes').lean();
+    res.json(faqs || []);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch liked FAQs' });
+  }
+};

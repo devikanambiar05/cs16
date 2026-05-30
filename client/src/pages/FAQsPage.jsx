@@ -529,6 +529,26 @@ function FAQItem({ faq, onUpvote, onPin, user, compact = false }) {
             </svg>
           </button>
 
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const url = `${window.location.origin}/wiki?highlight=${faq._id}`;
+              try {
+                await navigator.clipboard.writeText(url);
+                toast.success('📋 Share link copied to clipboard!');
+              } catch (err) {
+                toast.error('Failed to copy link');
+              }
+            }}
+            className="hover:text-primary-600 text-slate-350 transition-colors"
+            title="Share FAQ"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 10.742l5.474-3.285M8.684 13.258l5.474 3.285M19 6.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm0 11a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM7 12a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+            </svg>
+          </button>
+
           {user?.role === 'admin' && (
             <button
               onClick={() => onPin(faq._id, !!faq.pinned)}

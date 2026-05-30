@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getLeaderboard, getUserProfile, updateProfile, getAllUsers, banUser, getStats, toggleBookmark, getBookmarks } = require('../controllers/userController');
+const { getLeaderboard, getUserProfile, updateProfile, getAllUsers, banUser, getStats, toggleBookmark, getBookmarks, getLikedFAQs } = require('../controllers/userController');
 const { protect, adminOnly } = require('../middleware/auth');
 
 // Admin - dashboard stats
@@ -18,6 +18,7 @@ router.get('/leaderboard', getLeaderboard);
 // Protected - bookmarks (must be before wildcard /:id)
 router.get('/bookmarks', protect, getBookmarks);
 router.post('/bookmarks/:faqId', protect, toggleBookmark);
+router.get('/likes', protect, getLikedFAQs);
 
 // Public - user profile  (wildcard — must be last)
 router.get('/:id', getUserProfile);

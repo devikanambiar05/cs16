@@ -1,27 +1,37 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
-import { getBookmarks, toggleBookmark } from '../services/api';
+import { getBookmarks, toggleBookmark, getLikedFAQs, getChatSessions, getChatSessionDetails } from '../services/api';
 import { Link } from 'react-router-dom';
 
 export default function ProfilePage() {
   const { user, setBookmarks } = useAuth();
   const toast = useToast();
+  
   const [savedFaqs, setSavedFaqs] = useState([]);
+  const [likedFaqs, setLikedFaqs] = useState([]);
+  const [chatSessions, setChatSessions] = useState([]);
+  const [activeTab, setActiveTab] = useState('bookmarks'); // 'bookmarks', 'likes', 'chats'
   const [loading, setLoading] = useState(true);
   const [expandedFaqId, setExpandedFaqId] = useState(null);
 
   useEffect(() => {
-    loadSavedFAQs();
+    loadProfileData();
   }, []);
 
-  const loadSavedFAQs = async () => {
+  const loadProfileData = async () => {
     try {
       setLoading(true);
-      const res = await getBookmarks();
-      setSavedFaqs(res.data || []);
+      const [resBookmarks, resLikes, resChats] = await Promise.all([
+        getBookmarks().catch(() => ({ data: [] })),
+        getLikedFAQs().catch(() => ({ data: [] })),
+        getChatSessions().catch(() => ({ data: [] }))
+      ]);
+      setSavedFaqs(resBookmarks.data || []);
+      setLikedFaqs(resLikes.data || []);
+      setChatSessions(resChats.data || []);
     } catch (err) {
-      toast.error('Failed to load saved FAQs');
+      toast.error('Failed to load profile details');
     } finally {
       setLoading(false);
     }
@@ -36,6 +46,24 @@ export default function ProfilePage() {
       toast.success('Removed FAQ from saved list');
     } catch (err) {
       toast.error('Failed to remove FAQ');
+    }
+  };
+
+  const handleResumeChat = async (sessionId) => {
+    try {
+      toast.info('Retrieving conversation logs...');
+      const res = await getChatSessionDetails(sessionId);
+      if (res.data && res.data.messages) {
+        // Dispatch the custom event to open the RAG chat widget and load this session
+        const event = new CustomEvent('resume-rag-chat', {
+          detail: { sessionId, messages: res.data.messages }
+        });
+        window.dispatchEvent(event);
+      } else {
+        throw new Error('No messages found in session log');
+      }
+    } catch (err) {
+      toast.error('Failed to resume chat session: ' + err.message);
     }
   };
 
@@ -55,7 +83,7 @@ export default function ProfilePage() {
           My Profile
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-light">
-          Manage your saved content, monitor your community reputation, and review your contributions.
+          Manage your saved content, monitor your community reputation, and review your previous RAG assistant sessions.
         </p>
       </div>
 
@@ -87,7 +115,7 @@ export default function ProfilePage() {
                 <p className="text-xl font-bold text-slate-800 dark:text-slate-200 mt-1 font-serif">🏆 {user.reputation || 0}</p>
               </div>
               <div className="text-center p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-950/15 border border-slate-100/50 dark:border-slate-850/50">
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">Saved FAQs</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">Saved Bookmarks</p>
                 <p className="text-xl font-bold text-slate-800 dark:text-slate-200 mt-1 font-serif">🔖 {savedFaqs.length}</p>
               </div>
             </div>
@@ -110,93 +138,220 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Right Column: Bookmarked/Saved FAQs Section */}
+        {/* Right Column: Tabbed Dashboard Section */}
         <div className="lg:col-span-8">
           <div className="card bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.01)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.25)] backdrop-blur-md">
-            <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-150 dark:border-slate-800/50 select-none">
-              <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200 font-serif flex items-center gap-2">
-                🔖 Saved Bookmarks <span className="font-normal text-xs text-slate-400">({savedFaqs.length})</span>
-              </h2>
-              {savedFaqs.length > 0 && (
-                <span className="text-[10px] text-slate-400">Click a title to read the resolved answer</span>
-              )}
+            
+            {/* Tabs Navigation */}
+            <div className="flex border-b border-slate-200 dark:border-slate-800 pb-px mb-6 select-none gap-2">
+              <button
+                onClick={() => { setActiveTab('bookmarks'); setExpandedFaqId(null); }}
+                className={`pb-3 px-1 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all ${
+                  activeTab === 'bookmarks'
+                    ? 'border-primary-500 text-primary-600 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                🔖 Bookmarks ({savedFaqs.length})
+              </button>
+              <button
+                onClick={() => { setActiveTab('likes'); setExpandedFaqId(null); }}
+                className={`pb-3 px-1 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all ${
+                  activeTab === 'likes'
+                    ? 'border-primary-500 text-primary-600 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                ❤️ Liked FAQs ({likedFaqs.length})
+              </button>
+              <button
+                onClick={() => { setActiveTab('chats'); setExpandedFaqId(null); }}
+                className={`pb-3 px-1 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all ${
+                  activeTab === 'chats'
+                    ? 'border-primary-500 text-primary-600 font-bold'
+                    : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                💬 Chat History ({chatSessions.length})
+              </button>
             </div>
 
             {loading ? (
               <div className="flex justify-center py-20">
                 <div className="spinner" />
               </div>
-            ) : savedFaqs.length === 0 ? (
-              <div className="text-center py-16 text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800/80 rounded-2xl bg-slate-50/20 dark:bg-slate-950/5">
-                <span className="text-3xl mb-3 block">📖</span>
-                <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-350">No saved FAQs yet</h3>
-                <p className="text-xs text-slate-450 mt-1 max-w-sm mx-auto">
-                  Browse the knowledge base and click the bookmark ribbon icon on any FAQ card to save it here for offline reading!
-                </p>
-                <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline mt-4">
-                  Explore FAQs →
-                </Link>
-              </div>
             ) : (
-              <ul className="divide-y divide-slate-150 dark:divide-slate-800/50 list-none pl-0">
-                {savedFaqs.map((faq, index) => {
-                  const isExpanded = expandedFaqId === faq._id;
-                  return (
-                    <li key={faq._id} className={`${index > 0 ? 'pt-4.5' : ''} pb-4.5 group`}>
-                      <div 
-                        onClick={() => setExpandedFaqId(isExpanded ? null : faq._id)}
-                        className="flex items-start justify-between gap-4 cursor-pointer"
-                      >
-                        <div className="flex-1">
-                          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-primary-600 transition-colors leading-snug font-serif flex items-center gap-1.5">
-                            • {faq.title}
-                          </h3>
-                          
-                          {/* Bookmarked FAQ Category */}
-                          {faq.category && (
-                            <span className="inline-block text-[9px] text-slate-405 dark:text-slate-500 mt-1 uppercase tracking-wider font-semibold">
-                              📁 {faq.category}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Unsave action button */}
-                        <div className="flex items-center gap-2.5 shrink-0" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={(e) => handleUnbookmark(e, faq._id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
-                            title="Unsave bookmark"
-                          >
-                            <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Expanded Answer Section */}
-                      <div
-                        className={`transition-all duration-350 overflow-hidden ${
-                          isExpanded 
-                            ? 'max-h-[1000px] opacity-100 mt-3 pl-3.5 border-l border-primary-300 dark:border-primary-900/60' 
-                            : 'max-h-0 opacity-0 pointer-events-none'
-                        }`}
-                      >
-                        <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed whitespace-pre-wrap font-sans select-text">
-                          {faq.finalAnswer}
+              <>
+                {/* ─── TAB 1: SAVED BOOKMARKS ─── */}
+                {activeTab === 'bookmarks' && (
+                  <>
+                    {savedFaqs.length === 0 ? (
+                      <div className="text-center py-16 text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800/80 rounded-2xl bg-slate-50/20 dark:bg-slate-950/5">
+                        <span className="text-3xl mb-3 block">📖</span>
+                        <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">No saved FAQs yet</h3>
+                        <p className="text-xs text-slate-450 mt-1 max-w-sm mx-auto">
+                          Browse the knowledge base and click the bookmark ribbon icon on any FAQ card to save it here for offline reading!
                         </p>
-                        
-                        {/* Meta logs */}
-                        <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400 select-none">
-                          <span>Upvotes: {faq.upvotes || 0}</span>
-                          <span>•</span>
-                          <span>Saved by you</span>
-                        </div>
+                        <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline mt-4">
+                          Explore FAQs →
+                        </Link>
                       </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                    ) : (
+                      <ul className="divide-y divide-slate-150 dark:divide-slate-800/50 list-none pl-0">
+                        {savedFaqs.map((faq, index) => {
+                          const isExpanded = expandedFaqId === faq._id;
+                          return (
+                            <li key={faq._id} className={`${index > 0 ? 'pt-4.5' : ''} pb-4.5 group`}>
+                              <div 
+                                onClick={() => setExpandedFaqId(isExpanded ? null : faq._id)}
+                                className="flex items-start justify-between gap-4 cursor-pointer"
+                              >
+                                <div className="flex-1">
+                                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-primary-600 transition-colors leading-snug font-serif">
+                                    • {faq.title}
+                                  </h3>
+                                  {faq.tags && faq.tags.length > 0 && (
+                                    <span className="inline-block text-[9px] text-slate-400 mt-1 uppercase tracking-wider font-semibold">
+                                      📁 {faq.tags[0]}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="shrink-0" onClick={e => e.stopPropagation()}>
+                                  <button
+                                    onClick={(e) => handleUnbookmark(e, faq._id)}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
+                                    title="Unsave bookmark"
+                                  >
+                                    <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+
+                              {isExpanded && (
+                                <div className="transition-all duration-300 mt-3 pl-3.5 border-l border-primary-300 dark:border-primary-900/60 animate-fadeIn">
+                                  <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed whitespace-pre-wrap font-sans select-text">
+                                    {faq.finalAnswer}
+                                  </p>
+                                  <div className="flex items-center gap-3 mt-3 text-[10px] text-slate-400 select-none">
+                                    <span>Upvotes: {faq.upvotes || 0}</span>
+                                    <span>•</span>
+                                    <Link to={`/wiki?highlight=${faq._id}`} className="hover:underline text-primary-500">View in Wiki →</Link>
+                                  </div>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </>
+                )}
+
+                {/* ─── TAB 2: LIKED FAQS ─── */}
+                {activeTab === 'likes' && (
+                  <>
+                    {likedFaqs.length === 0 ? (
+                      <div className="text-center py-16 text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800/80 rounded-2xl bg-slate-50/20 dark:bg-slate-950/5">
+                        <span className="text-3xl mb-3 block">❤️</span>
+                        <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">No liked FAQs yet</h3>
+                        <p className="text-xs text-slate-450 mt-1 max-w-sm mx-auto">
+                          Show your appreciation! Upvote helpful FAQs across Granth, and they will be listed here.
+                        </p>
+                        <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline mt-4">
+                          Explore FAQs →
+                        </Link>
+                      </div>
+                    ) : (
+                      <ul className="divide-y divide-slate-150 dark:divide-slate-800/50 list-none pl-0">
+                        {likedFaqs.map((faq, index) => {
+                          const isExpanded = expandedFaqId === faq._id;
+                          return (
+                            <li key={faq._id} className={`${index > 0 ? 'pt-4.5' : ''} pb-4.5 group`}>
+                              <div 
+                                onClick={() => setExpandedFaqId(isExpanded ? null : faq._id)}
+                                className="flex items-start justify-between gap-4 cursor-pointer"
+                              >
+                                <div className="flex-1">
+                                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-primary-600 transition-colors leading-snug font-serif">
+                                    ❤️ {faq.title}
+                                  </h3>
+                                  {faq.tags && faq.tags.length > 0 && (
+                                    <span className="inline-block text-[9px] text-slate-400 mt-1 uppercase tracking-wider font-semibold font-sans">
+                                      📁 {faq.tags[0]}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {isExpanded && (
+                                <div className="transition-all duration-300 mt-3 pl-3.5 border-l border-primary-300 dark:border-primary-900/60 animate-fadeIn">
+                                  <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed whitespace-pre-wrap font-sans select-text">
+                                    {faq.finalAnswer}
+                                  </p>
+                                  <div className="flex items-center gap-3 mt-3 text-[10px] text-slate-400 select-none font-sans">
+                                    <span>Total upvotes: {faq.upvotes || 0}</span>
+                                    <span>•</span>
+                                    <Link to={`/wiki?highlight=${faq._id}`} className="hover:underline text-primary-500">View in Wiki →</Link>
+                                  </div>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </>
+                )}
+
+                {/* ─── TAB 3: CHAT HISTORY ─── */}
+                {activeTab === 'chats' && (
+                  <>
+                    {chatSessions.length === 0 ? (
+                      <div className="text-center py-16 text-slate-400 dark:text-slate-500 border border-dashed border-slate-200 dark:border-slate-800/80 rounded-2xl bg-slate-50/20 dark:bg-slate-950/5">
+                        <span className="text-3xl mb-3 block">💬</span>
+                        <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">No chat history yet</h3>
+                        <p className="text-xs text-slate-450 mt-1 max-w-sm mx-auto">
+                          Open the RAG Chat widget and type a query. Conversations started while logged-in will be automatically saved here.
+                        </p>
+                      </div>
+                    ) : (
+                      <ul className="divide-y divide-slate-150 dark:divide-slate-800/50 list-none pl-0">
+                        {chatSessions.map((session, index) => {
+                          const dateText = new Date(session.updatedAt).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+                          return (
+                            <li key={session._id} className={`${index > 0 ? 'pt-4' : ''} pb-4 flex items-center justify-between gap-4 group`}>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate font-serif">
+                                  💬 {session.title}
+                                </h3>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-sans">
+                                  Last active: {dateText}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleResumeChat(session._id)}
+                                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 transition-all text-xs font-semibold font-sans select-none"
+                              >
+                                Resume
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>

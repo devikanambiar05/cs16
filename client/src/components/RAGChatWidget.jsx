@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
+import { saveChatSession } from '../services/api';
 
 const LOADING_PHASES = [
   "Anveshana (अन्वेषण) — Searching Granth knowledge base...",
@@ -16,6 +17,7 @@ export default function RAGChatWidget() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expandedSources, setExpandedSources] = useState(new Set());
   const [phaseIndex, setPhaseIndex] = useState(0);
+  const [activeSessionId, setActiveSessionId] = useState(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -30,6 +32,25 @@ export default function RAGChatWidget() {
       return next;
     });
   };
+
+  useEffect(() => {
+    const handleResume = (e) => {
+      const { sessionId, messages: history } = e.detail;
+      setActiveSessionId(sessionId);
+      setMessages((history || []).map(m => ({
+        id: m._id || Date.now() + Math.random(),
+        role: m.role,
+        text: m.text,
+        streaming: false,
+        sources: [],
+        faqsFound: 0
+      })));
+      setDialogOpen(true);
+    };
+
+    window.addEventListener('resume-rag-chat', handleResume);
+    return () => window.removeEventListener('resume-rag-chat', handleResume);
+  }, []);
 
   useEffect(() => {
     let interval;
@@ -57,6 +78,9 @@ export default function RAGChatWidget() {
     setInput('');
     setError('');
     setDialogOpen(true);
+
+    // Keep track of previous messages before we add the new one
+    const priorMessages = messages.map(m => ({ role: m.role, text: m.text }));
 
     // Add user message immediately
     const assistantMsgId = Date.now();
@@ -87,6 +111,7 @@ export default function RAGChatWidget() {
       const decoder = new TextDecoder();
       let buffer = '';
       let metaParsed = false;
+      let answerText = '';
 
       // Stream tokens as they arrive
       while (true) {
@@ -113,6 +138,7 @@ export default function RAGChatWidget() {
               // Subsequent lines are token, done or error chunks
               const chunk = JSON.parse(line.trim());
               if (chunk.token) {
+                answerText += chunk.token;
                 setMessages(prev => prev.map(m =>
                   m.id === assistantMsgId + 1
                     ? { ...m, text: m.text + chunk.token }
@@ -139,6 +165,28 @@ export default function RAGChatWidget() {
           }
         }
       }
+
+      // Sync session to backend if authenticated!
+      const token = localStorage.getItem('token');
+      if (token && answerText.trim()) {
+        const finalMessages = [
+          ...priorMessages,
+          { role: 'user', text: userText },
+          { role: 'assistant', text: answerText }
+        ];
+
+        try {
+          const syncRes = await saveChatSession({
+            sessionId: activeSessionId,
+            messages: finalMessages
+          });
+          if (syncRes.data?.session?._id) {
+            setActiveSessionId(syncRes.data.session._id);
+          }
+        } catch (syncErr) {
+          console.warn('Failed to sync chat session to backend:', syncErr.message);
+        }
+      }
     } catch (err) {
       setError(err.message || 'Failed to get answer. Please try again.');
       // Remove the streaming assistant message on error
@@ -162,6 +210,7 @@ export default function RAGChatWidget() {
 
   const clearChat = () => {
     setMessages([]);
+    setActiveSessionId(null);
     setError('');
   };
 

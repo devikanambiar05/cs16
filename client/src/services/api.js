@@ -66,6 +66,7 @@ export const fetchUserStats = (id) => api.get(`/api/users/${id}/stats`);
 export const getLeaderboard = (params) => api.get('/api/users/leaderboard', params);
 export const toggleBookmark = (faqId) => api.post(`/api/users/bookmarks/${faqId}`);
 export const getBookmarks = () => api.get('/api/users/bookmarks');
+export const getLikedFAQs = () => api.get('/api/users/likes');
 
 // Admin: analytics
 export const getAnalytics = () => api.get('/api/admin/analytics');
@@ -79,8 +80,14 @@ export const getUsers = ({ page = 1, pageSize = 10, search = '' } = {}) =>
 export const updateUserBan = (id, isBanned) => api.patch(`/api/users/${id}/ban`, { isBanned });
 
 // Queries
-export const getQueries = ({ page = 1, pageSize = 10, status, search = '' } = {}) =>
-  api.get('/api/queries', { page, pageSize, status, search });
+export const getQueries = (params = {}) => {
+  const normalizedParams = { ...params };
+  if (params.pageSize) {
+    normalizedParams.limit = params.pageSize;
+    delete normalizedParams.pageSize;
+  }
+  return api.get('/api/queries', normalizedParams);
+};
 export const createQuery = (data) => api.post('/api/queries', data);
 export const claimQuery = (id) => api.post(`/api/queries/${id}/claim`);
 export const unclaimQuery = (id) => api.delete(`/api/queries/${id}/claim`);
@@ -152,6 +159,9 @@ export const detectTags = (text) => api.get('/api/search/detect-tags', { text })
 
 // RAG Chat
 export const ragChat = (message, sessionId) => api.post('/api/rag/chat', { message, sessionId });
+export const getChatSessions = () => api.get('/api/rag/sessions');
+export const saveChatSession = (data) => api.post('/api/rag/sessions', data);
+export const getChatSessionDetails = (id) => api.get(`/api/rag/sessions/${id}`);
 
 // Upload
 export const uploadImage = (file) => {
