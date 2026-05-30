@@ -160,68 +160,62 @@ function FAQsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-1">Knowledge Base</h1>
-        <p className="text-slate-500">Find answers by topic or search keywords</p>
-      </div>
-
-      {/* Search */}
-      <form onSubmit={handleSearch} className="mb-10">
-        <div className="relative max-w-2xl">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            className="input pl-12 py-3 text-base shadow-sm"
-            placeholder="Search FAQs by keyword or topic..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              if (!e.target.value) { setSearchResults(null); }
-            }}
-          />
-        </div>
-      </form>
-
-      {/* Category Filter Pills */}
-      {categories.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button
-            onClick={() => { setSelectedCategory(null); setSearchResults(null); setSearchQuery(''); }}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              !selectedCategory && !searchResults
-                ? 'bg-primary-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All
-          </button>
-          {categories.map(cat => (
-            <button
-              key={cat._id || cat.tag}
-              onClick={() => {
-                setSelectedCategory(cat);
-                setSearchResults(null);
-                setSearchQuery('');
-                loadCategoryFAQs(cat.tag, 1);
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      {/* Search — compact, above sidebar Topics */}
+      <div className="flex gap-4 mb-5">
+        <form onSubmit={handleSearch} className="flex-1">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              className="input pl-10 py-2 text-sm shadow-sm"
+              placeholder="Search FAQs..."
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                if (!e.target.value) setSearchResults(null);
               }}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                selectedCategory?.tag === cat.tag
+            />
+          </div>
+        </form>
+        {/* Category pills inline with search — smaller */}
+        {categories.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <button
+              onClick={() => { setSelectedCategory(null); setSearchResults(null); setSearchQuery(''); }}
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                !selectedCategory && !searchResults
                   ? 'bg-primary-600 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {cat.name}
-              {cat.count != null && <span className="ml-1 text-xs opacity-70">({cat.count})</span>}
+              All
             </button>
-          ))}
-        </div>
-      )}
+            {categories.map(cat => (
+              <button
+                key={cat._id || cat.tag}
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  setSearchResults(null);
+                  setSearchQuery('');
+                  loadCategoryFAQs(cat.tag, 1);
+                }}
+                className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedCategory?.tag === cat.tag
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Search Results */}
       {searchResults !== null && (
@@ -291,36 +285,6 @@ function FAQsPage() {
               <>
                 {/* Community Board — pinned FAQs, announcements, overview */}
                 <CommunityBoard />
-
-                {/* Hero section */}
-                <div className="text-center py-10 px-4 mb-6">
-                  <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-                    <span>📚</span>
-                    <span>{categories.reduce((s, c) => s + c.count, 0)} FAQs across {categories.length} topics</span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                    Find answers, instantly
-                  </h2>
-                  <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
-                    Can't find what you're looking for? Use the chat assistant below — it searches the entire knowledge base for you.
-                  </p>
-                  {/* Quick topic pills */}
-                  <div className="flex flex-wrap justify-center gap-2 mb-4">
-                    {categories.slice(0, 6).map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => selectCategory(cat)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-primary-300 hover:bg-primary-50 text-slate-600 hover:text-primary-700 text-sm rounded-full transition-all shadow-sm"
-                      >
-                        <span>{cat.name}</span>
-                        <span className="text-xs text-slate-400">{cat.count}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <Link to="/wiki" className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors">
-                    Browse all FAQs in the Wiki →
-                  </Link>
-                </div>
               </>
             )}
           </div>
