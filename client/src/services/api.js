@@ -126,6 +126,7 @@ export const getAdminFaqs = ({ page = 1, limit = 20, status, search, tag } = {})
   api.get('/api/admin/faqs', { page, limit, status, search, tag });
 
 export const patchFaq = (id, data) => api.patch(`/api/admin/faqs/${id}`, data);
+export const pinFaq = (id) => api.patch(`/api/admin/faqs/${id}/pin`);
 
 export const deleteFAQ = (id) => api.patch(`/api/admin/faqs/${id}`, { status: 'deleted' });
 

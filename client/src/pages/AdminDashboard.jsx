@@ -37,6 +37,7 @@ import {
   deleteFAQ,
   getAdminFaqs,
   patchFaq,
+  pinFaq,
   getAdminPins,
   createPin,
   updatePin,
@@ -301,6 +302,16 @@ export default function AdminDashboard() {
       showToast('Failed to update user', 'error');
     } finally {
       setUserStatus(prev => ({ ...prev, [userId]: null }));
+    }
+  }
+
+  async function handleTogglePin(faqId, currentlyPinned) {
+    try {
+      await pinFaq(faqId);
+      showToast(currentlyPinned ? 'FAQ unpinned' : 'FAQ pinned', 'success');
+      loadAdminFaqs();
+    } catch (err) {
+      showToast('Failed to update pin status', 'error');
     }
   }
 
@@ -580,6 +591,7 @@ export default function AdminDashboard() {
                         <span className={`badge ${faq.deletedAt ? 'badge-red' : faq.status === 'resolved' ? 'badge-green' : 'badge-yellow'}`}>
                           {faq.deletedAt ? 'Deleted' : faq.status}
                         </span>
+                        {faq.pinned && <span className="badge badge-amber ml-1">pinned</span>}
                       </td>
                       <td className="py-3 text-slate-600 dark:text-slate-400">
                         {(faq.tags || []).slice(0, 3).join(', ')}
@@ -597,6 +609,12 @@ export default function AdminDashboard() {
                           className="text-xs hover:underline whitespace-nowrap"
                         >
                           {faq.deletedAt ? 'Restore' : 'Soft-Delete'}
+                        </button>
+                        <button
+                          onClick={() => handleTogglePin(faq._id, !!faq.pinned)}
+                          className={`text-xs hover:underline whitespace-nowrap ${faq.pinned ? 'text-amber-600' : ''}`}
+                        >
+                          {faq.pinned ? 'Unpin' : 'Pin'}
                         </button>
                       </td>
                     </tr>
