@@ -18,23 +18,23 @@ export default function CommunityBoard() {
   const typeConfig = {
     faq: {
       icon: '📌',
-      bg: 'from-primary-50 to-white',
-      border: 'border-primary-200',
-      badge: 'bg-primary-100 text-primary-700',
+      bg: 'from-primary-50 to-white dark:from-primary-950/20 dark:to-slate-900',
+      border: 'border-primary-200 dark:border-primary-900/40',
+      badge: 'bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300',
       label: 'Pinned FAQ',
     },
     announcement: {
       icon: '📢',
-      bg: 'from-amber-50 to-white',
-      border: 'border-amber-200',
-      badge: 'bg-amber-100 text-amber-700',
+      bg: 'from-amber-50 to-white dark:from-amber-950/20 dark:to-slate-900',
+      border: 'border-amber-200 dark:border-amber-900/30',
+      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
       label: 'Announcement',
     },
     overview: {
       icon: 'ℹ️',
-      bg: 'from-emerald-50 to-white',
-      border: 'border-emerald-200',
-      badge: 'bg-emerald-100 text-emerald-700',
+      bg: 'from-emerald-50 to-white dark:from-emerald-950/20 dark:to-slate-900',
+      border: 'border-emerald-200 dark:border-emerald-900/30',
+      badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
       label: 'Overview',
     },
   };
@@ -43,10 +43,10 @@ export default function CommunityBoard() {
     <div className="mb-8">
       {/* Section header */}
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-6 h-6 bg-amber-100 rounded flex items-center justify-center">
+        <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center">
           <span className="text-sm">📌</span>
         </div>
-        <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
           Community Board
         </h2>
       </div>
@@ -96,12 +96,12 @@ export default function CommunityBoard() {
               ) : null}
 
               {/* Footer */}
-              <div className="text-xs text-slate-400 mt-auto pt-2 border-t border-slate-200/50 flex items-center justify-between">
+              <div className="text-xs text-slate-400 dark:text-slate-500 mt-auto pt-2 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between">
                 {pin.pinnedBy?.name && (
                   <span className="truncate">by {pin.pinnedBy.name}</span>
                 )}
                 {pin.order !== undefined && pin.order !== 0 && (
-                  <span className="text-slate-300 shrink-0">#{pin.order + 1}</span>
+                  <span className="text-slate-300 dark:text-slate-700 shrink-0">#{pin.order + 1}</span>
                 )}
               </div>
             </div>

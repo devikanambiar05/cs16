@@ -62,7 +62,7 @@ export default function Layout() {
               {pins.length > 0 && (
                 <Link
                   to="/"
-                  className="hidden sm:flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-medium"
+                  className="hidden sm:flex items-center gap-1 text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 px-2.5 py-1 rounded-full font-medium"
                 >
                   📌 {pins.length} pinned
                 </Link>
@@ -125,7 +125,7 @@ export default function Layout() {
                   <Link to="/login" className="text-sm text-slate-600 hover:text-primary-600 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">
                     Sign in
                   </Link>
-                  <Link to="/login" className="btn-primary text-sm py-1.5 px-3">
+                  <Link to="/login" state={{ wantsSignup: true }} className="btn-primary text-sm py-1.5 px-3">
                     Register
                   </Link>
                 </>

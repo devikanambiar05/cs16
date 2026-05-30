@@ -73,6 +73,13 @@ $env:RESET_DB='true'; npm run seed
 | `e04e5a9` | Moved search bar inside Topics sidebar, above "Topics" heading |
 | `caea29d` | FAQsPage category pills now smaller (`px-2 py-1 text-xs`) at top of page |
 | `36bb2f2` | FAQsPage layout overhaul — removed "Knowledge Base" heading + subheading, no hero section |
+| `0bfd153` | **Dev Database Protection**: centally override `MONGO_URI` inside `jest.config.js` to `faqapp_test`, preventing tests from wiping the active local database |
+| `0bfd153` | **User model toObject Fix**: removed conflicting `toObject` override from `User.js` that broke login password validation |
+| `0bfd153` | **Register Link Routing**: added `state={{ wantsSignup: true }}` to the Register button inside `Layout.jsx` so it opens the signup card |
+| `0bfd153` | **FAQsPage Search Layout**: refactored the layout so that topics sidebar and search box remain visible during searches, and added paginated search results |
+| **Theme Fixes** | **Community Board dark mode**: configured custom dark gradient backgrounds, border settings, and footer borders so posts blend with the dark theme |
+| **Theme Fixes** | **RAG Chat Widget dark mode**: fully styled overlay dialogue panels, message bubbles, source lists, textareas, inputs, and persistent launcher bars |
+| **Git Config** | **Git Author rewrite**: replaced college ID (`21f3002068`) with personal ID (`Vaibhav satish9@gmail.com`) for all 29 commits, and set global Git defaults |
 
 ### 🟡 Partially Built Features
 
@@ -234,4 +241,4 @@ WikiPage was redundant with FAQsPage after FAQsPage gained category pills + grou
 
 ## Last Updated
 
-`2026-05-30 14:51` — Vee / Larry
+`2026-05-30 18:05` — Vee / Antigravity

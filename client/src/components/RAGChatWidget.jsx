@@ -133,13 +133,13 @@ export default function RAGChatWidget() {
           />
 
           {/* Dialog panel */}
-          <div className="relative w-full max-w-lg mx-4 mb-2 rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden"
+          <div className="relative w-full max-w-lg mx-4 mb-2 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden"
             style={{ maxHeight: '70vh' }}>
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 shrink-0">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-lg">💬</span>
-                <h2 className="font-semibold text-slate-800 text-sm">FAQ Assistant</h2>
+                <h2 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">FAQ Assistant</h2>
                 {messages.filter(m => m.role === 'assistant').length > 0 && (
                   <span className="text-xs text-slate-400 ml-1">
                     ({messages.filter(m => m.role === 'assistant').length} response{messages.filter(m => m.role === 'assistant').length !== 1 ? 's' : ''})
@@ -149,13 +149,13 @@ export default function RAGChatWidget() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={clearChat}
-                  className="text-xs text-slate-400 hover:text-slate-600 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100"
+                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   Clear
                 </button>
                 <button
                   onClick={closeDialog}
-                  className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-100"
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -178,7 +178,7 @@ export default function RAGChatWidget() {
                   <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === 'user'
                       ? 'bg-primary-600 text-white rounded-tr-sm'
-                      : 'bg-slate-100 text-slate-800 rounded-tl-sm'
+                      : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-tl-sm'
                   }`}>
                     <p className="whitespace-pre-wrap">{msg.text}</p>
                     {msg.streaming && (
@@ -186,11 +186,11 @@ export default function RAGChatWidget() {
                     )}
 
                     {msg.role === 'assistant' && !msg.streaming && msg.sources?.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-slate-200/50">
+                      <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
                         <p className="text-xs text-slate-400 mb-1 font-medium">Sources:</p>
                         <div className="space-y-0.5">
                           {msg.sources.slice(0, 3).map(s => (
-                            <div key={s._id} className="flex items-start gap-1.5 text-xs text-slate-500">
+                            <div key={s._id} className="flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                               <span className="text-primary-400 mt-0.5">•</span>
                               <span className="line-clamp-1">{s.title}</span>
                             </div>
@@ -214,14 +214,14 @@ export default function RAGChatWidget() {
             </div>
 
             {/* Input */}
-            <div className="shrink-0 px-5 py-3 border-t border-slate-100 bg-white">
+            <div className="shrink-0 px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               <form onSubmit={sendMessage} className="relative">
                 <div className="flex items-end gap-2">
                   <textarea
                     ref={inputRef}
-                    className="flex-1 px-4 py-2.5 pr-12 text-sm border border-slate-300 rounded-2xl resize-none
+                    className="flex-1 px-4 py-2.5 pr-12 text-sm border border-slate-300 dark:border-slate-700 rounded-2xl resize-none
                                focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-                               placeholder-slate-400 bg-slate-50"
+                               placeholder-slate-400 dark:placeholder-slate-500 bg-slate-50 dark:bg-slate-800 dark:text-slate-100"
                     placeholder="Ask about the FAQs..."
                     value={input}
                     onChange={e => setInput(e.target.value)}
@@ -250,16 +250,16 @@ export default function RAGChatWidget() {
       )}
 
       {/* ── Launcher bar (always visible at bottom) ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-white to-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-white to-white/95 dark:from-slate-950 dark:to-slate-950/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
         <div className="max-w-lg mx-auto px-4 py-2.5">
           <form onSubmit={sendMessage}>
             <div className="flex items-center gap-2.5">
               <div className="flex-1 relative">
                 <input
                   type="text"
-                  className="w-full pl-4 pr-10 py-2.5 text-sm border border-slate-300 rounded-full
+                  className="w-full pl-4 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-700 rounded-full
                              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-                             placeholder-slate-400 bg-slate-50 shadow-sm transition-shadow"
+                             placeholder-slate-400 dark:placeholder-slate-500 bg-slate-50 dark:bg-slate-800 dark:text-slate-100 shadow-sm transition-shadow"
                   placeholder="Ask the FAQ assistant..."
                   value={input}
                   onChange={e => setInput(e.target.value)}
