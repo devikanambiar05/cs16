@@ -107,3 +107,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Test suites failed to decrypt session signatures when JWT secret keys were missing from the local environment values.
 * **🛡️ Edge Cases Tested**: Handling expired tokens, tampered signatures, and malicious user role injection attempts.
 
+### 🛡️ v0.28: Admin tier authorization middleware checks
+* **Release Date**: May 30, 2026 - 09:00
+* **Details**: Guard REST routes against unauthorized role manipulations.
+* **🎨 Visual Wireframe & Layout**: Admin moderation panels with restricted link badges. Unauthorized users are blocked with clean, absolute red warning screens.
+* **🧠 Team Thinking & Rationale**: Security checks must occur on the backend routes; client-side route hiding is easily bypassed.
+* **💬 Discussions & Decisions**: Discussed flat roles vs permissions list tables. Opted for a streamlined `role` enum (`guest`, `member`, `admin`) for lightweight checks.
+* **⚠️ Errors & Roadblocks Faced**: Unauthenticated guest visits crashed the middleware when trying to evaluate the roles of undefined user profiles.
+* **🛡️ Edge Cases Tested**: Non-admin users attempting to POST to the `/api/admin` endpoint with manual tools (like curl or postman).
+
