@@ -134,3 +134,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Query retrieval queries crashed due to cast conversion errors when formatting dates.
 * **🛡️ Edge Cases Tested**: Retrieving query feeds when no user questions are active, ensuring absolute stability.
 
+### 🤝 v0.4: Q&A Forum, RichText Editor, & Claim Locks
+* **Release Date**: May 30, 2026 - 20:00
+* **Details**: Full Alpha release with RichText editor image uploads and Claim locks.
+* **🎨 Visual Wireframe & Layout**: Clean, inline editor pane with styling toolbars, adjacent to dynamic volunteer countdown timers.
+* **🧠 Team Thinking & Rationale**: Volunteers need functional layout tools to compose readable answers, but we must protect questions from duplicate volunteer claims.
+* **💬 Discussions & Decisions**: Chose between heavy external wysiwyg plugins vs building a targeted markdown text area. Designed a custom lightweight editor for speed.
+* **⚠️ Errors & Roadblocks Faced**: Overlapping interval ticks caused active SLA claim timer countdowns to skip numbers.
+* **🛡️ Edge Cases Tested**: Multiple volunteers attempting to claim the exact same question at the millisecond scale.
+
