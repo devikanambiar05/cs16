@@ -179,6 +179,16 @@ Nodemon spawned a new `node server.js` process on every file change without clos
 
 ---
 
+### ✅ FAQ Requests Tab Fix (commit `bd1234f`)
+
+| Bug | Fix |
+|-----|-----|
+| Tab showed blank screen | `loadFAQRequests` used `res.data` — but API returns `{ requests, pagination }` — now uses `res.data?.requests` |
+| No requests ever appeared | UI read `req.title`/`req.description` which don't exist on `FAQRequest` model — now reads `proposedQuestion`, `proposedAnswer`, `proposedTags`, `status`, `submittedBy.name`, `queryId.title` |
+| Approve/Reject shown for non-pending | Buttons now only render when `status === 'pending'` |
+
+---
+
 ### ✅ Pins Admin UI (commit `604c77f`)
 
 | Feature | Details |
