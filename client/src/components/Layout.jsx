@@ -180,7 +180,7 @@ export default function Layout() {
 
       {/* ── Footer ── */}
       <footer className="bg-white border-t border-slate-200 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-24">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 bg-primary-600 rounded flex items-center justify-center">

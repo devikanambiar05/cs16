@@ -250,41 +250,39 @@ export default function RAGChatWidget() {
       )}
 
       {/* ── Launcher bar (always visible at bottom) ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-white to-white/95 backdrop-blur-sm border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-        <div className="max-w-lg mx-auto px-4 py-2.5">
-          <form onSubmit={sendMessage}>
-            <div className="flex items-center gap-2.5">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  className="w-full pl-4 pr-10 py-2.5 text-sm border border-slate-300 rounded-full
-                             focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-                             placeholder-slate-400 bg-slate-50 shadow-sm transition-shadow"
-                  placeholder="Ask the FAQ assistant..."
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  disabled={loading}
-                />
-                {loading && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-0.5">
-                    <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" />
-                    <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '200ms' }} />
-                    <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '400ms' }} />
-                  </div>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={!input.trim() || loading}
-                className="bg-primary-600 text-white p-2.5 rounded-full shrink-0
-                           hover:bg-primary-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
+      <div className="fixed bottom-6 left-0 right-0 z-40 pointer-events-none">
+        <div className="mx-auto w-full max-w-lg px-4 pointer-events-auto">
+          <form onSubmit={sendMessage} className="flex items-center gap-2.5">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                className="w-full pl-4 pr-10 py-2.5 text-sm border border-slate-300 rounded-full
+                           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                           placeholder-slate-400 bg-slate-50 shadow-sm transition-shadow"
+                placeholder="Ask the FAQ assistant..."
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+              />
+              {loading && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-0.5">
+                  <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" />
+                  <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '200ms' }} />
+                  <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '400ms' }} />
+                </div>
+              )}
             </div>
+            <button
+              type="submit"
+              disabled={!input.trim() || loading}
+              className="bg-primary-600 text-white p-2.5 rounded-full shrink-0
+                         hover:bg-primary-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
           </form>
         </div>
       </div>
