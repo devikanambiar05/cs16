@@ -14,6 +14,8 @@ const {
   getModerationQueue,
   getPins,
   createPin,
+  updatePin,
+  deletePin,
   getAdminFaqs,
   patchFaq
 } = require('../controllers/adminController');
@@ -60,6 +62,8 @@ router.patch('/faqs/:id', protect, adminOnly, patchFaq);
 // Pin Management
 router.get('/pins', protect, adminOnly, getPins);
 router.post('/pins', protect, adminOnly, createPin);
+router.patch('/pins/:id', protect, adminOnly, updatePin);
+router.delete('/pins/:id', protect, adminOnly, deletePin);
 
 // Moderation queue (pending FAQ requests + SLA-breached queries)
 router.get('/moderation', protect, adminOnly, getModerationQueue);
