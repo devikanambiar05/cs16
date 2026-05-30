@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
+// Suppress Fast Refresh for this module — context files cannot be hot-updated
+// without full remount, which breaks auth state. Full page reload is correct behavior.
+if (import.meta.hot) import.meta.hot.decline();
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {

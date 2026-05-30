@@ -13,8 +13,40 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Resolve FAQ.txt path.
+ * Priority: FAQ_TXT_PATH env var > path relative to project root > ../../FAQ.txt
+ */
+function resolveFaqPath() {
+  // 1. Explicit env override
+  if (process.env.FAQ_TXT_PATH) {
+    const envPath = path.resolve(process.env.FAQ_TXT_PATH);
+    if (fs.existsSync(envPath)) return envPath;
+    throw new Error(`FAQ_TXT_PATH is set to "${envPath}" but file does not exist.`);
+  }
+
+  // 2. Project root (cs16/) — the canonical location
+  const projectRoot = path.resolve(__dirname, '..');
+  const projectRootPath = path.join(projectRoot, 'FAQ.txt');
+  if (fs.existsSync(projectRootPath)) return projectRootPath;
+
+  // 3. Legacy external path (parent of cs16/)
+  const legacyPath = path.resolve(__dirname, '../../FAQ.txt');
+  if (fs.existsSync(legacyPath)) return legacyPath;
+
+  // Nothing found — give a clear error listing the searched paths
+  const searched = [projectRootPath, legacyPath].map(p => '  - ' + p).join('\n');
+  throw new Error(
+    `FAQ.txt not found. Searched:\n${searched}\n` +
+    `Set the FAQ_TXT_PATH environment variable to the correct path, e.g.:\n` +
+    `  FAQ_TXT_PATH=/path/to/FAQ.txt npm run seed`
+  );
+}
+
 function parseFAQtxt() {
-  const raw = fs.readFileSync(path.join(__dirname, '../../FAQ.txt'), 'utf8');
+  const faqPath = resolveFaqPath();
+  console.log('[parseFaqTxt] Using FAQ file:', faqPath);
+  const raw = fs.readFileSync(faqPath, 'utf8');
 
   // ── 1. Split TOC from QA ────────────────────────────────────────────────────
   // The separator is a long line of "=" and "QA" repeated

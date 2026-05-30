@@ -48,7 +48,26 @@ function bm25Score(queryTokens, docTokens, docLen, avgDL, df, N) {
 
 
 
-// ─── Ollama validation (only called if pre-check passes) ───────────────────
+// ─── Ollama availability check ───────────────────────────────────────────────
+
+let ollamaAvailable = null; // null = unknown, true = available, false = unavailable
+
+async function isOllamaAvailable() {
+  if (ollamaAvailable !== null) return ollamaAvailable;
+  const baseUrl = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`${baseUrl}/api/tags`, { signal: controller.signal });
+    clearTimeout(timeout);
+    ollamaAvailable = res.ok;
+  } catch {
+    ollamaAvailable = false;
+  }
+  return ollamaAvailable;
+}
+
+// ─── Ollama validation (only called if Ollama is confirmed available) ──────────
 
 async function validateAnswer(title, answer) {
   const baseUrl = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
@@ -56,7 +75,7 @@ async function validateAnswer(title, answer) {
   const prompt = `Does the answer contain real information (not placeholder text)? Yes or No only.\nQuestion: ${title}\nAnswer: ${answer}`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 10000); // reduced from 15s → 10s
 
   try {
     const response = await fetch(`${baseUrl}/api/generate`, {
@@ -98,20 +117,30 @@ async function buildRagIndex() {
     return ragCache;
   }
 
-  // Validate FAQs with controlled concurrency to avoid Ollama overload
-  const CONCURRENCY = 8;
-  const results = [];
-  for (let i = 0; i < faqs.length; i += CONCURRENCY) {
-    const batch = faqs.slice(i, i + CONCURRENCY);
-    const batchResults = await Promise.all(
-      batch.map(f => validateAnswer(f.title, f.finalAnswer || '').catch(() => false))
-    );
-    results.push(...batchResults);
-    // Small delay between batches to let Ollama breathe
-    if (i + CONCURRENCY < faqs.length) await new Promise(r => setTimeout(r, 200));
+  // Check if Ollama is available before spending time validating
+  const ollamaOk = await isOllamaAvailable();
+  let validatedFaqs = faqs;
+
+  if (ollamaOk) {
+    // Validate FAQs with controlled concurrency to avoid Ollama overload
+    const CONCURRENCY = 8;
+    const results = [];
+    for (let i = 0; i < faqs.length; i += CONCURRENCY) {
+      const batch = faqs.slice(i, i + CONCURRENCY);
+      const batchResults = await Promise.all(
+        batch.map(f => validateAnswer(f.title, f.finalAnswer || '').catch(() => false))
+      );
+      results.push(...batchResults);
+      // Small delay between batches to let Ollama breathe
+      if (i + CONCURRENCY < faqs.length) await new Promise(r => setTimeout(r, 200));
+    }
+    validatedFaqs = faqs.filter((_, i) => results[i]);
+    console.log('RAG validation: passed=' + validatedFaqs.length + ' of ' + faqs.length);
+  } else {
+    // Ollama unavailable — skip validation and include all FAQs
+    console.log('RAG validation: Ollama not available (' + (process.env.OLLAMA_URL || 'http://localhost:11434') + ') — including all ' + faqs.length + ' FAQs without LLM validation');
+    ollamaAvailable = false; // cache the result
   }
-  const validatedFaqs = faqs.filter((_, i) => results[i]);
-  console.log('RAG validation: passed=' + validatedFaqs.length + ' of ' + faqs.length);
 
   if (validatedFaqs.length === 0) {
     ragCache = { faqs: [], df: {}, N: 0 };
