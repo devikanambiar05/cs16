@@ -208,6 +208,7 @@ WikiPage was redundant with FAQsPage after FAQsPage gained category pills + grou
 | **Pin/Unpin FAQ** | `pinFaq(id)` API + `handleTogglePin` in Manage FAQs tab; Pin/Unpin button per row; amber badge on pinned FAQs |
 | **FAQsPage public listing** | Admins see a bookmark icon on each FAQ; pinned FAQs show a 📌 indicator next to the title |
 | **FAQsPage category pills** | Category filter pills below search bar, matching WikiPage style: `bg-primary-600 text-white` when active, `bg-slate-100` when inactive; "All" pill resets view |
+| **FAQsPage layout overhaul** | Removed "Knowledge Base" heading and subheading; search bar is now compact inline with category pills above Topics sidebar; no hero section; pills smaller (`px-2 py-1 text-xs`) and inline with search instead of full-width block |
 
 ---
 
