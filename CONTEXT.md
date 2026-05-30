@@ -67,12 +67,18 @@ $env:RESET_DB='true'; npm run seed
 | `a13097f` | **EADDRINUSE fix**: `server.js` graceful shutdown (SIGINT/SIGTERM), `server.close()`, port fallback 5000→5002. |
 | `a13097f` | **HMR fix**: Added `import.meta.hot.decline()` to AuthContext - full page reload is correct behavior. |
 | `a13097f` | **FAQ.txt path**: `resolveFaqPath()` searches env var → project root → legacy path, throws clear error with all searched paths if missing. |
+| `ee4953b` | FAQsPage blank — `CommunityBoard` returned `null` when no pins; now loads all FAQs on mount via `loadAllFAQs()` |
+| `b6d005f` | FAQsPage JSX parse error — ternary else had empty `<> </>` fragment after CommunityBoard removal; replaced with two independent `&&` conditionals |
+| `caea29d` | Removed top search bar from FAQsPage — search lives in Topics sidebar only |
+| `e04e5a9` | Moved search bar inside Topics sidebar, above "Topics" heading |
+| `caea29d` | FAQsPage category pills now smaller (`px-2 py-1 text-xs`) at top of page |
+| `36bb2f2` | FAQsPage layout overhaul — removed "Knowledge Base" heading + subheading, no hero section |
 
 ### 🟡 Partially Built Features
 
 | Feature | Issue | Status |
 |---------|-------|--------|
-| Pins Admin UI | #4 | API routes + `getAdminPins`/`createPin` exist, UI tab shows "coming soon" placeholder |
+| Pins Admin UI | #4 | Built — full CRUD UI in admin + pin/unpin in FAQsPage + Manage FAQs tab |
 | WikiPage | #5 | Removed — redundant with FAQsPage after it gained category pills |
 | RAG Chat History | #7 | API accepts `sessionId`, widget doesn't track it - every message is isolated |
 | Promote/Demote Role UI | #8 | Admin can ban/unban users, but cannot change role. Only MongoDB direct update works. |
@@ -85,7 +91,7 @@ $env:RESET_DB='true'; npm run seed
 |---|-------|--------|
 | #2 | Fix: RAG system indexes 0 FAQs despite 118 in database | Fixed in `a13097f` |
 | #3 | Fix: Backend server crashes repeatedly with EADDRINUSE on port 5000 | Fixed in `a13097f` |
-| #4 | Enhancement: Build Pins management UI in Admin Dashboard | ✅ Closed (commits `604c77f` + `8f46454` + `ba1cd41`) |
+| #4 | Enhancement: Build Pins management UI in Admin Dashboard | ✅ Closed (commits `604c77f` + `8f46454` + `ba1cd41` + `b6d005f` + `ee4953b`) |
 | #5 | Enhancement: Implement WikiPage — removed (redundant with FAQsPage) | ✅ Closed — WikiPage nuked (`f9d14c7`) |
 | #6 | Fix: HMR breaks useAuth causing full page reload | Fixed in `a13097f` |
 | #7 | Enhancement: RAG Chat widget has no conversation history | Open |
@@ -110,21 +116,21 @@ cs16/
 │   │   ├── faqRoutes.js       # /api/faqs/*
 │   │   ├── queryRoutes.js     # /api/queries/*
 │   │   ├── ragRoutes.js       # /api/rag/*
-│   │   └── ...
+│   │   └── faqRequestRoutes.js # /api/faq-requests/*
 │   ├── controllers/
 │   │   ├── adminController.js # getAnalytics, getAdminFaqs, patchFaq, etc.
 │   │   ├── authController.js  # login, register, getMe
 │   │   ├── ragController.js   # buildRagIndex (with Ollama availability check)
-│   │   └── ...
+│   │   └── faqRequestController.js
 │   └── models/
-│       └── User.js, FAQ.js, Query.js, Answer.js
+│       └── User.js, FAQ.js, Query.js, Answer.js, Pin.js
 ├── client/
 │   ├── src/
 │   │   ├── App.jsx           # Routes: /, /community, /admin, /login, /leaderboard, /ask
 │   │   ├── main.jsx
 │   │   ├── pages/
 │   │   │   ├── AdminDashboard.jsx   # Tabs: Overview, Queries, Users, FAQ Requests, Manage FAQs, Pins
-│   │   │   ├── FAQsPage.jsx         # Public FAQ listing + search + category pills
+│   │   │   ├── FAQsPage.jsx         # Public FAQ listing + search in sidebar + category pills
 │   │   │   ├── CommunityPage.jsx    # Query board
 │   │   │   ├── LeaderboardPage.jsx  # Reputation-based ranking
 │   │   │   └── ...
@@ -132,7 +138,7 @@ cs16/
 │   │   │   ├── RAGChatWidget.jsx    # AI chat
 │   │   │   ├── Layout.jsx           # Navbar + routing
 │   │   │   ├── ProtectedRoute.jsx   # Auth guard
-│   │   │   └── ...
+│   │   │   └── CommunityBoard.jsx   # Pinned FAQs/announcements (used in WikiPage only)
 │   │   ├── context/
 │   │   │   └── AuthContext.jsx      # Auth state - HMR suppressed via import.meta.hot.decline()
 │   │   └── services/
@@ -159,6 +165,9 @@ Nodemon spawned a new `node server.js` process on every file change without clos
 ### FAQ.txt path resolution
 `parseFaqTxt.js` uses `resolveFaqPath()`: env `FAQ_TXT_PATH` → project root → legacy `../../FAQ.txt`. Throws clear error listing all searched paths if file not found. Canonical location is now `cs16/FAQ.txt`.
 
+### Why FAQsPage was blank
+`CommunityBoard` returns `null` when no pins exist. The default view (no category selected, no pins) had no content to show. Fix (`ee4953b`): load all FAQs on mount via `loadAllFAQs()` and display in left panel by default.
+
 ---
 
 ## RAG System Notes
@@ -179,6 +188,16 @@ Nodemon spawned a new `node server.js` process on every file change without clos
 
 ---
 
+### ✅ FAQ Requests Tab Fix (commit `bd1234b`)
+
+| Bug | Fix |
+|-----|-----|
+| Tab showed blank screen | `loadFAQRequests` used `res.data` — but API returns `{ requests, pagination }` — now uses `res.data?.requests` |
+| No requests ever appeared | UI read `req.title`/`req.description` which don't exist on `FAQRequest` model — now reads `proposedQuestion`, `proposedAnswer`, `proposedTags`, `status`, `submittedBy.name`, `queryId.title` |
+| Approve/Reject shown for non-pending | Buttons now only render when `status === 'pending'` |
+
+---
+
 ### ✅ Nuke WikiPage (commit `f9d14c7`)
 
 WikiPage was redundant with FAQsPage after FAQsPage gained category pills + grouped display. Removed:
@@ -190,28 +209,29 @@ WikiPage was redundant with FAQsPage after FAQsPage gained category pills + grou
 
 ---
 
-### ✅ FAQ Requests Tab Fix (commit `bd1234f`)
-
-| Bug | Fix |
-|-----|-----|
-| Tab showed blank screen | `loadFAQRequests` used `res.data` - but API returns `{ requests, pagination }` - now uses `res.data?.requests` |
-| No requests ever appeared | UI read `req.title`/`req.description` which don't exist on `FAQRequest` model - now reads `proposedQuestion`, `proposedAnswer`, `proposedTags`, `status`, `submittedBy.name`, `queryId.title` |
-| Approve/Reject shown for non-pending | Buttons now only render when `status === 'pending'` |
-
----
-
-### ✅ Pins Admin UI (commits `604c77f` + `8f46454` + `ba1cd41`)
+### ✅ Pins Admin UI (commits `604c77f` + `8f46454` + `ba1cd41` + `b6d005f` + `ee4953b`)
 
 | Feature | Details |
 |---------|---------|
 | **Pins tab UI** | Full CRUD in Admin Dashboard → Pins tab: list cards, create/edit modal, remove with confirm |
 | **Pin/Unpin FAQ** | `pinFaq(id)` API + `handleTogglePin` in Manage FAQs tab; Pin/Unpin button per row; amber badge on pinned FAQs |
 | **FAQsPage public listing** | Admins see a bookmark icon on each FAQ; pinned FAQs show a 📌 indicator next to the title |
-| **FAQsPage category pills** | Category filter pills below search bar, matching WikiPage style: `bg-primary-600 text-white` when active, `bg-slate-100` when inactive; "All" pill resets view |
-| **FAQsPage layout** | Removed "Knowledge Base" heading and subheading; category pills row (`px-2 py-1 text-xs`) at top; search bar lives in Topics sidebar only; left panel shows all FAQs by default on mount; CommunityBoard removed from default view |
+| **FAQsPage category pills** | Category filter pills at top of FAQsPage (`px-2 py-1 text-xs`), active = `bg-primary-600 text-white`, inactive = `bg-slate-100` |
+
+---
+
+### ✅ FAQsPage Layout Overhaul
+
+| What | Details |
+|------|---------|
+| Search bar | Lives inside Topics sidebar (not in the main header row) |
+| Category pills | `px-2 py-1 text-xs` at very top of page; clicking a pill sets category and loads filtered FAQs |
+| "Knowledge Base" heading | Removed — no hero section |
+| Default content | Left panel shows all FAQs on mount (via `loadAllFAQs()`) |
+| CommunityBoard | Not shown in FAQsPage default view (WikiPage-only) |
 
 ---
 
 ## Last Updated
 
-`2026-05-30` - Vee / Larry
+`2026-05-30 14:51` — Vee / Larry
