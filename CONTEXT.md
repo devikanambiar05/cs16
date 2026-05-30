@@ -196,6 +196,7 @@ Nodemon spawned a new `node server.js` process on every file change without clos
 | **Pins tab UI** | Full CRUD in Admin Dashboard → Pins tab: list cards, create/edit modal, remove with confirm |
 | **Pin/Unpin FAQ** | `pinFaq(id)` API + `handleTogglePin` in Manage FAQs tab; Pin/Unpin button per row; amber badge on pinned FAQs |
 | **FAQsPage public listing** | Admins see a bookmark icon on each FAQ; pinned FAQs show a 📌 indicator next to the title |
+| **FAQsPage category pills** | Category filter pills below search bar, matching WikiPage style: `bg-primary-600 text-white` when active, `bg-slate-100` when inactive; "All" pill resets view |
 
 ---
 
