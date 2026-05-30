@@ -84,9 +84,11 @@ export default function Layout() {
                       className="hidden sm:flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       title="Raise a Query"
                     >
-                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <path d="M18 8a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6a6 6 0 0 0 6 6h4a6 6 0 0 0 6-6V10a2 2 0 0 0-2-2Z" />
-                        <path d="M6 10V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v10" />
+                      <svg className="w-4 h-4 shrink-0 animate-bounce-slow" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v5" />
+                        <path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6" />
+                        <path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8" />
+                        <path d="M6 14V10a2 2 0 0 0-2-2 2 2 0 0 0-2 2v10a6 6 0 0 0 6 6h4a6 6 0 0 0 6-6V12a2 2 0 0 0-2-2 2 2 0 0 0-2 2" />
                       </svg>
                       <span className="font-medium">Raise Query</span>
                     </Link>
@@ -164,8 +166,10 @@ export default function Layout() {
             {user && user.role !== 'admin' && (
               <Link to="/ask" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/30 rounded-lg">
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                  <path d="M18 8a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6a6 6 0 0 0 6 6h4a6 6 0 0 0 6-6V10a2 2 0 0 0-2-2Z" />
-                  <path d="M6 10V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v10" />
+                  <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v5" />
+                  <path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6" />
+                  <path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8" />
+                  <path d="M6 14V10a2 2 0 0 0-2-2 2 2 0 0 0-2 2v10a6 6 0 0 0 6 6h4a6 6 0 0 0 6-6V12a2 2 0 0 0-2-2 2 2 0 0 0-2 2" />
                 </svg>
                 Raise Query
               </Link>

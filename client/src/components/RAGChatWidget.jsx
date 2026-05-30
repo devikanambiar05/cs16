@@ -1,5 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
+
+const LOADING_PHASES = [
+  "Anveshana (अन्वेषण) — Searching Granth knowledge base...",
+  "Manana (मनन) — Reflecting on the context...",
+  "Chintana (चिन्तन) — Formulating a response..."
+];
 
 export default function RAGChatWidget() {
   const location = useLocation();
@@ -8,8 +14,34 @@ export default function RAGChatWidget() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [expandedSources, setExpandedSources] = useState(new Set());
+  const [phaseIndex, setPhaseIndex] = useState(0);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+
+  const toggleSource = (sourceId) => {
+    setExpandedSources(prev => {
+      const next = new Set(prev);
+      if (next.has(sourceId)) {
+        next.delete(sourceId);
+      } else {
+        next.add(sourceId);
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    let interval;
+    if (loading) {
+      interval = setInterval(() => {
+        setPhaseIndex(prev => (prev + 1) % LOADING_PHASES.length);
+      }, 1500);
+    } else {
+      setPhaseIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
 
   useEffect(() => {
     if (dialogOpen && bottomRef.current) {
@@ -54,17 +86,7 @@ export default function RAGChatWidget() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-
-      // Read the metadata line first
-      const firstLine = await reader.read();
-      if (firstLine.value) {
-        const meta = JSON.parse(decoder.decode(firstLine.value).trim());
-        setMessages(prev => prev.map(m =>
-          m.id === assistantMsgId + 1
-            ? { ...m, sources: meta.sources || [], faqsFound: meta.faqsFound || 0 }
-            : m
-        ));
-      }
+      let metaParsed = false;
 
       // Stream tokens as they arrive
       while (true) {
@@ -78,23 +100,43 @@ export default function RAGChatWidget() {
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
-            const chunk = JSON.parse(line.trim());
-            if (chunk.token) {
+            if (!metaParsed) {
+              // The first line contains the sources/metadata JSON
+              const meta = JSON.parse(line.trim());
               setMessages(prev => prev.map(m =>
                 m.id === assistantMsgId + 1
-                  ? { ...m, text: m.text + chunk.token }
+                  ? { ...m, sources: meta.sources || [], faqsFound: meta.faqsFound || 0 }
                   : m
               ));
+              metaParsed = true;
+            } else {
+              // Subsequent lines are token, done or error chunks
+              const chunk = JSON.parse(line.trim());
+              if (chunk.token) {
+                setMessages(prev => prev.map(m =>
+                  m.id === assistantMsgId + 1
+                    ? { ...m, text: m.text + chunk.token }
+                    : m
+                ));
+              }
+              if (chunk.done) {
+                setMessages(prev => prev.map(m =>
+                  m.id === assistantMsgId + 1 ? { ...m, streaming: false } : m
+                ));
+              }
+              if (chunk.error) {
+                throw new Error(chunk.error);
+              }
             }
-            if (chunk.done) {
-              setMessages(prev => prev.map(m =>
-                m.id === assistantMsgId + 1 ? { ...m, streaming: false } : m
-              ));
+          } catch (e) {
+            console.error('Error parsing stream chunk:', e);
+            if (line.includes('"error"')) {
+              try {
+                const chunk = JSON.parse(line.trim());
+                throw new Error(chunk.error);
+              } catch {}
             }
-            if (chunk.error) {
-              throw new Error(chunk.error);
-            }
-          } catch { /* skip malformed */ }
+          }
         }
       }
     } catch (err) {
@@ -186,21 +228,73 @@ export default function RAGChatWidget() {
                       ? 'bg-primary-600 text-white rounded-tr-sm'
                       : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-tl-sm'
                   }`}>
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                    {msg.streaming && (
-                      <span className="inline-block w-1.5 h-4 bg-slate-400 rounded animate-pulse ml-0.5 align-middle" />
+                    {msg.streaming && !msg.text ? (
+                      <div className="flex flex-col gap-1 py-0.5 pr-2 select-none">
+                        <div className="flex items-center gap-2">
+                          <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
+                          </span>
+                          <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400 animate-pulse transition-all duration-300">
+                            {LOADING_PHASES[phaseIndex]}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                        {msg.streaming && (
+                          <span className="inline-block w-1.5 h-4 bg-slate-400 rounded animate-pulse ml-0.5 align-middle" />
+                        )}
+                      </>
                     )}
 
                     {msg.role === 'assistant' && !msg.streaming && msg.sources?.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-                        <p className="text-xs text-slate-400 mb-1 font-medium">Sources:</p>
-                        <div className="space-y-0.5">
-                          {msg.sources.slice(0, 3).map(s => (
-                            <div key={s._id} className="flex items-start gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                              <span className="text-primary-400 mt-0.5">•</span>
-                              <span className="line-clamp-1">{s.title}</span>
-                            </div>
-                          ))}
+                      <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Sources (Click to expand in-place):</p>
+                        <div className="space-y-1.5">
+                          {msg.sources.slice(0, 3).map(s => {
+                            const isExpanded = expandedSources.has(s._id);
+                            return (
+                              <div key={s._id} className="rounded-xl border border-slate-200/40 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 overflow-hidden">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSource(s._id)}
+                                  className="w-full flex items-center justify-between text-left px-3 py-2 text-[11px] font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 hover:bg-slate-200/40 dark:hover:bg-slate-800/40 transition-all gap-2"
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="text-primary-500 shrink-0">•</span>
+                                    <span className="truncate">{s.title}</span>
+                                  </div>
+                                  <span className="shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                  </span>
+                                </button>
+                                
+                                {isExpanded && (
+                                  <div className="px-3 pb-3 pt-1 border-t border-slate-200/35 dark:border-slate-800/50 bg-white dark:bg-slate-950/40">
+                                    <p className="text-[12px] leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-sans">
+                                      {s.content || "No preview available. View details in Wiki."}
+                                    </p>
+                                    <div className="mt-2 flex justify-end">
+                                      <Link
+                                        to={`/wiki?highlight=${s._id}`}
+                                        onClick={closeDialog}
+                                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors uppercase tracking-wider"
+                                      >
+                                        Open in Wiki
+                                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                      </Link>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

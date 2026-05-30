@@ -64,7 +64,8 @@ async function seed() {
       finalAnswer: faq.finalAnswer,
       tags: faq.tags,
       status: 'resolved',
-      createdBy: admin._id
+      createdBy: admin._id,
+      isValidated: true
     }));
 
     const inserted = await FAQ.insertMany(faqDocs);
@@ -73,7 +74,7 @@ async function seed() {
     // Insert default community board pins
     const announcementPin = await Pin.create({
       type: 'announcement',
-      title: 'Vicharanashala 2026 Summership is Live!',
+      title: 'Granth 2026 Summership is Live!',
       content: 'Welcome all interns! Please make sure to check ViBe LMS daily for course announcements and progress score updates.',
       pinnedBy: admin._id,
       order: 0

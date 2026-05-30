@@ -46,7 +46,56 @@ function bm25Score(queryTokens, docTokens, docLen, avgDL, df, N) {
   return score;
 }
 
+// ─── Semantic Cache ──────────────────────────────────────────────────────────
 
+const semanticCache = new Map(); // maps lowercased query string to { answer: string, sources: Array, faqsFound: number }
+const MAX_CACHE_SIZE = 1000;
+
+// Simple Jaccard similarity between two token arrays
+function jaccardSimilarity(tokensA, tokensB) {
+  if (tokensA.length === 0 || tokensB.length === 0) return 0;
+  const setA = new Set(tokensA);
+  const setB = new Set(tokensB);
+  const union = new Set([...setA, ...setB]);
+  let intersectionCount = 0;
+  for (const item of setA) {
+    if (setB.has(item)) intersectionCount++;
+  }
+  return intersectionCount / union.size;
+}
+
+// Find a matching response in cache using fast semantic overlap
+function getSemanticCache(query) {
+  const qTokens = tokenize(query);
+  if (qTokens.length === 0) return null;
+  
+  // 1. Check exact string match (case-insensitive)
+  const exactKey = query.toLowerCase().trim();
+  if (semanticCache.has(exactKey)) {
+    console.log(`[RAG Cache] Exact cache hit for query: "${query}"`);
+    return semanticCache.get(exactKey);
+  }
+
+  // 2. Iterate cache keys to find high token overlap similarity (Jaccard similarity >= 0.85)
+  for (const [cachedQuery, entry] of semanticCache.entries()) {
+    const cachedTokens = tokenize(cachedQuery);
+    const sim = jaccardSimilarity(qTokens, cachedTokens);
+    if (sim >= 0.85) {
+      console.log(`[RAG Cache] Semantic cache hit for: "${query}" (similarity: ${sim.toFixed(2)} with cached: "${cachedQuery}")`);
+      return entry;
+    }
+  }
+  return null;
+}
+
+function setSemanticCache(query, entry) {
+  if (semanticCache.size >= MAX_CACHE_SIZE) {
+    // Evict oldest item
+    const firstKey = semanticCache.keys().next().value;
+    semanticCache.delete(firstKey);
+  }
+  semanticCache.set(query.toLowerCase().trim(), entry);
+}
 
 // ─── Ollama availability check ───────────────────────────────────────────────
 
@@ -57,7 +106,7 @@ async function isOllamaAvailable() {
   const baseUrl = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 3000); // 3 seconds timeout is plenty
     const res = await fetch(`${baseUrl}/api/tags`, { signal: controller.signal });
     clearTimeout(timeout);
     ollamaAvailable = res.ok;
@@ -75,7 +124,7 @@ async function validateAnswer(title, answer) {
   const prompt = `Does the answer contain real information (not placeholder text)? Yes or No only.\nQuestion: ${title}\nAnswer: ${answer}`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000); // reduced from 15s → 10s
+  const timeout = setTimeout(() => controller.abort(), 10000); 
 
   try {
     const response = await fetch(`${baseUrl}/api/generate`, {
@@ -95,6 +144,50 @@ async function validateAnswer(title, answer) {
   }
 }
 
+// ─── Background Validation Sweeper ──────────────────────────────────────────
+
+let isValidatingBackground = false;
+
+async function triggerBackgroundValidation(pendingFaqs) {
+  if (isValidatingBackground) return;
+  isValidatingBackground = true;
+
+  // Run in a fully asynchronous, non-blocking execution cycle
+  setImmediate(async () => {
+    try {
+      const ollamaOk = await isOllamaAvailable();
+      if (!ollamaOk) {
+        isValidatingBackground = false;
+        return;
+      }
+
+      console.log(`[RAG Background] Validating ${pendingFaqs.length} newly added or unvalidated FAQs...`);
+      for (const faq of pendingFaqs) {
+        try {
+          const isValid = await validateAnswer(faq.title, faq.finalAnswer || '');
+          await FAQ.updateOne(
+            { _id: faq._id },
+            { $set: { isValidated: isValid } }
+          );
+          console.log(`[RAG Background] FAQ "${faq.title}" validation outcome: ${isValid ? 'PASSED' : 'FAILED'}`);
+        } catch (e) {
+          console.warn(`[RAG Background] Validation error for FAQ ${faq._id}:`, e.message);
+        }
+        // Controlled spacing delay to avoid choking local Ollama instance
+        await new Promise(r => setTimeout(r, 600));
+      }
+
+      // Clear the cache to rebuild the index including new validated statuses
+      ragCache = null;
+      console.log('[RAG Background] Completed sweep. Cleared in-memory index cache for dynamic rebuild.');
+    } catch (err) {
+      console.error('[RAG Background] Critical background validation failure:', err.message);
+    } finally {
+      isValidatingBackground = false;
+    }
+  });
+}
+
 // ─── RAG Index (in-memory, refreshed every 10 min) ──────────────────────────
 
 const RAG_TTL_MS = 10 * 60 * 1000;
@@ -104,12 +197,12 @@ let ragCacheAt = 0;
 async function buildRagIndex() {
   if (ragCache && Date.now() - ragCacheAt < RAG_TTL_MS) return ragCache;
 
-  // Only include FAQs with a valid string finalAnswer — some legacy docs may have malformed data
+  // 1. Fetch resolved FAQs from database
   const faqs = await FAQ.find({
     status: 'resolved',
     deletedAt: null,
     finalAnswer: { $type: 'string', $ne: '' }
-  }).select('title finalAnswer tags upvotes').lean();
+  }).select('title finalAnswer tags upvotes isValidated').lean();
 
   if (faqs.length === 0) {
     ragCache = { faqs: [], df: {}, N: 0 };
@@ -117,29 +210,26 @@ async function buildRagIndex() {
     return ragCache;
   }
 
-  // Check if Ollama is available before spending time validating
-  const ollamaOk = await isOllamaAvailable();
-  let validatedFaqs = faqs;
+  // 2. Separate into validated list and unvalidated list for background validation
+  const validatedFaqs = [];
+  const pendingValidation = [];
 
-  if (ollamaOk) {
-    // Validate FAQs with controlled concurrency to avoid Ollama overload
-    const CONCURRENCY = 8;
-    const results = [];
-    for (let i = 0; i < faqs.length; i += CONCURRENCY) {
-      const batch = faqs.slice(i, i + CONCURRENCY);
-      const batchResults = await Promise.all(
-        batch.map(f => validateAnswer(f.title, f.finalAnswer || '').catch(() => false))
-      );
-      results.push(...batchResults);
-      // Small delay between batches to let Ollama breathe
-      if (i + CONCURRENCY < faqs.length) await new Promise(r => setTimeout(r, 200));
+  for (const faq of faqs) {
+    if (faq.isValidated === true) {
+      validatedFaqs.push(faq);
+    } else if (faq.isValidated === false) {
+      // Explicitly failed LLM placeholder validation — filter out to preserve quality!
+    } else {
+      // Legacy or fresh entries without a validation state
+      // We include them instantly for full availability but queue them for background LLM check!
+      validatedFaqs.push(faq);
+      pendingValidation.push(faq);
     }
-    validatedFaqs = faqs.filter((_, i) => results[i]);
-    console.log('RAG validation: passed=' + validatedFaqs.length + ' of ' + faqs.length);
-  } else {
-    // Ollama unavailable — skip validation and include all FAQs
-    console.log('RAG validation: Ollama not available (' + (process.env.OLLAMA_URL || 'http://localhost:11434') + ') — including all ' + faqs.length + ' FAQs without LLM validation');
-    ollamaAvailable = false; // cache the result
+  }
+
+  // 3. Fire the background worker in a non-blocking way
+  if (pendingValidation.length > 0) {
+    triggerBackgroundValidation(pendingValidation);
   }
 
   if (validatedFaqs.length === 0) {
@@ -222,9 +312,8 @@ ANSWER (only reference FAQ titles, never say "FAQ 1", "FAQ 2", etc.):`;
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      // Each Ollama streaming line: {"response":"chunk text..."}
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // keep incomplete last line in buffer
+      buffer = lines.pop(); 
       for (const line of lines) {
         if (!line.trim() || !line.startsWith('{')) continue;
         try {
@@ -254,6 +343,31 @@ exports.ragChat = async (req, res) => {
 
     const q = question.trim();
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // EXPERIMENT 2: Semantic Cache Check (Sub-millisecond Retrieval)
+    // ─────────────────────────────────────────────────────────────────────────
+    const cachedResponse = getSemanticCache(q);
+    if (cachedResponse) {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Transfer-Encoding', 'chunked');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      // Send identical sources list instantly
+      res.write(JSON.stringify({ sources: cachedResponse.sources, faqsFound: cachedResponse.faqsFound }) + '\n');
+
+      // Stream cached content back in lightning-fast mock-typing chunks
+      const words = cachedResponse.answer.split(/(\s+)/);
+      for (const word of words) {
+        if (!word) continue;
+        res.write(JSON.stringify({ token: word }) + '\n');
+        await new Promise(resolve => setTimeout(resolve, 3)); // 3ms interval is imperceptible
+      }
+
+      res.write(JSON.stringify({ done: true }) + '\n');
+      res.end();
+      return;
+    }
+
     // 1. Retrieve top-k relevant FAQs using BM25
     const { faqs, df, N } = await buildRagIndex();
 
@@ -274,15 +388,69 @@ exports.ragChat = async (req, res) => {
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
-    const sources = scored.map(f => ({ _id: f._id, title: f.title, score: Math.round(f.score * 1000) / 1000 }));
+    const sources = scored.map(f => ({
+      _id: f._id,
+      title: f.title,
+      content: f.content,
+      score: Math.round(f.score * 1000) / 1000
+    }));
 
-    // 3. Track views — increment viewCount on FAQs that were shown to the user
+    // Increment viewCount on FAQs shown as sources
     const sourceIds = scored.map(f => f._id);
     if (sourceIds.length > 0) {
       FAQ.updateMany(
         { _id: { $in: sourceIds } },
         { $inc: { viewCount: 1 }, $set: { lastViewed: new Date() } }
       ).catch(err => console.warn('Failed to increment FAQ viewCount:', err.message));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EXPERIMENT 1: High-Confidence Short-Circuit Routing (Instantaneous Symbolic Shortcut)
+    // ─────────────────────────────────────────────────────────────────────────
+    let canShortCircuit = false;
+    const topFaq = scored[0];
+
+    if (topFaq && topFaq.score >= 3.0) { // Raised score threshold from 2.5 to 3.0
+      // Calculate how many distinct query terms actually match the FAQ document
+      const queryTermsInDoc = qTokens.filter(t => topFaq._tokens.includes(t)).length;
+      
+      if (qTokens.length === 1) {
+        // Single term queries need a very high BM25 match score
+        canShortCircuit = topFaq.score >= 3.5;
+      } else if (qTokens.length >= 2) {
+        // Multi-term queries require at least 2 distinct tokens to match to block single-word coincidences
+        canShortCircuit = queryTermsInDoc >= 2;
+      }
+    }
+
+    if (canShortCircuit && topFaq) {
+      console.log(`[RAG Short-Circuit] Verified high-confidence match: "${topFaq.title}" (score: ${topFaq.score.toFixed(2)}, matching terms: ${qTokens.filter(t => topFaq._tokens.includes(t)).join(', ')})`);
+      
+      const responseText = `Here is the resolved FAQ response matching your query:\n\n**${topFaq.title}**\n${topFaq.content}\n\n`;
+
+      // Save complete entry to Jaccard Semantic Cache
+      setSemanticCache(q, {
+        answer: responseText,
+        sources,
+        faqsFound: scored.length
+      });
+
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Transfer-Encoding', 'chunked');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+
+      res.write(JSON.stringify({ sources, faqsFound: scored.length }) + '\n');
+
+      const words = responseText.split(/(\s+)/);
+      for (const word of words) {
+        if (!word) continue;
+        res.write(JSON.stringify({ token: word }) + '\n');
+        await new Promise(resolve => setTimeout(resolve, 4)); // fast 4ms delay
+      }
+
+      res.write(JSON.stringify({ done: true }) + '\n');
+      res.end();
+      return;
     }
 
     // 2. Build context string from top FAQs
@@ -296,7 +464,6 @@ exports.ragChat = async (req, res) => {
       res.setHeader('Transfer-Encoding', 'chunked');
       res.setHeader('X-Content-Type-Options', 'nosniff');
 
-      // Send the JSON frame header immediately
       res.write(JSON.stringify({ sources, faqsFound: scored.length }) + '\n');
 
       let responseText = '';
@@ -313,12 +480,14 @@ exports.ragChat = async (req, res) => {
         responseText = `I searched Granth FAQs but couldn't find a direct match. You can raise a new query in the community and a peer or mentor will answer it soon!`;
       }
 
-      // Stream the fallback chunk by chunk to simulate natural typing!
+      // ───────────────────────────────────────────────────────────────────────
+      // EXPERIMENT 3: Dynamic Fallback Streaming (Ultra-responsive Mock Typing)
+      // ───────────────────────────────────────────────────────────────────────
       const words = responseText.split(/(\s+)/);
       for (const word of words) {
         if (!word) continue;
         res.write(JSON.stringify({ token: word }) + '\n');
-        await new Promise(resolve => setTimeout(resolve, 20));
+        await new Promise(resolve => setTimeout(resolve, 8)); // Accelerated 8ms simulated typing
       }
 
       res.write(JSON.stringify({ done: true }) + '\n');
@@ -331,16 +500,23 @@ exports.ragChat = async (req, res) => {
     res.setHeader('Transfer-Encoding', 'chunked');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
-    // Send the JSON frame header immediately
     res.write(JSON.stringify({ sources, faqsFound: scored.length }) + '\n');
 
     let answerText = '';
 
     await askOllamaStream(q, context, (chunk) => {
       answerText += chunk;
-      // Stream each token chunk as a JSON line
       res.write(JSON.stringify({ token: chunk }) + '\n');
     });
+
+    // Save newly generated LLM answer to Semantic Cache
+    if (answerText.trim().length > 0) {
+      setSemanticCache(q, {
+        answer: answerText,
+        sources,
+        faqsFound: scored.length
+      });
+    }
 
     // Signal completion
     res.write(JSON.stringify({ done: true }) + '\n');

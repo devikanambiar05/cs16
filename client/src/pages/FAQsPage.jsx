@@ -395,9 +395,9 @@ function FAQsPage() {
               </div>
             </form>
 
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Hot Topics</h3>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">This Week</h3>
             <div className="space-y-0.5">
-              {[...categories].sort((a, b) => b.count - a.count).map(cat => (
+              {categories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => selectCategory(cat)}

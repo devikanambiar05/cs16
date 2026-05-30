@@ -83,6 +83,11 @@ const faqSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'FAQ',
     default: null
+  },
+  // Persisted flag indicating if the FAQ passed LLM placeholder/quality validation
+  isValidated: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

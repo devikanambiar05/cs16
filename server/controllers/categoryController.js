@@ -7,26 +7,46 @@ const NUMERIC_TAG_RE = /^\d+\.\d+$/;
 // Categories with this many or fewer FAQs get grouped into MISC
 const MISC_THRESHOLD = 2;
 
-// Get all categories derived from FAQ sectionTitles
+// Get all categories derived from FAQ sectionTitles, sorted/filtered by views in last 7 days
 exports.getCategories = async (req, res) => {
   try {
-    // Only use the FIRST tag (the section/category tag), not all tags.
-    // This avoids numeric question IDs like "13.15" from appearing as categories.
-    const categories = await FAQ.aggregate([
-      { $match: { status: 'resolved' } },
-      // Project only the first tag (index 0) — the section category tag
-      { $project: { firstTag: { $arrayElemAt: ['$tags', 0] }, title: 1 } },
-      // Filter out any firstTag that matches the numeric question-ID pattern
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // 1. Try to get categories active (viewed) in the last 7 days, sorted by view activity
+    let categories = await FAQ.aggregate([
+      { $match: { status: 'resolved', lastViewed: { $gte: sevenDaysAgo } } },
+      { $project: { firstTag: { $arrayElemAt: ['$tags', 0] }, title: 1, viewCount: 1 } },
       { $match: { firstTag: { $not: NUMERIC_TAG_RE } } },
       {
         $group: {
           _id: '$firstTag',
           count: { $sum: 1 },
+          recentViews: { $sum: '$viewCount' },
           sampleFAQ: { $first: '$title' }
         }
       },
-      { $sort: { count: -1, _id: 1 } }
+      { $sort: { recentViews: -1, count: -1, _id: 1 } }
     ]);
+
+    // 2. Fallback: if no FAQs were viewed in the last 7 days (e.g. fresh database seeding),
+    // get all active categories sorted by total viewCount / sizes so the dashboard has rich content!
+    if (categories.length === 0) {
+      categories = await FAQ.aggregate([
+        { $match: { status: 'resolved' } },
+        { $project: { firstTag: { $arrayElemAt: ['$tags', 0] }, title: 1, viewCount: 1 } },
+        { $match: { firstTag: { $not: NUMERIC_TAG_RE } } },
+        {
+          $group: {
+            _id: '$firstTag',
+            count: { $sum: 1 },
+            recentViews: { $sum: '$viewCount' },
+            sampleFAQ: { $first: '$title' }
+          }
+        },
+        { $sort: { recentViews: -1, count: -1, _id: 1 } }
+      ]);
+    }
 
     // Separate main categories from rare ones (≤2 FAQs) to group under MISC
     const mainCategories = [];
