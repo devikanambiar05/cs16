@@ -36,7 +36,11 @@ import {
   rejectFAQRequest,
   deleteFAQ,
   getAdminFaqs,
-  patchFaq
+  patchFaq,
+  getAdminPins,
+  createPin,
+  updatePin,
+  deletePin
 } from '../services/api';
 import { useToast } from '../components/ToastProvider';
 
@@ -62,6 +66,16 @@ export default function AdminDashboard() {
   const [faqFilter, setFaqFilter] = useState('all');
   const [faqSearch, setFaqSearch] = useState('');
   const [adminFaqs, setAdminFaqs] = useState([]);
+  // Pins tab state
+  const [pins, setPins] = useState([]);
+  const [pinsLoading, setPinsLoading] = useState(false);
+  const [showPinForm, setShowPinForm] = useState(false);
+  const [editingPin, setEditingPin] = useState(null);
+  const [pinType, setPinType] = useState('announcement');
+  const [pinTitle, setPinTitle] = useState('');
+  const [pinContent, setPinContent] = useState('');
+  const [pinFaqId, setPinFaqId] = useState('');
+  const [pinOrder, setPinOrder] = useState(0);
 
   useEffect(() => {
     loadStats();
@@ -156,7 +170,79 @@ export default function AdminDashboard() {
   }
 
   async function loadAdminPins() {
-    // placeholder - existing pins logic
+    setPinsLoading(true);
+    try {
+      const res = await getAdminPins();
+      setPins(res.data || []);
+    } catch (err) {
+      showToast('Failed to load pins', 'error');
+    } finally {
+      setPinsLoading(false);
+    }
+  }
+
+  async function handleCreatePin(e) {
+    e.preventDefault();
+    if (!pinTitle.trim()) return;
+    try {
+      if (editingPin) {
+        await updatePin(editingPin._id, {
+          title: pinTitle,
+          content: pinContent,
+          order: Number(pinOrder)
+        });
+        showToast('Pin updated', 'success');
+      } else {
+        await createPin({
+          type: pinType,
+          title: pinTitle,
+          content: pinType !== 'faq' ? pinContent : null,
+          faqId: pinType === 'faq' ? pinFaqId : null,
+          order: Number(pinOrder)
+        });
+        showToast('Pin created', 'success');
+      }
+      setShowPinForm(false);
+      setEditingPin(null);
+      setPinTitle('');
+      setPinContent('');
+      setPinFaqId('');
+      setPinOrder(0);
+      loadAdminPins();
+    } catch (err) {
+      showToast(editingPin ? 'Failed to update pin' : 'Failed to create pin', 'error');
+    }
+  }
+
+  async function handleDeletePin(id) {
+    if (!confirm('Remove this pin?')) return;
+    try {
+      await deletePin(id);
+      showToast('Pin removed', 'success');
+      loadAdminPins();
+    } catch (err) {
+      showToast('Failed to remove pin', 'error');
+    }
+  }
+
+  function openEditPin(pin) {
+    setEditingPin(pin);
+    setPinType(pin.type || 'announcement');
+    setPinTitle(pin.title || '');
+    setPinContent(pin.content || '');
+    setPinFaqId(pin.faqId?._id || '');
+    setPinOrder(pin.order || 0);
+    setShowPinForm(true);
+  }
+
+  function closePinForm() {
+    setShowPinForm(false);
+    setEditingPin(null);
+    setPinTitle('');
+    setPinContent('');
+    setPinFaqId('');
+    setPinOrder(0);
+    setPinType('announcement');
   }
 
   async function handleClose(queryId) {
@@ -507,8 +593,152 @@ export default function AdminDashboard() {
       {/* Pins */}
       {activeTab === 'Pins' && (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Pins</h2>
-          <p className="text-slate-500 dark:text-slate-400">Pins management coming soon.</p>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Pins</h2>
+            <button
+              onClick={() => setShowPinForm(true)}
+              className="btn-primary text-sm"
+            >
+              + New Pin
+            </button>
+          </div>
+
+          {pinsLoading ? (
+            <p className="text-slate-500">Loading...</p>
+          ) : pins.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-slate-400 text-sm">No pins yet. Create one to get started.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pins.map(pin => (
+                <div
+                  key={pin._id}
+                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-start justify-between gap-4"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`badge ${
+                        pin.type === 'faq' ? 'badge-blue' :
+                        pin.type === 'announcement' ? 'badge-yellow' :
+                        'badge-green'
+                      }`}>
+                        {pin.type}
+                      </span>
+                      <span className="text-xs text-slate-400">order: {pin.order}</span>
+                    </div>
+                    <p className="font-medium text-slate-900 dark:text-slate-100 truncate">{pin.title}</p>
+                    {pin.type !== 'faq' && pin.content && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{pin.content}</p>
+                    )}
+                    {pin.type === 'faq' && pin.faqId && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        FAQ: {pin.faqId.title || pin.faqId._id}
+                      </p>
+                    )}
+                    {pin.pinnedBy && (
+                      <p className="text-xs text-slate-400 mt-1">by {pin.pinnedBy.name || 'admin'}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => openEditPin(pin)}
+                      className="text-primary-600 hover:underline text-xs whitespace-nowrap"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeletePin(pin._id)}
+                      className="text-red-500 hover:underline text-xs whitespace-nowrap"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Create/Edit Pin Modal */}
+          {showPinForm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
+                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {editingPin ? 'Edit Pin' : 'New Pin'}
+                  </h3>
+                </div>
+                <form onSubmit={handleCreatePin} className="p-6 space-y-4">
+                  {!editingPin && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type</label>
+                      <select
+                        value={pinType}
+                        onChange={e => setPinType(e.target.value)}
+                        className="input w-full"
+                      >
+                        <option value="announcement">Announcement</option>
+                        <option value="overview">Overview</option>
+                        <option value="faq">FAQ</option>
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title</label>
+                    <input
+                      type="text"
+                      value={pinTitle}
+                      onChange={e => setPinTitle(e.target.value)}
+                      className="input w-full"
+                      placeholder="Pin title"
+                      required
+                    />
+                  </div>
+                  {pinType !== 'faq' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Content</label>
+                      <textarea
+                        value={pinContent}
+                        onChange={e => setPinContent(e.target.value)}
+                        className="input w-full"
+                        rows={4}
+                        placeholder="Pin content..."
+                      />
+                    </div>
+                  )}
+                  {pinType === 'faq' && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">FAQ ID</label>
+                      <input
+                        type="text"
+                        value={pinFaqId}
+                        onChange={e => setPinFaqId(e.target.value)}
+                        className="input w-full"
+                        placeholder="MongoDB ObjectId of FAQ"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Order</label>
+                    <input
+                      type="number"
+                      value={pinOrder}
+                      onChange={e => setPinOrder(e.target.value)}
+                      className="input w-full"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button type="button" onClick={closePinForm} className="btn-secondary">Cancel</button>
+                    <button type="submit" className="btn-primary">
+                      {editingPin ? 'Save' : 'Create'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

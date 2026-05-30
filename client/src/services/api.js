@@ -154,5 +154,7 @@ export const uploadImage = (file) => {
 // Admin pins
 export const getAdminPins = () => api.get('/api/admin/pins');
 export const createPin = (data) => api.post('/api/admin/pins', data);
+export const updatePin = (id, data) => api.patch(`/api/admin/pins/${id}`, data);
+export const deletePin = (id) => api.delete(`/api/admin/pins/${id}`);
 
 export default api;
