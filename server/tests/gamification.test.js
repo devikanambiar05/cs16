@@ -8,9 +8,10 @@ let Answer;
 let UpvoteLog;
 
 beforeAll(async () => {
+  process.env.MONGO_URI = 'mongodb://localhost:27017/faqapp_test';
   app = require('../app');
   if (mongoose.connection.readyState !== 1) {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/samagama');
+    await mongoose.connect(process.env.MONGO_URI);
   }
   User = require('../models/User');
   Query = require('../models/Query');

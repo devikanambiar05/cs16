@@ -14,13 +14,16 @@ let User;
 let server;
 
 beforeAll(async () => {
+  // Set test environment URI before requiring the app to avoid inheriting the dev DB
+  process.env.MONGO_URI = 'mongodb://localhost:27017/faqapp_test';
+
   // Dynamically import so we avoid DB connection until needed
   app = require('../app');
 
   // Drop all test data before starting
   const mongoose = require('mongoose');
   if (mongoose.connection.readyState !== 1) {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/samagama');
+    await mongoose.connect(process.env.MONGO_URI);
   }
   User = require('../models/User');
   const Query = require('../models/Query');

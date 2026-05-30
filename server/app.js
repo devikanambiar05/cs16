@@ -20,21 +20,25 @@ const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const app = express();
 
 // Rate Limiting
-const apiLimiter = rateLimit({
+const isTest = process.env.NODE_ENV === 'test';
+
+const apiLimiter = isTest ? (req, res, next) => next() : rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests - please try again later.' }
 });
-const authLimiter = rateLimit({
+
+const authLimiter = isTest ? (req, res, next) => next() : rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many auth attempts - please try again in 15 minutes.' }
 });
-const resetLimiter = rateLimit({
+
+const resetLimiter = isTest ? (req, res, next) => next() : rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
   standardHeaders: true,
