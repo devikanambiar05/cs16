@@ -91,9 +91,14 @@ export default function Layout() {
                   {user.role !== 'admin' && (
                     <Link
                       to="/ask"
-                      className="hidden sm:block text-sm text-slate-600 hover:text-primary-600 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                      className="hidden sm:flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      title="Raise a Query"
                     >
-                      Ask a Question
+                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M18 8a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6a6 6 0 0 0 6 6h4a6 6 0 0 0 6-6V10a2 2 0 0 0-2-2Z" />
+                        <path d="M6 10V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v10" />
+                      </svg>
+                      <span className="font-medium">Raise Query</span>
                     </Link>
                   )}
                   <div className="relative group">
@@ -164,8 +169,12 @@ export default function Layout() {
               </Link>
             ))}
             {user && user.role !== 'admin' && (
-              <Link to="/ask" className="block px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg">
-                Ask a Question
+              <Link to="/ask" className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/30 rounded-lg">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M18 8a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6a6 6 0 0 0 6 6h4a6 6 0 0 0 6-6V10a2 2 0 0 0-2-2Z" />
+                  <path d="M6 10V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v10" />
+                </svg>
+                Raise Query
               </Link>
             )}
           </div>
