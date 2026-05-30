@@ -81,7 +81,7 @@ async function seed() {
 
     const overviewPin = await Pin.create({
       type: 'overview',
-      title: 'About FAQ App FAQ Portal',
+      title: 'Overview',
       content: 'FAQ App is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!',
       pinnedBy: admin._id,
       order: 1
