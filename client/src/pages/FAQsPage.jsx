@@ -237,18 +237,11 @@ function FAQsPage() {
             
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap mt-1">
               {overview?.content || 'Granth is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
+              {' '}
+              <Link to="/wiki" className="text-primary-600 dark:text-primary-400 hover:underline font-semibold select-none">
+                [Wiki]
+              </Link>
             </p>
-
-            <Link
-              to="/wiki"
-              className="mt-2.5 flex items-center justify-between px-3 py-2 bg-primary-50/50 hover:bg-primary-50 dark:bg-primary-950/10 dark:hover:bg-primary-950/20 border border-primary-200/50 hover:border-primary-300 dark:border-primary-900/30 dark:hover:border-primary-900/50 text-[11px] font-semibold text-primary-700 dark:text-primary-400 rounded-xl transition-all group shrink-0"
-            >
-              <span className="flex items-center gap-2">
-                <span>📚</span>
-                <span>Wiki Tags Directory</span>
-              </span>
-              <span className="opacity-70 group-hover:translate-x-0.5 transition-transform">→</span>
-            </Link>
 
             <div className="mt-1 pt-3 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 dark:text-slate-500 space-y-2 select-none">
               <div className="flex items-center gap-2">
