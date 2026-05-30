@@ -32,8 +32,22 @@
 @layer base {
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    @apply bg-slate-50 text-slate-900 antialiased;
+    background-color: #f9f6f0 !important;
+    color: #191919 !important;
+    @apply antialiased;
   }
+
+  /* Light Theme Anthropic-like Overrides */
+  .bg-slate-50 { background-color: #f9f6f0 !important; }
+  .bg-white { background-color: #fbfaf7 !important; }
+  .border-slate-200 { border-color: #e6dfd3 !important; }
+  .border-slate-100 { border-color: #eeeae2 !important; }
+  
+  .text-slate-900 { color: #191919 !important; }
+  .text-slate-800 { color: #312e2b !important; }
+  .text-slate-700 { color: #4d4944 !important; }
+  .text-slate-600 { color: #69635b !important; }
+  .text-slate-500 { color: #857d73 !important; }
 
   /* Smooth dark mode transitions */
   *, *::before, *::after {
@@ -47,41 +61,41 @@
   }
 }
 
-/* ── Dark mode ─────────────────────────────────────────────────────────────── */
+/* ── Dark mode (Anthropic Obsidian Bronze Theme) ─────────────────────────────── */
 .dark {
-  --bg-base:     #0d1117;
-  --bg-surface:  #161b22;
-  --bg-elevated: #21262d;
-  --bg-overlay:  #2d333b;
-  --border:      #30363d;
-  --border-muted:#21262d;
-  --text-primary:#e6edf3;
-  --text-secondary:#8b949e;
-  --text-muted:  #6e7681;
-  --accent:      #7c9bf8;
-  --accent-hover:#a5bcfc;
+  --bg-base:     #191816;
+  --bg-surface:  #22211e;
+  --bg-elevated: #2c2a26;
+  --bg-overlay:  #36342f;
+  --border:      #3e3b36;
+  --border-muted:#2e2c28;
+  --text-primary:#e6e4df;
+  --text-secondary:#b5b2aa;
+  --text-muted:  #85827b;
+  --accent:      #cc5a37;
+  --accent-hover:#eccca5;
   color-scheme: dark;
 }
 
-.dark body { background-color: var(--bg-base); color: var(--text-primary); }
+.dark body { background-color: var(--bg-base) !important; color: var(--text-primary) !important; }
 
 /* Backgrounds */
 .dark .bg-white          { background-color: var(--bg-surface) !important; }
 .dark .bg-slate-50       { background-color: var(--bg-base) !important; }
 .dark .bg-slate-100      { background-color: var(--bg-elevated) !important; }
 .dark .bg-slate-200      { background-color: var(--bg-overlay) !important; }
-.dark .bg-primary-50     { background-color: rgba(124,155,248,0.08) !important; }
+.dark .bg-primary-50     { background-color: rgba(204,90,55,0.08) !important; }
 .dark .bg-amber-50       { background-color: rgba(251,191,36,0.06) !important; }
 .dark .bg-emerald-50     { background-color: rgba(52,211,153,0.06) !important; }
 .dark .bg-blue-50        { background-color: rgba(96,165,250,0.06) !important; }
 .dark .bg-red-50         { background-color: rgba(248,113,113,0.06) !important; }
-.dark .bg-indigo-50      { background-color: rgba(129,140,248,0.08) !important; }
+.dark .bg-indigo-50      { background-color: rgba(204,90,55,0.08) !important; }
 
 /* Borders */
 .dark .border-slate-100  { border-color: var(--border-muted) !important; }
 .dark .border-slate-200  { border-color: var(--border) !important; }
 .dark .border-slate-300  { border-color: var(--border) !important; }
-.dark .border-primary-200{ border-color: rgba(124,155,248,0.3) !important; }
+.dark .border-primary-200{ border-color: rgba(204,90,55,0.3) !important; }
 .dark .border-amber-200  { border-color: rgba(251,191,36,0.25) !important; }
 .dark .border-emerald-200{ border-color: rgba(52,211,153,0.25) !important; }
 .dark .border-red-200    { border-color: rgba(248,113,113,0.25) !important; }
@@ -90,11 +104,11 @@
 
 /* Text */
 .dark .text-slate-900    { color: var(--text-primary) !important; }
-.dark .text-slate-800    { color: #cdd9e5 !important; }
-.dark .text-slate-700    { color: #adbac7 !important; }
+.dark .text-slate-800    { color: #e6e4df !important; }
+.dark .text-slate-700    { color: #b5b2aa !important; }
 .dark .text-slate-600    { color: var(--text-secondary) !important; }
 .dark .text-slate-500    { color: var(--text-muted) !important; }
-.dark .text-slate-400    { color: #545d68 !important; }
+.dark .text-slate-400    { color: #544f47 !important; }
 .dark .text-primary-600  { color: var(--accent) !important; }
 .dark .text-primary-700  { color: var(--accent-hover) !important; }
 .dark .text-emerald-700  { color: #4ade80 !important; }
@@ -233,7 +247,7 @@
   }
   .dark .input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(124,155,248,0.15);
+    box-shadow: 0 0 0 3px rgba(204,90,55,0.15);
   }
 
   .dark .badge-blue   { background-color: rgba(96,165,250,0.12); color: #93c5fd; border-color: rgba(96,165,250,0.2); }

@@ -1,4 +1,9 @@
-# Granth — Collaborative FAQ & Knowledge Base
+# Granth 
+A Crowd-Sourced FAQ & Knowledge Base
+
+<div align="center">
+<img src="cs16\assets\images\logo.png" alt="Granth Logo"/>
+</div>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Version-1.0.0-6366f1?style=for-the-badge" alt="Version 1.0.0" />
@@ -19,7 +24,7 @@
 
 ## 📖 Introduction
 
-**Granth** (meaning *sacred book* or *compiled text*) is a premium, crowd-sourced MERN stack FAQ management and community learning platform. Designed with sleek visuals, dark mode compatibility, and high interactivity, Granth allows community members to search for FAQs, raise peer-to-peer queries, upvote answers, and unlock gamified reputation scores. 
+**Granth** is a crowd-sourced MERN stack FAQ management and community learning platform. Designed with sleek visuals, dark mode compatibility, and high interactivity, Granth allows community members to search for FAQs, raise peer-to-peer queries, upvote answers, and unlock gamified reputation scores. 
 
 Granth also features a state-of-the-art **RAG (Retrieval-Augmented Generation) Chat Widget** that queries the local database and streams semantic FAQ answers directly to users in real-time, accompanied by a custom fading bottom mask for smooth scrolling physics.
 
