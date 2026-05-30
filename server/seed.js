@@ -7,7 +7,7 @@ const parseFAQtxt = require('./parseFaqTxt');
 
 async function seed() {
   try {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/FAQ App');
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Granth');
     console.log('Connected to MongoDB');
 
     // Guard: require RESET_DB=true to proceed with destructive seed
@@ -82,7 +82,7 @@ async function seed() {
     const overviewPin = await Pin.create({
       type: 'overview',
       title: 'Overview',
-      content: 'FAQ App is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!',
+      content: 'Granth is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!',
       pinnedBy: admin._id,
       order: 1
     });

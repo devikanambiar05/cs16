@@ -126,7 +126,7 @@ function FAQsPage() {
     }
     setSearchLoading(true);
     try {
-      const res = await getFAQs({ q: searchQuery, page, limit: PAGE_SIZE });
+      const res = await getFAQs({ search: searchQuery, page, pageSize: PAGE_SIZE });
       setSearchResults(res.data.faqs);
       setSearchTotal(res.data.pagination?.total || 0);
       setSearchPage(page);
@@ -236,7 +236,7 @@ function FAQsPage() {
             </div>
             
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap mt-1">
-              {overview?.content || 'FAQ App is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
+              {overview?.content || 'Granth is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
             </p>
 
             <div className="mt-1 pt-3 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 dark:text-slate-500 space-y-2 select-none">

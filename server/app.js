@@ -67,7 +67,7 @@ app.use('/api/auth/reset-password', resetLimiter);
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'FAQ App API is running' });
+  res.json({ status: 'OK', message: 'Granth API is running' });
 });
 
 // Global error handlers — MUST be registered after all routes

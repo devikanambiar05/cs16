@@ -255,6 +255,9 @@ export default function RAGChatWidget() {
         </div>
       )}
 
+      {/* Viewport bottom gradient mask for scroll-disappear effect */}
+      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent dark:from-[#0d1117] dark:via-[#0d1117]/80 pointer-events-none z-30" />
+
       {/* ── Launcher bar (always visible at bottom) ── */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4">
         <form onSubmit={sendMessage} className="relative">

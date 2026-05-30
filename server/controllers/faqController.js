@@ -9,9 +9,17 @@ exports.getFAQs = async (req, res) => {
 
     const query = { status: 'resolved', deletedAt: null };
     
-    // Full-text search
+    // Regex-based substring search for high compatibility and partial matching
     if (q) {
-      query.$text = { $search: q };
+      const cleanQ = q.trim();
+      if (cleanQ) {
+        query.$or = [
+          { title: { $regex: cleanQ, $options: 'i' } },
+          { description: { $regex: cleanQ, $options: 'i' } },
+          { finalAnswer: { $regex: cleanQ, $options: 'i' } },
+          { tags: { $regex: cleanQ, $options: 'i' } }
+        ];
+      }
     }
 
     // Tag filter
@@ -22,8 +30,7 @@ exports.getFAQs = async (req, res) => {
     // Build sort option
     let sortOption = {};
     if (q) {
-      // If searching, sort by text match score
-      sortOption = { score: { $meta: 'textScore' } };
+      sortOption = { upvotes: -1, createdAt: -1 };
     } else if (sort === 'popular') {
       sortOption = { upvotes: -1, createdAt: -1 };
     } else {

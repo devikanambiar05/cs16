@@ -177,7 +177,7 @@ exports.forgotPassword = async (req, res) => {
 
     sendEmail({
       to: user.email,
-      subject: 'Reset your FAQ App password',
+      subject: 'Reset your Granth password',
       text: `Hi ${user.name},\n\nYou requested a password reset. Click below to set a new password:\n${resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, ignore this email.`,
       html: `<h2>Hi ${user.name},</h2><p>You requested a password reset. Click below to set a new password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 1 hour.<br>If you didn't request this, you can safely ignore this email.</p>`
     }).catch(err => console.error('Password reset email failed:', err.message));
@@ -248,7 +248,7 @@ exports.resendVerification = async (req, res) => {
     const verifyUrl = `${APP_URL}/verify-email?token=${verificationToken}`;
     sendEmail({
       to: user.email,
-      subject: 'Verify your FAQ App account',
+      subject: 'Verify your Granth account',
       text: `Please verify your email by clicking this link:\n${verifyUrl}\n\nThis link expires in 24 hours.`,
       html: `<p>Please verify your email by clicking the link below:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>This link expires in 24 hours.</p>`
     }).catch(err => console.error('Verification email failed:', err.message));

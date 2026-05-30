@@ -1,0 +1,118 @@
+/**
+ * Seed script using in-memory MongoDB for development
+ * Uses mongodb-memory-server for local testing/development
+ */
+
+const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
+const parseFAQtxt = require('./parseFaqTxt');
+
+let mongoServer;
+
+async function seed() {
+  try {
+    // Start in-memory MongoDB
+    console.log('Starting in-memory MongoDB...');
+    mongoServer = await MongoMemoryServer.create();
+    const mongoUri = mongoServer.getUri();
+    
+    console.log('Connecting to in-memory database...');
+    await mongoose.connect(mongoUri, {
+      dbName: 'faqapp'
+    });
+
+    // Import models after connection
+    const User = require('./models/User');
+    const FAQ = require('./models/FAQ');
+    const Pin = require('./models/Pin');
+
+    // Clear collections
+    console.log('Clearing existing data...');
+    await Promise.all([
+      User.deleteMany({}),
+      FAQ.deleteMany({}),
+      Pin.deleteMany({})
+    ]);
+
+    // Create admin user
+    console.log('Creating admin user...');
+    const admin = new User({
+      name: 'Admin',
+      email: 'admin@faqapp.com',
+      password: 'admin123',
+      role: 'admin',
+      isVerified: true
+    });
+    await admin.save();
+    console.log('✓ Admin user created');
+
+    // Parse and insert FAQs
+    console.log('Parsing FAQ.txt...');
+    const { sections, faqs } = parseFAQtxt();
+    console.log(`Found ${faqs.length} FAQs in ${sections.length} sections`);
+
+    const faqDocs = faqs.map(faq => ({
+      title: faq.title,
+      description: faq.description,
+      finalAnswer: faq.finalAnswer,
+      tags: faq.tags || [],
+      status: 'resolved',
+      createdBy: admin._id
+    }));
+
+    const insertedFAQs = await FAQ.insertMany(faqDocs);
+    console.log(`✓ Inserted ${insertedFAQs.length} FAQs`);
+
+    // Create default pins for community board
+    console.log('Creating community board pins...');
+    const pins = [
+      {
+        type: 'announcement',
+        content: 'Welcome to the FAQ Community!',
+        createdBy: admin._id,
+        order: 1
+      },
+      {
+        type: 'overview',
+        content: `${faqs.length} FAQs available`,
+        createdBy: admin._id,
+        order: 2
+      },
+      {
+        type: 'faq',
+        faqId: insertedFAQs[0]?._id,
+        createdBy: admin._id,
+        order: 3
+      }
+    ];
+
+    await Pin.insertMany(pins);
+    console.log('✓ Created community board pins');
+
+    console.log('\n✅ Seeding completed successfully!');
+    console.log(`   - Admin user: admin@faqapp.com / admin123`);
+    console.log(`   - Total FAQs: ${insertedFAQs.length}`);
+    console.log(`   - Database: In-memory MongoDB`);
+
+    // Keep server running for a moment to verify data
+    console.log('\nVerifying data...');
+    const faqCount = await FAQ.countDocuments();
+    const userCount = await User.countDocuments();
+    console.log(`   - Users in DB: ${userCount}`);
+    console.log(`   - FAQs in DB: ${faqCount}`);
+
+  } catch (error) {
+    console.error('Seed error:', error);
+    process.exit(1);
+  } finally {
+    // Cleanup
+    await mongoose.disconnect();
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
+    console.log('\nDatabase connection closed.');
+    process.exit(0);
+  }
+}
+
+seed();

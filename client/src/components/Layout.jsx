@@ -34,9 +34,9 @@ export default function Layout() {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 shrink-0">
               <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm font-bold">F</span>
+                <span className="text-white text-sm font-bold">G</span>
               </div>
-              <span className="font-semibold text-slate-900 text-base hidden sm:block">FAQ App</span>
+              <span className="font-semibold text-slate-900 text-base hidden sm:block">Granth</span>
             </Link>
 
             {/* Desktop nav */}
@@ -192,9 +192,9 @@ export default function Layout() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 bg-primary-600 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">F</span>
+                <span className="text-white text-xs font-bold">G</span>
               </div>
-              <span>FAQ App — Vicharanashala</span>
+              <span>Granth — Vicharanashala</span>
             </div>
             <div className="flex items-center gap-4">
               <Link to="/" className="hover:text-primary-600 transition-colors">FAQs</Link>
