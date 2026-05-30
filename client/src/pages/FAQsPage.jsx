@@ -86,7 +86,29 @@ function FAQsPage() {
   const loadCategories = async () => {
     try {
       const res = await getCategories();
-      setCategories(res.data);
+      const rawCategories = res.data || [];
+      
+      const ALLOWED_CATEGORIES = [
+        { tag: 'about-the-internship', name: 'About the internship' },
+        { tag: 'selection-offer-letter-and-cer', name: 'Selection offer letter and Certificate' },
+        { tag: 'noc-no-objection-certificate', name: 'NOC Certificate' },
+        { tag: 'timing-and-dates', name: 'Timing & Date' },
+        { tag: 'work-mentorship-and-projects', name: 'Work Mentorship & Project' },
+        { tag: 'certificate', name: 'Certificate' }
+      ];
+
+      const filtered = ALLOWED_CATEGORIES.map(allowed => {
+        const matched = rawCategories.find(c => c.tag === allowed.tag);
+        return {
+          ...matched,
+          tag: allowed.tag,
+          name: allowed.name,
+          _id: matched?._id || allowed.tag,
+          count: matched?.count || 0
+        };
+      }).filter(c => c.count > 0);
+
+      setCategories(filtered);
     } catch (err) {
       console.error('Failed to load categories:', err);
     }
