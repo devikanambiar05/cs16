@@ -147,7 +147,7 @@ export default function AdminDashboard() {
     setFaqLoading(true);
     try {
       const res = await getFAQRequests({ page: faqPage });
-      setFaqRequests(res.data || []);
+      setFaqRequests(res.data?.requests || res.data || []);
     } catch (err) {
       showToast('Failed to load FAQ requests', 'error');
     } finally {
@@ -475,18 +475,36 @@ export default function AdminDashboard() {
       {activeTab === 'FAQ Requests' && (
         <div>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">FAQ Requests</h2>
-          {faqRequests.length === 0 ? (
+          {faqLoading ? (
+            <p className="text-slate-500">Loading...</p>
+          ) : faqRequests.length === 0 ? (
             <p className="text-slate-500 dark:text-slate-400">No pending FAQ requests.</p>
           ) : (
             <div className="space-y-4">
               {faqRequests.map(req => (
                 <div key={req._id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-                  <p className="font-medium text-slate-900 dark:text-slate-100 mb-1">{req.title}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">{req.description}</p>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleResolve(req._id)} className="btn-primary text-sm">Approve</button>
-                    <button onClick={() => handleRejectFAQ(req._id)} className="btn-secondary text-sm">Reject</button>
+                  <div className="mb-2">
+                    <span className={`badge ${req.status === 'pending' ? 'badge-yellow' : req.status === 'approved' ? 'badge-green' : 'badge-red'}`}>
+                      {req.status}
+                    </span>
+                    {req.submittedBy && (
+                      <span className="text-xs text-slate-400 ml-2">by {req.submittedBy.name || 'unknown'}</span>
+                    )}
+                    {req.queryId && (
+                      <span className="text-xs text-slate-400 ml-2">on: {typeof req.queryId === 'object' ? req.queryId.title : req.queryId}</span>
+                    )}
                   </div>
+                  <p className="font-medium text-slate-900 dark:text-slate-100 mb-1">Q: {req.proposedQuestion}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-3">A: {req.proposedAnswer}</p>
+                  {req.proposedTags && req.proposedTags.length > 0 && (
+                    <p className="text-xs text-slate-400 mb-2">Tags: {req.proposedTags.join(', ')}</p>
+                  )}
+                  {req.status === 'pending' && (
+                    <div className="flex gap-2">
+                      <button onClick={() => handleResolve(req._id)} className="btn-primary text-sm">Approve</button>
+                      <button onClick={() => handleRejectFAQ(req._id)} className="btn-secondary text-sm">Reject</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
