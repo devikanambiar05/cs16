@@ -11,10 +11,6 @@ export default function RAGChatWidget() {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
-  if (['/login', '/reset-password', '/verify-email'].includes(location.pathname)) {
-    return null;
-  }
-
   useEffect(() => {
     if (dialogOpen && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -126,6 +122,10 @@ export default function RAGChatWidget() {
     setMessages([]);
     setError('');
   };
+
+  if (['/login', '/register', '/reset-password', '/verify-email', '/leaderboard', '/ask', '/profile'].includes(location.pathname)) {
+    return null;
+  }
 
   return (
     <>

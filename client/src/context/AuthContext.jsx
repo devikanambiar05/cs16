@@ -57,8 +57,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const setBookmarks = (newBookmarks) => {
+    setUser(prev => prev ? { ...prev, bookmarks: newBookmarks } : null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, loading, setBookmarks }}>
       {children}
     </AuthContext.Provider>
   );

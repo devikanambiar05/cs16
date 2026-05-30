@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq, getPins } from '../services/api';
+import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq, getPins, toggleBookmark } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ToastProvider';
 import CommunityBoard from '../components/CommunityBoard';
 
 const PAGE_SIZE = 10;
@@ -427,6 +428,24 @@ function FAQsPage() {
 // FAQ Item — used in lists
 function FAQItem({ faq, onUpvote, onPin, user, compact = false }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { setBookmarks } = useAuth();
+  const toast = useToast();
+
+  const isBookmarked = user?.bookmarks?.includes(faq._id);
+
+  const handleBookmarkToggle = async () => {
+    if (!user) {
+      toast.info('Please sign in to save FAQs.');
+      return;
+    }
+    try {
+      const res = await toggleBookmark(faq._id);
+      setBookmarks(res.data.bookmarks);
+      toast.success(isBookmarked ? 'Removed from saved FAQs' : 'Saved to bookmarks');
+    } catch (err) {
+      toast.error('Failed to update bookmark');
+    }
+  };
 
   return (
     <div
@@ -481,6 +500,28 @@ function FAQItem({ faq, onUpvote, onPin, user, compact = false }) {
             </button>
             <span className="text-sm font-medium text-slate-600">{faq.upvotes}</span>
           </div>
+
+          <button
+            onClick={handleBookmarkToggle}
+            className={`hover:text-primary-600 transition-colors ${
+              isBookmarked ? 'text-primary-600' : 'text-slate-350'
+            }`}
+            title={user ? (isBookmarked ? 'Remove bookmark' : 'Bookmark FAQ') : 'Sign in to bookmark'}
+          >
+            <svg
+              className="w-4 h-4"
+              fill={isBookmarked ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+              />
+            </svg>
+          </button>
 
           {user?.role === 'admin' && (
             <button

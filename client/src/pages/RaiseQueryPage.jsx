@@ -170,7 +170,7 @@ function RaiseQueryPage() {
             ⚠️ Your question may be outside the platform's scope
           </p>
           <p className="text-amber-700 dark:text-amber-300 text-xs">
-            This platform is for questions about the <strong>Vicharanashala Summership</strong> — VINS, ViBe LMS, Phase 1/2/3, NOC, offer letters, Rosetta, team formation, and related topics.{' '}
+            This platform is for questions about <strong>Granth</strong> — VINS, ViBe LMS, Phase 1/2/3, NOC, offer letters, Rosetta, team formation, and related topics.{' '}
             If your question is about something else (college exams, other programmes, off-topic), it may not get a relevant answer here.
           </p>
         </div>

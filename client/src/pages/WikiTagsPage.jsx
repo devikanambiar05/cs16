@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { getFAQs, getCategories } from '../services/api';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
@@ -11,6 +11,37 @@ export default function WikiTagsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaqId, setExpandedFaqId] = useState(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (faqs.length > 0) {
+      const params = new URLSearchParams(location.search);
+      const highlightId = params.get('highlight');
+      if (highlightId) {
+        const matchedFaq = faqs.find(f => f._id === highlightId);
+        if (matchedFaq) {
+          const tags = matchedFaq.tags && matchedFaq.tags.length > 0 ? matchedFaq.tags : ['general'];
+          const firstTag = tags[0].trim().toLowerCase();
+          setExpandedFaqId(`${firstTag}-${highlightId}`);
+          
+          setTimeout(() => {
+            const element = document.getElementById(`faq-li-${highlightId}`);
+            if (element) {
+              const headerOffset = 100;
+              const elementPosition = element.getBoundingClientRect().top;
+              const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+              window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+              
+              element.classList.add('ring-2', 'ring-primary-400', 'p-2', 'rounded-lg', 'bg-primary-50/10');
+              setTimeout(() => {
+                element.classList.remove('ring-2', 'ring-primary-400', 'p-2', 'rounded-lg', 'bg-primary-50/10');
+              }, 3000);
+            }
+          }, 500);
+        }
+      }
+    }
+  }, [faqs, location.search]);
 
   useEffect(() => {
     loadAllFAQs();
@@ -32,29 +63,7 @@ export default function WikiTagsPage() {
   const loadCategories = async () => {
     try {
       const res = await getCategories();
-      const rawCategories = res.data || [];
-      
-      const ALLOWED_CATEGORIES = [
-        { tag: 'about-the-internship', name: 'About the internship' },
-        { tag: 'selection-offer-letter-and-cer', name: 'Selection offer letter and Certificate' },
-        { tag: 'noc-no-objection-certificate', name: 'NOC Certificate' },
-        { tag: 'timing-and-dates', name: 'Timing & Date' },
-        { tag: 'work-mentorship-and-projects', name: 'Work Mentorship & Project' },
-        { tag: 'certificate', name: 'Certificate' }
-      ];
-
-      const filtered = ALLOWED_CATEGORIES.map(allowed => {
-        const matched = rawCategories.find(c => c.tag === allowed.tag);
-        return {
-          ...matched,
-          tag: allowed.tag,
-          name: allowed.name,
-          _id: matched?._id || allowed.tag,
-          count: matched?.count || 0
-        };
-      }).filter(c => c.count > 0);
-
-      setCategories(filtered);
+      setCategories(res.data || []);
     } catch (err) {
       console.error('Failed to load categories:', err);
     }
@@ -269,7 +278,7 @@ export default function WikiTagsPage() {
                       {tag.faqs.map(faq => {
                         const isExpanded = expandedFaqId === `${tag.name}-${faq._id}`;
                         return (
-                          <li key={faq._id} className="text-xs">
+                           <li key={faq._id} id={`faq-li-${faq._id}`} className="text-xs transition-all duration-300">
                             <button
                               onClick={() => setExpandedFaqId(isExpanded ? null : `${tag.name}-${faq._id}`)}
                               className="text-left font-normal text-primary-600 dark:text-primary-400 hover:underline hover:text-primary-700 leading-snug transition-colors"

@@ -53,15 +53,11 @@
   .text-slate-600 { color: #69635b !important; }
   .text-slate-500 { color: #857d73 !important; }
 
-  /* Smooth dark mode transitions */
-  *, *::before, *::after {
-    transition-property: background-color, border-color, color;
+  /* Smooth dark mode transitions for layouts, cards, and interactives */
+  body, header, footer, aside, .card, .badge, button, a, input, textarea, select, span, p, h1, h2, h3, h4, h5, h6, svg {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow, opacity;
     transition-duration: 150ms;
     transition-timing-function: ease;
-  }
-  /* Don't animate layout-affecting properties */
-  button, a, input, textarea, select {
-    transition-property: background-color, border-color, color, box-shadow, opacity, transform;
   }
 }
 

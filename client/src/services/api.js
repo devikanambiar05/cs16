@@ -64,6 +64,8 @@ export const fetchUserProfile = () => api.get('/api/users/me');
 export const getUserById = (id) => api.get(`/api/users/${id}`);
 export const fetchUserStats = (id) => api.get(`/api/users/${id}/stats`);
 export const getLeaderboard = (params) => api.get('/api/users/leaderboard', params);
+export const toggleBookmark = (faqId) => api.post(`/api/users/bookmarks/${faqId}`);
+export const getBookmarks = () => api.get('/api/users/bookmarks');
 
 // Admin: analytics
 export const getAnalytics = () => api.get('/api/admin/analytics');

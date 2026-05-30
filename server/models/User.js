@@ -62,7 +62,11 @@ const userSchema = new mongoose.Schema({
   emailNotifications: {
     type: Boolean,
     default: true
-  }
+  },
+  bookmarks: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FAQ'
+  }]
 }, {
   timestamps: true
 });

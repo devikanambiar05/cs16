@@ -117,3 +117,42 @@ exports.getStats = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
 };
+
+// Toggle bookmark for user
+exports.toggleBookmark = async (req, res) => {
+  try {
+    const { faqId } = req.params;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (!user.bookmarks) {
+      user.bookmarks = [];
+    }
+
+    const index = user.bookmarks.indexOf(faqId);
+    if (index > -1) {
+      user.bookmarks.splice(index, 1);
+    } else {
+      user.bookmarks.push(faqId);
+    }
+
+    await user.save();
+    res.json({ message: 'Bookmarks updated successfully', bookmarks: user.bookmarks });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update bookmarks' });
+  }
+};
+
+// Get populated bookmarks for user
+exports.getBookmarks = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate({
+      path: 'bookmarks',
+      match: { status: 'resolved' }
+    });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json(user.bookmarks || []);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch bookmarks' });
+  }
+};

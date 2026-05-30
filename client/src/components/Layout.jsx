@@ -58,17 +58,7 @@ export default function Layout() {
 
             {/* Right side */}
             <div className="flex items-center gap-2">
-              {/* Pin badge */}
-              {pins.length > 0 && (
-                <Link
-                  to="/"
-                  className="hidden sm:flex items-center gap-1 text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 px-2.5 py-1 rounded-full font-medium"
-                >
-                  📌 {pins.length} pinned
-                </Link>
-              )}
-
-              {/* Theme toggle */}
+            {/* Theme toggle */}
               <button
                 onClick={toggle}
                 className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
@@ -111,6 +101,9 @@ export default function Layout() {
                         <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
                         <p className="text-xs text-slate-500 truncate">{user.email}</p>
                       </div>
+                      <Link to="/profile" className="block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary-600">
+                        My Profile
+                      </Link>
                       {user.role === 'admin' && (
                         <Link to="/admin" className="block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary-600">
                           Admin Dashboard
@@ -130,7 +123,7 @@ export default function Layout() {
                   <Link to="/login" className="text-sm text-slate-600 hover:text-primary-600 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">
                     Sign in
                   </Link>
-                  <Link to="/login" state={{ wantsSignup: true }} className="btn-primary text-sm py-1.5 px-3">
+                  <Link to="/register" className="btn-primary text-sm py-1.5 px-3">
                     Register
                   </Link>
                 </>
@@ -194,7 +187,7 @@ export default function Layout() {
               <div className="w-5 h-5 bg-primary-600 rounded flex items-center justify-center">
                 <span className="text-white text-xs font-bold">G</span>
               </div>
-              <span>Granth — Vicharanashala</span>
+              <span>Granth</span>
             </div>
             <div className="flex items-center gap-4">
               <Link to="/" className="hover:text-primary-600 transition-colors">FAQs</Link>

@@ -225,12 +225,13 @@ exports.searchSimilar = async (req, res) => {
     }
 
     const scopeKeywords = [
-      'vicharanashala', 'vins', 'vise', 'summership', 'iit ropar', 'internship',
+      'granth', 'vicharanashala', 'vins', 'vise', 'summership', 'iit ropar', 'internship',
       'noc', 'offer letter', 'certificate', 'rosetta', 'vibe', 'yaksha', 'samagama',
       'phase', 'bronze', 'silver', 'gold', 'platinum', 'badge', 'mentor', 'team formation',
-      'quiz', 'live session', 'coursework', 'proctor', 'proctoring',
-      'leave', 'attendance', 'stipend', 'laptop', 'linux', 'ssh',
-      'viBe', 'vibe platform', 'linear progression', 'penalty score'
+      'team', 'group', 'partner', 'form a team', 'quiz', 'live session', 'coursework', 'proctor', 'proctoring',
+      'leave', 'attendance', 'stipend', 'laptop', 'linux', 'ssh', 'project', 'work',
+      'viBe', 'vibe platform', 'linear progression', 'penalty score', 'concession', 'fee',
+      'apply', 'registration', 'register', 'eligibility', 'schedule', 'date', 'timing', 'time'
     ];
     const queryLower = q.toLowerCase();
     const matchedScope = scopeKeywords.filter(k => queryLower.includes(k));

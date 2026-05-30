@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
@@ -16,7 +16,17 @@ function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
-  const [isLogin, setIsLogin] = useState(location.state?.wantsSignup ? false : true);
+  const isRegisterPath = location.pathname === '/register';
+  const [isLogin, setIsLogin] = useState(
+    isRegisterPath ? false : (location.state?.wantsSignup ? false : true)
+  );
+
+  useEffect(() => {
+    const isRegister = location.pathname === '/register';
+    setIsLogin(isRegister ? false : (location.state?.wantsSignup ? false : true));
+    setError('');
+    setShowForgot(false);
+  }, [location.pathname, location.state]);
 
   const from = (location.state?.from && location.state?.from !== '/login')
     ? location.state.from
@@ -96,7 +106,7 @@ function LoginPage() {
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-1">
-            {isLogin ? 'Welcome Back' : 'Join Samagama'}
+            {isLogin ? 'Welcome Back' : 'Join Granth'}
           </h1>
           <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
             {isLogin
@@ -233,6 +243,8 @@ function LoginPage() {
           <button
             type="button"
             onClick={() => {
+              const targetPath = isLogin ? '/register' : '/login';
+              navigate(targetPath, { replace: true });
               setIsLogin(!isLogin);
               setError('');
               setShowForgot(false);

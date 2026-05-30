@@ -14,6 +14,7 @@ import RaiseQueryPage from './pages/RaiseQueryPage';
 import RAGChatWidget from './components/RAGChatWidget';
 import { ToastProvider } from './components/ToastProvider';
 import WikiTagsPage from './pages/WikiTagsPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="login" element={<LoginPage />} />
+                <Route path="register" element={<LoginPage />} />
                 <Route path="admin" element={
                   <ProtectedRoute adminOnly>
                     <AdminDashboard />
@@ -40,6 +42,11 @@ function App() {
                 <Route path="leaderboard" element={
                   <ProtectedRoute>
                     <LeaderboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="profile" element={
+                  <ProtectedRoute>
+                    <ProfilePage />
                   </ProtectedRoute>
                 } />
               </Route>
