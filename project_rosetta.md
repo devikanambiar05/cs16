@@ -116,3 +116,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Unauthenticated guest visits crashed the middleware when trying to evaluate the roles of undefined user profiles.
 * **🛡️ Edge Cases Tested**: Non-admin users attempting to POST to the `/api/admin` endpoint with manual tools (like curl or postman).
 
+### 🔑 v0.3: Secure Sessioning & Multi-Role Auth
+* **Release Date**: May 30, 2026 - 12:00
+* **Details**: Full Alpha release enabling Guest, Member, and Admin sessioning.
+* **🎨 Visual Wireframe & Layout**: A dynamic header navbar that updates its controls dynamically based on the current session status.
+* **🧠 Team Thinking & Rationale**: Provide a cohesive, unified browsing session that adjusts privileges in real time.
+* **💬 Discussions & Decisions**: Chose React context providers vs global Redux stores. Selected a clean custom `AuthContext` to avoid boilerplate.
+* **⚠️ Errors & Roadblocks Faced**: Client context suffered from "auth flash"—briefly rendering guest buttons on page refresh before the cookie was verified.
+* **🛡️ Edge Cases Tested**: Fast page refreshes, expired session recovery, and multi-tab logout events.
+
