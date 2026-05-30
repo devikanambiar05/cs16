@@ -214,7 +214,7 @@ function FAQsPage() {
           {/* ── Left: Community Board + FAQs ── */}
           <div className="flex-1 min-w-0">
 
-            {/* All FAQs (no category selected) */}
+            {/* No category selected — show all FAQs */}
             {!selectedCategory && (
               <section>
                 {loading ? (
@@ -222,19 +222,17 @@ function FAQsPage() {
                 ) : allFAQs.length === 0 ? (
                   <p className="text-slate-400 text-sm py-8 text-center">No FAQs yet. Be the first to add one!</p>
                 ) : (
-                  <>
-                    <div className="space-y-3">
-                      {allFAQs.map(faq => (
-                        <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
-                      ))}
-                    </div>
-                  </>
+                  <div className="space-y-3">
+                    {allFAQs.map(faq => (
+                      <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
+                    ))}
+                  </div>
                 )}
               </section>
             )}
 
-            {/* Selected Category FAQs */}
-            {selectedCategory ? (
+            {/* Category selected — show filtered FAQs */}
+            {selectedCategory && (
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-slate-900">
@@ -247,23 +245,23 @@ function FAQsPage() {
                 </div>
                 {loading ? (
                   <div className="flex justify-center py-10"><div className="spinner" /></div>
+                ) : categoryFAQs.length === 0 ? (
+                  <p className="text-slate-400 text-sm py-8 text-center">No FAQs in this topic yet.</p>
                 ) : (
-                  <>
-                    <div className="space-y-3">
-                      {categoryFAQs.map(faq => (
-                        <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
-                      ))}
-                    </div>
-                    <Pagination
-                      page={faqPage}
-                      totalPages={Math.ceil(faqTotal / PAGE_SIZE)}
-                      onPage={(p) => loadCategoryFAQs(selectedCategory.tag, p)}
-                    />
-                  </>
+                  <div className="space-y-3">
+                    {categoryFAQs.map(faq => (
+                      <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
+                    ))}
+                  </div>
+                )}
+                {faqTotal > PAGE_SIZE && (
+                  <Pagination
+                    page={faqPage}
+                    totalPages={Math.ceil(faqTotal / PAGE_SIZE)}
+                    onPage={(p) => loadCategoryFAQs(selectedCategory.tag, p)}
+                  />
                 )}
               </section>
-            ) : (
-              </>
             )}
           </div>
 
