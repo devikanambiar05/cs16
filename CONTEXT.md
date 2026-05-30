@@ -85,7 +85,7 @@ $env:RESET_DB='true'; npm run seed
 |---|-------|--------|
 | #2 | Fix: RAG system indexes 0 FAQs despite 118 in database | Fixed in `a13097f` |
 | #3 | Fix: Backend server crashes repeatedly with EADDRINUSE on port 5000 | Fixed in `a13097f` |
-| #4 | Enhancement: Build Pins management UI in Admin Dashboard | ✅ Closed (commits `604c77f` + `8f46454`) |
+| #4 | Enhancement: Build Pins management UI in Admin Dashboard | ✅ Closed (commits `604c77f` + `8f46454` + `ba1cd41`) |
 | #5 | Enhancement: Implement WikiPage — currently renders nothing | Open |
 | #6 | Fix: HMR breaks useAuth causing full page reload | Fixed in `a13097f` |
 | #7 | Enhancement: RAG Chat widget has no conversation history | Open |
@@ -189,12 +189,13 @@ Nodemon spawned a new `node server.js` process on every file change without clos
 
 ---
 
-### ✅ Pins Admin UI (commits `604c77f` + `8f46454`)
+### ✅ Pins Admin UI (commits `604c77f` + `8f46454` + `ba1cd41`)
 
 | Feature | Details |
 |---------|---------|
 | **Pins tab UI** | Full CRUD in Admin Dashboard → Pins tab: list cards, create/edit modal, remove with confirm |
 | **Pin/Unpin FAQ** | `pinFaq(id)` API + `handleTogglePin` in Manage FAQs tab; Pin/Unpin button per row; amber badge on pinned FAQs |
+| **FAQsPage public listing** | Admins see a bookmark icon on each FAQ; pinned FAQs show a 📌 indicator next to the title |
 
 ---
 
