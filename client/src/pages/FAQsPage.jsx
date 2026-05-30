@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ } from '../services/api';
+import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq } from '../services/api';
 import CommunityBoard from '../components/CommunityBoard';
 import { useAuth } from '../context/AuthContext';
 
@@ -126,8 +126,24 @@ function FAQsPage() {
       );
       setCategoryFAQs(updateFAQ);
       if (searchResults) setSearchResults(updateFAQ(searchResults));
+      if (allFAQs) setAllFAQs(updateFAQ(allFAQs));
     } catch (err) {
-      console.error('Upvote failed:', err);
+      // silently fail
+    }
+  };
+
+  const handlePin = async (faqId, currentlyPinned) => {
+    if (!user || user.role !== 'admin') return;
+    try {
+      await pinFaq(faqId);
+      const updateFAQ = (faqs) => faqs.map(f =>
+        f._id === faqId ? { ...f, pinned: !currentlyPinned } : f
+      );
+      setCategoryFAQs(updateFAQ);
+      if (searchResults) setSearchResults(updateFAQ(searchResults));
+      if (allFAQs) setAllFAQs(updateFAQ(allFAQs));
+    } catch (err) {
+      // silently fail
     }
   };
 
@@ -188,7 +204,7 @@ function FAQsPage() {
             <>
               <div className="space-y-3">
                 {searchResults.map(faq => (
-                  <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
+                  <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
                 ))}
               </div>
               <Pagination
@@ -225,7 +241,7 @@ function FAQsPage() {
                   <>
                     <div className="space-y-3">
                       {categoryFAQs.map(faq => (
-                        <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} user={user} />
+                        <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
                       ))}
                     </div>
                     <Pagination
@@ -309,7 +325,7 @@ function FAQsPage() {
 }
 
 // FAQ Item — used in lists
-function FAQItem({ faq, onUpvote, user, compact = false }) {
+function FAQItem({ faq, onUpvote, onPin, user, compact = false }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -322,6 +338,7 @@ function FAQItem({ faq, onUpvote, user, compact = false }) {
       <div className="flex gap-3">
         <div className="flex-1 min-w-0">
           <p className={`font-semibold text-slate-900 ${compact ? 'text-sm' : ''} flex items-center gap-2`}>
+            {faq.pinned && <span className="text-amber-500 text-xs font-bold">📌</span>}
             {faq.title}
           </p>
           
@@ -364,6 +381,18 @@ function FAQItem({ faq, onUpvote, user, compact = false }) {
             </button>
             <span className="text-sm font-medium text-slate-600">{faq.upvotes}</span>
           </div>
+
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => onPin(faq._id, !!faq.pinned)}
+              className={`hover:text-amber-500 transition-colors ${faq.pinned ? 'text-amber-500' : ''}`}
+              title={faq.pinned ? 'Unpin FAQ' : 'Pin FAQ'}
+            >
+              <svg className="w-4 h-4" fill={faq.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              </svg>
+            </button>
+          )}
 
           {/* Expand icon indicator */}
           <svg
