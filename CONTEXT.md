@@ -31,7 +31,12 @@
 ## How to Run
 
 ```bash
-# Start everything (from cs16 root)
+# Start backend (from cs16 root)
+npm run dev:server
+
+# Start frontend separately (if Vite OOM on Windows, use increased memory):
+cd client
+set NODE_OPTIONS=--max-old-space-size=4096
 npm run dev
 
 # Seed/reset database (from cs16 root)
@@ -56,18 +61,12 @@ $env:RESET_DB='true'; npm run seed
 
 | Commit | What was fixed |
 |--------|---------------|
-| `e174723` | Admin dashboard blank screen: added `chart.js` + `react-chartjs-2` to package.json, registered chart.js components in AdminDashboard, fixed API response mapping (stats were nested under `totals.*` not top-level), fixed AuthContext (removed broken `api.defaults.headers` line) |
+| `e174723` | Admin dashboard blank screen: added `chart.js` + `react-chartjs-2`, registered chart.js components, fixed API response mapping, fixed AuthContext (`api.defaults.headers` removal) |
 | `058299e` | Excluded admin users from leaderboard query (`role: { $ne: 'admin' }` in `getLeaderboard`) |
-| `871d187` | Created `docs/TEAM_ISSUES.md` with team issues list |
-
-### 🔴 Known Bugs — NOT YET FIXED
-
-| Issue | Location | Description |
-|-------|---------|-------------|
-| RAG index empty | server logs | `RAG validation: passed=0 of 118` — despite 118 FAQs in DB, RAG vectorizes 0. RAG chat widget has nothing to query. |
-| Backend EADDRINUSE | `server/server.js` | Nodemon crashes with port 5000 in use on every file change/HMR. Multiple node processes fighting for port. |
-| HMR breaks useAuth | `client/src/context/AuthContext.jsx` | Fast Refresh incompatible — any change to AuthContext forces full page reload for all users |
-| FAQ.txt path fragile | `server/parseFaqTxt.js` | Hardcoded relative path resolves to `opensourcefaq/FAQ.txt` (parent of cs16). Silent failure if file missing. |
+| `a13097f` | **RAG fallback**: `isOllamaAvailable()` check before validating 118 FAQs. If Ollama unreachable, skips LLM validation and includes all FAQs directly. |
+| `a13097f` | **EADDRINUSE fix**: `server.js` graceful shutdown (SIGINT/SIGTERM), `server.close()`, port fallback 5000→5002. |
+| `a13097f` | **HMR fix**: Added `import.meta.hot.decline()` to AuthContext — full page reload is correct behavior. |
+| `a13097f` | **FAQ.txt path**: `resolveFaqPath()` searches env var → project root → legacy path, throws clear error with all searched paths if missing. |
 
 ### 🟡 Partially Built Features
 
@@ -80,15 +79,30 @@ $env:RESET_DB='true'; npm run seed
 
 ---
 
+## GitHub Issues
+
+| # | Title | Status |
+|---|-------|--------|
+| #2 | Fix: RAG system indexes 0 FAQs despite 118 in database | Fixed in `a13097f` |
+| #3 | Fix: Backend server crashes repeatedly with EADDRINUSE on port 5000 | Fixed in `a13097f` |
+| #4 | Enhancement: Build Pins management UI in Admin Dashboard | Open |
+| #5 | Enhancement: Implement WikiPage — currently renders nothing | Open |
+| #6 | Fix: HMR breaks useAuth causing full page reload | Fixed in `a13097f` |
+| #7 | Enhancement: RAG Chat widget has no conversation history | Open |
+| #8 | Enhancement: Add ability to promote/demote user role | Open |
+| #9 | Fix: FAQ.txt path is fragile and causes silent seed failures | Fixed in `a13097f` |
+
+---
+
 ## Project Structure
 
 ```
 cs16/
 ├── server/
-│   ├── server.js          # Express entry point, port 5000
+│   ├── server.js          # Express entry point, port 5000 (graceful shutdown + port fallback)
 │   ├── app.js             # Main app, middleware setup
 │   ├── seed.js            # DB seeder — parses FAQ.txt, inserts FAQs + admin user
-│   ├── parseFaqTxt.js     # Parses FAQ.txt into structured { sections, faqs, answerMap }
+│   ├── parseFaqTxt.js     # Parses FAQ.txt with resolveFaqPath()
 │   ├── routes/
 │   │   ├── authRoutes.js      # /api/auth/*
 │   │   ├── adminRoutes.js     # /api/admin/*  (protected by adminOnly)
@@ -100,9 +114,10 @@ cs16/
 │   ├── controllers/
 │   │   ├── adminController.js # getAnalytics, getAdminFaqs, patchFaq, etc.
 │   │   ├── authController.js  # login, register, getMe
+│   │   ├── ragController.js   # buildRagIndex (with Ollama availability check)
 │   │   └── ...
 │   └── models/
-│       ├── User.js, FAQ.js, Query.js, Answer.js
+│       └── User.js, FAQ.js, Query.js, Answer.js
 ├── client/
 │   ├── src/
 │   │   ├── App.jsx           # Routes: /, /community, /admin, /login, /wiki, /leaderboard, /ask
@@ -114,60 +129,53 @@ cs16/
 │   │   │   ├── LeaderboardPage.jsx  # Reputation-based ranking
 │   │   │   └── ...
 │   │   ├── components/
-│   │   │   ├── RAGChatWidget.jsx    # AI chat — currently BROKEN (0 FAQs indexed)
+│   │   │   ├── RAGChatWidget.jsx    # AI chat
 │   │   │   ├── Layout.jsx           # Navbar + routing
 │   │   │   ├── ProtectedRoute.jsx   # Auth guard
 │   │   │   └── ...
 │   │   ├── context/
-│   │   │   └── AuthContext.jsx      # Auth state — ⚠️ HMR issue
+│   │   │   └── AuthContext.jsx      # Auth state — HMR suppressed via import.meta.hot.decline()
 │   │   └── services/
 │   │       └── api.js               # All API calls — uses x-auth-token header
 │   └── vite.config.js              # Proxies /api → localhost:5000
-├── FAQ.txt                          # Seed data source (copied here, not inside cs16/)
+├── FAQ.txt                          # Seed data source (project root: cs16/FAQ.txt)
 └── docs/
-    └── TEAM_ISSUES.md               # Team issue tracker (markdown copy)
+    └── TEAM_ISSUES.md               # Team issue tracker
 ```
-
----
-
-## GitHub Issues (Created 2026-05-30)
-
-| # | Title | Label |
-|---|-------|-------|
-| #2 | Fix: RAG system indexes 0 FAQs despite 118 in database | bug |
-| #3 | Fix: Backend server crashes repeatedly with EADDRINUSE on port 5000 | bug |
-| #4 | Enhancement: Build Pins management UI in Admin Dashboard | enhancement |
-| #5 | Enhancement: Implement WikiPage — currently renders nothing | enhancement |
-| #6 | Fix: HMR breaks useAuth causing full page reload on any AuthContext change | bug |
-| #7 | Enhancement: RAG Chat widget has no conversation history | enhancement |
-| #8 | Enhancement: Add ability to promote/demote user role in Admin Dashboard | enhancement |
-| #9 | Fix: FAQ.txt path is fragile and causes silent seed failures | bug |
 
 ---
 
 ## Key Decisions & History
 
-### Why FAQ.txt lives outside cs16/
-`parseFaqTxt.js` resolves `../../FAQ.txt` from `server/` which points to `opensourcefaq/FAQ.txt` (parent of cs16). This is confusing. An attempt was made to copy it into cs16 root but the relative path still resolves externally. **Fix tracked in issue #9.**
+### Why RAG was indexing 0 FAQs
+The `buildRagIndex()` called `validateAnswer()` for all 118 FAQs via Ollama. Each call had a 15s timeout. If Ollama was slow/unavailable, all 118 calls timed out → all returned `false` → 0 FAQs passed. Fix (`a13097f`): check `isOllamaAvailable()` first; if unreachable, skip validation entirely and include all FAQs directly.
 
-### Why chart.js was missing
-`chart.js` and `react-chartjs-2` were not in `client/package.json`. The AdminDashboard imported `Line` from `react-chartjs-2` without registering chart.js v3+ components. This was fixed in `e174723`.
+### Why EADDRINUSE happened on every file change
+Nodemon spawned a new `node server.js` process on every file change without closing the previous one. All processes tried to bind to port 5000 simultaneously. Fix (`a13097f`): graceful SIGINT/SIGTERM handlers call `server.close()`, and the server tries ports 5000→5002 if EADDRINUSE.
 
-### Why AuthContext was crashing
-`AuthContext.jsx` line 14 tried to set `api.defaults.headers.common['Authorization']` — but `api` exported from `services/api.js` is a plain object with `get/post/patch/...` methods, not an axios instance. No `defaults` property existed. Fixed by removing that line — token is already read from localStorage inside `getHeaders()` on every request.
+### Why AuthContext triggered HMR incompatibility
+`useAuth` was a named export that changed on every module reload. React Fast Refresh can't safely update hooks in-place. Fix (`a13097f`): `import.meta.hot.decline()` tells Vite to do a full page reload — correct behavior for context files.
 
-### Admin in Leaderboard issue
-Leaderboard's `getLeaderboard` query filtered `status: 'active'` but never excluded `role: 'admin'`. Admin was appearing on the public leaderboard. Fixed with `role: { $ne: 'admin' }` filter.
+### FAQ.txt path resolution
+`parseFaqTxt.js` uses `resolveFaqPath()`: env `FAQ_TXT_PATH` → project root → legacy `../../FAQ.txt`. Throws clear error listing all searched paths if file not found. Canonical location is now `cs16/FAQ.txt`.
 
 ---
 
 ## RAG System Notes
 
 - RAG pre-warming runs at server startup in `server/server.js`
-- Logs show: `RAG validation: passed=0 of 118` and `RAG index ready — 0 FAQs indexed`
-- `FAQ.txt` parsing works (118 FAQs seeded) — the failure is in the Ollama vectorization step
-- The `RAGChatWidget` is completely non-functional due to empty index
-- **Fix tracked in issue #2**
+- `buildRagIndex()` checks Ollama availability first (5s timeout to `GET /api/tags`)
+- If Ollama unreachable: logs `RAG validation: Ollama not available — including all X FAQs without LLM validation`
+- If Ollama running: validates each FAQ (10s timeout, 8 concurrent), logs `RAG validation: passed=N of 118`
+- Widget is functional once index has > 0 FAQs
+
+---
+
+## Dev Notes
+
+- **Vite OOM on Node 22 + Windows**: crashes with `Fatal process out of memory: Zone`. Workaround: set `NODE_OPTIONS=--max-old-space-size=4096` before running Vite, or run client separately with increased memory.
+- **Kill stale processes**: `Get-NetTCPConnection -LocalPort 5000,5173 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }`
+- **FAQ.txt canonical location**: `cs16/FAQ.txt` (project root, next to `package.json`)
 
 ---
 
