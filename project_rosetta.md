@@ -125,3 +125,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Client context suffered from "auth flash"—briefly rendering guest buttons on page refresh before the cookie was verified.
 * **🛡️ Edge Cases Tested**: Fast page refreshes, expired session recovery, and multi-tab logout events.
 
+### 📋 v0.35: Construct endpoints to fetch open peer questions feed
+* **Release Date**: May 30, 2026 - 16:00
+* **Details**: Construct backend endpoints to retrieve open peer questions feed.
+* **🎨 Visual Wireframe & Layout**: Split-pane interface displaying open queries lists on the left, and detail cards on the right.
+* **🧠 Team Thinking & Rationale**: Set the foundation for peer-to-peer volunteer workflows by exposing unclaimed user questions to qualified responders.
+* **💬 Discussions & Decisions**: Decided whether to auto-assign incoming queries to volunteers vs manual claiming. Manual voluntary claiming with 24-hour SLA timers was preferred to encourage engagement.
+* **⚠️ Errors & Roadblocks Faced**: Query retrieval queries crashed due to cast conversion errors when formatting dates.
+* **🛡️ Edge Cases Tested**: Retrieving query feeds when no user questions are active, ensuring absolute stability.
+
