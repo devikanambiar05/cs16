@@ -1,8 +1,8 @@
-# CONTEXT.md — FAQ App (cs16)
+# CONTEXT.md - FAQ App (cs16)
 
-> **⚠️ READ THIS BEFORE EVERY SESSION**  
+> **⚠️ READ THIS BEFORE EVERY SESSION**
 > This file is the single source of truth for the project's current state.
-> Update it immediately after any significant change — bug fix, feature, decision, regression.
+> Update it immediately after any significant change - bug fix, feature, decision, regression.
 
 ---
 
@@ -22,7 +22,7 @@
 | Frontend | React 18 + Vite + TailwindCSS + React Router v6 |
 | Backend | Node.js + Express + MongoDB (Mongoose) |
 | Auth | JWT (jsonwebtoken) |
-| RAG | Ollama (local) — vector search for FAQ chat widget |
+| RAG | Ollama (local) - vector search for FAQ chat widget |
 | Charts | chart.js + react-chartjs-2 |
 | Package manager | npm |
 
@@ -57,7 +57,7 @@ $env:RESET_DB='true'; npm run seed
 
 ## Current Known State (2026-05-30)
 
-### ✅ Recently Fixed (DO NOT UNDO — committed to main)
+### ✅ Recently Fixed (DO NOT UNDO - committed to main)
 
 | Commit | What was fixed |
 |--------|---------------|
@@ -65,7 +65,7 @@ $env:RESET_DB='true'; npm run seed
 | `058299e` | Excluded admin users from leaderboard query (`role: { $ne: 'admin' }` in `getLeaderboard`) |
 | `a13097f` | **RAG fallback**: `isOllamaAvailable()` check before validating 118 FAQs. If Ollama unreachable, skips LLM validation and includes all FAQs directly. |
 | `a13097f` | **EADDRINUSE fix**: `server.js` graceful shutdown (SIGINT/SIGTERM), `server.close()`, port fallback 5000→5002. |
-| `a13097f` | **HMR fix**: Added `import.meta.hot.decline()` to AuthContext — full page reload is correct behavior. |
+| `a13097f` | **HMR fix**: Added `import.meta.hot.decline()` to AuthContext - full page reload is correct behavior. |
 | `a13097f` | **FAQ.txt path**: `resolveFaqPath()` searches env var → project root → legacy path, throws clear error with all searched paths if missing. |
 
 ### 🟡 Partially Built Features
@@ -73,8 +73,8 @@ $env:RESET_DB='true'; npm run seed
 | Feature | Issue | Status |
 |---------|-------|--------|
 | Pins Admin UI | #4 | API routes + `getAdminPins`/`createPin` exist, UI tab shows "coming soon" placeholder |
-| WikiPage | #5 | Route exists in App.jsx, `WikiPage.jsx` is empty/placeholder |
-| RAG Chat History | #7 | API accepts `sessionId`, widget doesn't track it — every message is isolated |
+| WikiPage | #5 | Removed — redundant with FAQsPage after it gained category pills |
+| RAG Chat History | #7 | API accepts `sessionId`, widget doesn't track it - every message is isolated |
 | Promote/Demote Role UI | #8 | Admin can ban/unban users, but cannot change role. Only MongoDB direct update works. |
 
 ---
@@ -86,7 +86,7 @@ $env:RESET_DB='true'; npm run seed
 | #2 | Fix: RAG system indexes 0 FAQs despite 118 in database | Fixed in `a13097f` |
 | #3 | Fix: Backend server crashes repeatedly with EADDRINUSE on port 5000 | Fixed in `a13097f` |
 | #4 | Enhancement: Build Pins management UI in Admin Dashboard | ✅ Closed (commits `604c77f` + `8f46454` + `ba1cd41`) |
-| #5 | Enhancement: Implement WikiPage — currently renders nothing | Open |
+| #5 | Enhancement: Implement WikiPage — removed (redundant with FAQsPage) | ✅ Closed — WikiPage nuked (`f9d14c7`) |
 | #6 | Fix: HMR breaks useAuth causing full page reload | Fixed in `a13097f` |
 | #7 | Enhancement: RAG Chat widget has no conversation history | Open |
 | #8 | Enhancement: Add ability to promote/demote user role | Open |
@@ -101,7 +101,7 @@ cs16/
 ├── server/
 │   ├── server.js          # Express entry point, port 5000 (graceful shutdown + port fallback)
 │   ├── app.js             # Main app, middleware setup
-│   ├── seed.js            # DB seeder — parses FAQ.txt, inserts FAQs + admin user
+│   ├── seed.js            # DB seeder - parses FAQ.txt, inserts FAQs + admin user
 │   ├── parseFaqTxt.js     # Parses FAQ.txt with resolveFaqPath()
 │   ├── routes/
 │   │   ├── authRoutes.js      # /api/auth/*
@@ -120,11 +120,11 @@ cs16/
 │       └── User.js, FAQ.js, Query.js, Answer.js
 ├── client/
 │   ├── src/
-│   │   ├── App.jsx           # Routes: /, /community, /admin, /login, /wiki, /leaderboard, /ask
+│   │   ├── App.jsx           # Routes: /, /community, /admin, /login, /leaderboard, /ask
 │   │   ├── main.jsx
 │   │   ├── pages/
 │   │   │   ├── AdminDashboard.jsx   # Tabs: Overview, Queries, Users, FAQ Requests, Manage FAQs, Pins
-│   │   │   ├── FAQsPage.jsx         # Public FAQ listing + search
+│   │   │   ├── FAQsPage.jsx         # Public FAQ listing + search + category pills
 │   │   │   ├── CommunityPage.jsx    # Query board
 │   │   │   ├── LeaderboardPage.jsx  # Reputation-based ranking
 │   │   │   └── ...
@@ -134,9 +134,9 @@ cs16/
 │   │   │   ├── ProtectedRoute.jsx   # Auth guard
 │   │   │   └── ...
 │   │   ├── context/
-│   │   │   └── AuthContext.jsx      # Auth state — HMR suppressed via import.meta.hot.decline()
+│   │   │   └── AuthContext.jsx      # Auth state - HMR suppressed via import.meta.hot.decline()
 │   │   └── services/
-│   │       └── api.js               # All API calls — uses x-auth-token header
+│   │       └── api.js               # All API calls - uses x-auth-token header
 │   └── vite.config.js              # Proxies /api → localhost:5000
 ├── FAQ.txt                          # Seed data source (project root: cs16/FAQ.txt)
 └── docs/
@@ -154,7 +154,7 @@ The `buildRagIndex()` called `validateAnswer()` for all 118 FAQs via Ollama. Eac
 Nodemon spawned a new `node server.js` process on every file change without closing the previous one. All processes tried to bind to port 5000 simultaneously. Fix (`a13097f`): graceful SIGINT/SIGTERM handlers call `server.close()`, and the server tries ports 5000→5002 if EADDRINUSE.
 
 ### Why AuthContext triggered HMR incompatibility
-`useAuth` was a named export that changed on every module reload. React Fast Refresh can't safely update hooks in-place. Fix (`a13097f`): `import.meta.hot.decline()` tells Vite to do a full page reload — correct behavior for context files.
+`useAuth` was a named export that changed on every module reload. React Fast Refresh can't safely update hooks in-place. Fix (`a13097f`): `import.meta.hot.decline()` tells Vite to do a full page reload - correct behavior for context files.
 
 ### FAQ.txt path resolution
 `parseFaqTxt.js` uses `resolveFaqPath()`: env `FAQ_TXT_PATH` → project root → legacy `../../FAQ.txt`. Throws clear error listing all searched paths if file not found. Canonical location is now `cs16/FAQ.txt`.
@@ -165,7 +165,7 @@ Nodemon spawned a new `node server.js` process on every file change without clos
 
 - RAG pre-warming runs at server startup in `server/server.js`
 - `buildRagIndex()` checks Ollama availability first (5s timeout to `GET /api/tags`)
-- If Ollama unreachable: logs `RAG validation: Ollama not available — including all X FAQs without LLM validation`
+- If Ollama unreachable: logs `RAG validation: Ollama not available - including all X FAQs without LLM validation`
 - If Ollama running: validates each FAQ (10s timeout, 8 concurrent), logs `RAG validation: passed=N of 118`
 - Widget is functional once index has > 0 FAQs
 
@@ -179,12 +179,23 @@ Nodemon spawned a new `node server.js` process on every file change without clos
 
 ---
 
+### ✅ Nuke WikiPage (commit `f9d14c7`)
+
+WikiPage was redundant with FAQsPage after FAQsPage gained category pills + grouped display. Removed:
+
+- Deleted `WikiPage.jsx`
+- Removed `/wiki` route from `App.jsx`
+- Removed `Wiki` link from `Layout.jsx` navbar and footer
+- FAQsPage is now the single canonical FAQ listing page
+
+---
+
 ### ✅ FAQ Requests Tab Fix (commit `bd1234f`)
 
 | Bug | Fix |
 |-----|-----|
-| Tab showed blank screen | `loadFAQRequests` used `res.data` — but API returns `{ requests, pagination }` — now uses `res.data?.requests` |
-| No requests ever appeared | UI read `req.title`/`req.description` which don't exist on `FAQRequest` model — now reads `proposedQuestion`, `proposedAnswer`, `proposedTags`, `status`, `submittedBy.name`, `queryId.title` |
+| Tab showed blank screen | `loadFAQRequests` used `res.data` - but API returns `{ requests, pagination }` - now uses `res.data?.requests` |
+| No requests ever appeared | UI read `req.title`/`req.description` which don't exist on `FAQRequest` model - now reads `proposedQuestion`, `proposedAnswer`, `proposedTags`, `status`, `submittedBy.name`, `queryId.title` |
 | Approve/Reject shown for non-pending | Buttons now only render when `status === 'pending'` |
 
 ---
@@ -202,4 +213,4 @@ Nodemon spawned a new `node server.js` process on every file change without clos
 
 ## Last Updated
 
-`2026-05-30` — Vee / Larry
+`2026-05-30` - Vee / Larry
