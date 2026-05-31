@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getLeaderboard, getUserProfile, updateProfile, getAllUsers, banUser, getStats, toggleBookmark, getBookmarks, getLikedFAQs } = require('../controllers/userController');
+const { getLeaderboard, getUserProfile, updateProfile, getAllUsers, banUser, getStats, toggleBookmark, getBookmarks, getLikedFAQs, becomeVolunteer } = require('../controllers/userController');
 const { protect, adminOnly } = require('../middleware/auth');
+
+// Volunteer
+router.post('/volunteer', protect, becomeVolunteer);
 
 // Admin - dashboard stats
 router.get('/admin/stats', protect, adminOnly, getStats);

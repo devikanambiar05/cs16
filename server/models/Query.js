@@ -86,6 +86,14 @@ const querySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  facingCount: {
+    type: Number,
+    default: 0
+  },
+  facingUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   deletedAt: {
     type: Date,
     default: null

@@ -61,8 +61,12 @@ export function AuthProvider({ children }) {
     setUser(prev => prev ? { ...prev, bookmarks: newBookmarks } : null);
   };
 
+  const updateUser = (userData) => {
+    setUser(prev => prev ? { ...prev, ...userData } : null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading, setBookmarks }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, loading, setBookmarks, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

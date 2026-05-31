@@ -220,9 +220,14 @@ export default function Layout() {
                         <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
                         <p className="text-xs text-slate-500 truncate">{user.email}</p>
                       </div>
-                      <Link to="/profile" className="block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary-600">
+                      <Link to="/profile" className="block px-3 py-2 text-sm text-slate-650 hover:bg-slate-50 hover:text-primary-600">
                         My Profile
                       </Link>
+                      {user.isVolunteer && (
+                        <Link to="/stats" className="block px-3 py-2 text-sm text-slate-650 hover:bg-slate-50 hover:text-primary-600">
+                          Board Statistics
+                        </Link>
+                      )}
                       {user.role === 'admin' && (
                         <Link to="/admin" className="block px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary-600">
                           Admin Dashboard

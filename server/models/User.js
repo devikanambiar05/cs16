@@ -58,6 +58,10 @@ const userSchema = new mongoose.Schema({
     enum: ['active', 'banned'],
     default: 'active'
   },
+  isVolunteer: {
+    type: Boolean,
+    default: false
+  },
   // Notification preferences
   emailNotifications: {
     type: Boolean,

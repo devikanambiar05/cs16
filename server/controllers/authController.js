@@ -57,7 +57,8 @@ exports.register = async (req, res) => {
         email: user.email,
         role: user.role,
         reputation: user.reputation,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        isVolunteer: user.isVolunteer
       }
     });
   } catch (error) {
@@ -105,7 +106,8 @@ exports.login = async (req, res) => {
         reputation: user.reputation,
         questionsAsked: user.questionsAsked,
         answersGiven: user.answersGiven,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        isVolunteer: user.isVolunteer
       }
     });
   } catch (error) {

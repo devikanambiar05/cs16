@@ -7,13 +7,13 @@ const Query = require('./models/Query');
 const Answer = require('./models/Answer');
 const parseFAQtxt = require('./parseFaqTxt');
 
-async function seed() {
+async function seed(force = false) {
   try {
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Granth');
     console.log('Connected to MongoDB');
 
     // Guard: require RESET_DB=true to proceed with destructive seed
-    if (process.env.RESET_DB !== 'true') {
+    if (process.env.RESET_DB !== 'true' && !force) {
       let admin = await User.findOne({ email: 'admin@faqapp.com' });
       if (!admin) {
         admin = await User.create({
@@ -29,8 +29,11 @@ async function seed() {
         console.log('Admin user already exists, skipping seed (RESET_DB=true not set)');
       }
       console.log('\nTo reset and reseed the database, run: RESET_DB=true npm run seed');
-      await mongoose.disconnect();
-      process.exit(0);
+      if (require.main === module) {
+        await mongoose.disconnect();
+        process.exit(0);
+      }
+      return;
     }
 
     console.log('RESET_DB=true — clearing existing data...');

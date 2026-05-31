@@ -35,13 +35,13 @@ exports.createAnswer = async (req, res) => {
     });
 
     query.answerCount = (query.answerCount || 0) + 1;
-    // Only promote to 'answered' when the claim-holder submits their first answer
+    // Only promote to 'answered' when the claim-holder submits their answer
     // (signal to owner: your claim-holder has responded, please review)
-    if (query.answerCount === 1 && query.status === 'claimed') {
+    if (query.status === 'claimed' && req.user._id.toString() === query.assignedTo?.toString()) {
       query.status = 'answered';
     }
     // Refresh activity window on the query when claim-holder submits an answer
-    if (query.status === 'claimed') {
+    if (query.status === 'claimed' || query.status === 'answered') {
       query.lastActivityAt = new Date();
     }
     await query.save();

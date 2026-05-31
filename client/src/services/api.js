@@ -67,6 +67,7 @@ export const getLeaderboard = (params) => api.get('/api/users/leaderboard', para
 export const toggleBookmark = (faqId) => api.post(`/api/users/bookmarks/${faqId}`);
 export const getBookmarks = () => api.get('/api/users/bookmarks');
 export const getLikedFAQs = () => api.get('/api/users/likes');
+export const volunteerAsResponder = () => api.post('/api/users/volunteer');
 
 // Admin: analytics
 export const getAnalytics = () => api.get('/api/admin/analytics');
@@ -105,6 +106,7 @@ export const upvoteAnswer = (answerId) => api.post(`/api/answers/${answerId}/upv
 export const acceptAnswer = (answerId) => api.post(`/api/answers/${answerId}/accept`);
 export const vetAnswer = (answerId) => api.post(`/api/answers/${answerId}/vet`);
 export const getQueryById = (id) => api.get(`/api/queries/${id}`);
+export const toggleFacingQuery = (id) => api.post(`/api/queries/${id}/facing`);
 
 // Answers
 export const postAnswer = (queryId, data) => api.post(`/api/queries/${queryId}/answers`, data);

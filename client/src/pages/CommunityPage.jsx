@@ -12,7 +12,10 @@ import {
   updateQuery, 
   vetAnswer,
   getLeaderboard,
-  getQueryStats
+  getQueryStats,
+  getQueryById,
+  toggleFacingQuery,
+  volunteerAsResponder
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
@@ -177,9 +180,10 @@ function getUnansweredUrgency(createdAt, answerCount, status) {
   return null;
 }
 
-function SlaBadge({ expiresAt }) {
-  const status = getSlaStatus(expiresAt);
-  if (!status) return null;
+function SlaBadge({ expiresAt, status }) {
+  if (status === 'closed' || status === 'answered') return null;
+  const slaStatus = getSlaStatus(expiresAt);
+  if (!slaStatus) return null;
   const classes = {
     ok: 'bg-emerald-50 text-emerald-700 border-emerald-250 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
     caution: 'bg-amber-50 text-amber-700 border-amber-250 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
@@ -187,22 +191,23 @@ function SlaBadge({ expiresAt }) {
     critical: 'bg-red-50 text-red-700 border-red-250 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 font-semibold'
   };
   return (
-    <span className={`badge text-xs border ${classes[status.urgency]}`}>
-      <TimerIcon /> {status.label}
+    <span className={`badge text-xs border ${classes[slaStatus.urgency]}`}>
+      <TimerIcon /> {slaStatus.label}
     </span>
   );
 }
 
-function SlaWarningBanner({ expiresAt }) {
-  const status = getSlaStatus(expiresAt);
-  if (!status || status.urgency === 'ok' || status.urgency === 'caution') return null;
+function SlaWarningBanner({ expiresAt, status }) {
+  if (status === 'closed' || status === 'answered') return null;
+  const slaStatus = getSlaStatus(expiresAt);
+  if (!slaStatus || slaStatus.urgency === 'ok' || slaStatus.urgency === 'caution') return null;
   return (
     <div className={`mt-3 px-4 py-2.5 rounded-xl text-sm border ${
-      status.urgency === 'warning'
+      slaStatus.urgency === 'warning'
         ? 'bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400'
         : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 font-medium'
     }`}>
-      {status.urgency === 'warning' ? (
+      {slaStatus.urgency === 'warning' ? (
         <>
           <WarningIcon /> This query needs an answer soon — SLA deadline approaching
         </>
@@ -243,7 +248,7 @@ function getConfidenceInfo(score) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 function CommunityPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const toast = useToast();
 
   const [queries, setQueries] = useState([]);
@@ -262,6 +267,12 @@ function CommunityPage() {
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Volunteering state
+  const [showVolunteerModal, setShowVolunteerModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [acceptSla, setAcceptSla] = useState(false);
+  const [volunteeringLoading, setVolunteeringLoading] = useState(false);
+
   // Sidebar stats and leaderboard
   const [leaderboard, setLeaderboard] = useState([]);
   const [stats, setStats] = useState({ total: 0, open: 0, breached: 0, claimed: 0, answered: 0 });
@@ -275,7 +286,6 @@ function CommunityPage() {
   }, [filter, sort, page, searchQuery]);
 
   const fetchStats = async () => {
-    if (!user) return;
     try {
       const res = await getQueryStats();
       setStats(res.data);
@@ -341,6 +351,11 @@ function CommunityPage() {
 
   const handleClaimQuery = async (queryId) => {
     if (!user) { toast.warning('Please sign in to claim a query'); return; }
+    if (!user.isVolunteer) {
+      setPendingAction({ type: 'claim', queryId });
+      setShowVolunteerModal(true);
+      return;
+    }
     try {
       const res = await claimQuery(queryId);
       setQueries(queries.map(q => q._id === queryId ? { ...q, assignedTo: { _id: user._id, name: user.name }, status: 'claimed' } : q));
@@ -365,16 +380,43 @@ function CommunityPage() {
     }
   };
 
+  const handleFacingToggle = async (queryId) => {
+    if (!user) { toast.warning('Please sign in to signal facing this issue.'); return; }
+    try {
+      const res = await toggleFacingQuery(queryId);
+      setQueries(prev => prev.map(q => 
+        q._id === queryId 
+          ? { ...q, facingCount: res.data.facingCount, facingUsers: res.data.facingUsers } 
+          : q
+      ));
+      toast.success(res.data.facingUsers.includes(user._id) ? 'Signal added (+1)' : 'Signal removed');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update facing signal');
+    }
+  };
+
   const handleSubmitAnswer = async (queryId) => {
     const content = answerContent[queryId];
     if (!content?.trim()) { toast.warning('Please write an answer before submitting.'); return; }
     if (!user) { toast.warning('Please sign in to answer.'); return; }
+    if (!user.isVolunteer) {
+      setPendingAction({ type: 'answer', queryId });
+      setShowVolunteerModal(true);
+      return;
+    }
     setSubmitting(queryId);
     try {
       await createAnswer(queryId, content);
       setAnswerContent({ ...answerContent, [queryId]: '' });
       toast.success('Answer submitted!');
-      fetchQueries();
+      const detailsRes = await getQueryById(queryId);
+      if (detailsRes.data) {
+        setQueries(prev => prev.map(q => 
+          q._id === queryId 
+            ? { ...q, ...detailsRes.data.query, answers: detailsRes.data.answers } 
+            : q
+        ));
+      }
       fetchStats();
       fetchLeaderboard();
       setExpandedQuery(queryId);
@@ -390,7 +432,17 @@ function CommunityPage() {
     try {
       await upvoteAnswer(answerId);
       toast.success('Upvoted!');
-      fetchQueries();
+      const targetQuery = queries.find(q => q.answers?.some(a => a._id === answerId));
+      if (targetQuery) {
+        const detailsRes = await getQueryById(targetQuery._id);
+        if (detailsRes.data) {
+          setQueries(prev => prev.map(q => 
+            q._id === targetQuery._id 
+              ? { ...q, ...detailsRes.data.query, answers: detailsRes.data.answers } 
+              : q
+          ));
+        }
+      }
       fetchLeaderboard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to upvote');
@@ -402,7 +454,17 @@ function CommunityPage() {
     try {
       await acceptAnswer(answerId);
       toast.success('Answer accepted! Query closed.');
-      fetchQueries();
+      const targetQuery = queries.find(q => q.answers?.some(a => a._id === answerId));
+      if (targetQuery) {
+        const detailsRes = await getQueryById(targetQuery._id);
+        if (detailsRes.data) {
+          setQueries(prev => prev.map(q => 
+            q._id === targetQuery._id 
+              ? { ...q, ...detailsRes.data.query, answers: detailsRes.data.answers } 
+              : q
+          ));
+        }
+      }
       fetchStats();
       fetchLeaderboard();
     } catch (err) {
@@ -415,7 +477,17 @@ function CommunityPage() {
     try {
       await vetAnswer(answerId);
       toast.success('Answer successfully verified!');
-      fetchQueries();
+      const targetQuery = queries.find(q => q.answers?.some(a => a._id === answerId));
+      if (targetQuery) {
+        const detailsRes = await getQueryById(targetQuery._id);
+        if (detailsRes.data) {
+          setQueries(prev => prev.map(q => 
+            q._id === targetQuery._id 
+              ? { ...q, ...detailsRes.data.query, answers: detailsRes.data.answers } 
+              : q
+          ));
+        }
+      }
       fetchLeaderboard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to verify answer');
@@ -443,6 +515,11 @@ function CommunityPage() {
 
   const handleTakeQuestion = async () => {
     if (!user) { toast.warning('Please sign in to take a question'); return; }
+    if (!user.isVolunteer) {
+      setPendingAction({ type: 'take' });
+      setShowVolunteerModal(true);
+      return;
+    }
     try {
       setLoading(true);
       const res = await getQueries({ status: 'open', sort: 'recent', limit: 50 });
@@ -642,8 +719,22 @@ function CommunityPage() {
                       setSimilarQueries([]);
                       if (next) {
                         setCheckingSimilar(next);
-                        const similar = await getSimilarQueries(query.title, query._id);
-                        if (checkingSimilar === next) setSimilarQueries(similar);
+                        try {
+                          const [similar, detailsRes] = await Promise.all([
+                            getSimilarQueries(query.title, query._id),
+                            getQueryById(query._id)
+                          ]);
+                          if (detailsRes.data) {
+                            setQueries(prev => prev.map(q => 
+                              q._id === query._id 
+                                ? { ...q, ...detailsRes.data.query, answers: detailsRes.data.answers } 
+                                : q
+                            ));
+                          }
+                          if (checkingSimilar === next) setSimilarQueries(similar);
+                        } catch (err) {
+                          console.error('Failed to load query details:', err);
+                        }
                       }
                     }}
                     answerContent={answerContent[query._id] || ''}
@@ -664,6 +755,7 @@ function CommunityPage() {
                     similarQueries={similarQueries}
                     submitting={submitting}
                     currentUser={user}
+                    onFacingToggle={handleFacingToggle}
                   />
                 ))}
               </div>
@@ -718,32 +810,22 @@ function CommunityPage() {
             </div>
           </div>
 
-          {/* Global Community Statistics Card */}
-          {user && (
-            <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-              <h4 className="font-serif font-bold text-slate-800 dark:text-slate-200 text-lg mb-4 flex items-center gap-2">
-                <StatsIcon /> Board Statistics
-              </h4>
-              <div className="grid grid-cols-2 gap-3.5">
-                <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
-                  <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Open Queries</span>
-                  <span className="text-2xl font-bold text-slate-850 dark:text-slate-100">{stats.open}</span>
-                </div>
-                <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
-                  <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Claims</span>
-                  <span className="text-2xl font-bold text-amber-600 dark:text-amber-450">{stats.claimed}</span>
-                </div>
-                <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
-                  <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">SLA Breached</span>
-                  <span className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.breached}</span>
-                </div>
-                <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
-                  <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Closed</span>
-                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-450">{stats.answered}</span>
-                </div>
+          {/* Generic Community Statistics Card */}
+          <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm select-none">
+            <h4 className="font-serif font-bold text-slate-850 dark:text-slate-205 text-lg mb-4 flex items-center gap-2">
+              <StatsIcon /> Community Statistics
+            </h4>
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-805">
+                <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Open Queries</span>
+                <span className="text-2xl font-bold text-slate-850 dark:text-slate-105 mt-0.5 block">{stats.open}</span>
+              </div>
+              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-850">
+                <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Resolved Queries</span>
+                <span className="text-2xl font-bold text-emerald-605 dark:text-emerald-450 mt-0.5 block">{stats.answered}</span>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Leaderboard Card */}
           <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
@@ -814,6 +896,149 @@ function CommunityPage() {
         </div>
 
       </div>
+
+      {/* Volunteer Modal Dialog */}
+      {showVolunteerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {
+              if (!volunteeringLoading) {
+                setShowVolunteerModal(false);
+                setPendingAction(null);
+                setAcceptSla(false);
+              }
+            }}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative w-full max-w-md bg-white dark:bg-[#22211e] rounded-2xl border border-slate-205 dark:border-slate-800 p-6 shadow-2xl z-10 animate-fade-in flex flex-col overflow-hidden max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-serif font-bold text-lg text-slate-850 dark:text-slate-100 flex items-center gap-2">
+                🤝 Volunteer as a Responder
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVolunteerModal(false);
+                  setPendingAction(null);
+                  setAcceptSla(false);
+                }}
+                disabled={volunteeringLoading}
+                className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 transition-colors p-1 rounded-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 rounded-xl p-4 flex gap-3">
+                <TimerIcon className="w-6 h-6 text-amber-600 dark:text-amber-300 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-xs md:text-sm mb-1">24-Hour SLA Policy</h4>
+                  <p className="text-[11px] leading-relaxed text-amber-900/80 dark:text-amber-450/80">
+                    To keep Granth highly reliable and responsive, volunteers commit to our strict Service Level Agreement:
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-3.5">
+                <div className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
+                  <p className="text-xs text-slate-650 dark:text-slate-400 leading-relaxed">
+                    <strong>24-Hour Timeline:</strong> Once you claim a query, you must submit a step-by-step resolution within 24 hours.
+                  </p>
+                </div>
+                
+                <div className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
+                  <p className="text-xs text-slate-650 dark:text-slate-400 leading-relaxed">
+                    <strong>Automatic Release:</strong> Unresolved claims are automatically returned to the community pool after 24 hours.
+                  </p>
+                </div>
+                
+                <div className="flex items-start gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</span>
+                  <p className="text-xs text-slate-650 dark:text-slate-400 leading-relaxed">
+                    <strong>High Quality Standard:</strong> Answers should use rich markdown, clear code snippets, and be highly helpful. Irrelevant or garbage answers are penalized.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="pt-2">
+                <label className="flex items-start gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={acceptSla}
+                    onChange={(e) => setAcceptSla(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-primary-600 border-slate-350 rounded focus:ring-primary-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-700 dark:text-slate-350 leading-normal">
+                    I have read and agree to the 24-Hour SLA Policy and wish to volunteer as a responder on the platform.
+                  </span>
+                </label>
+              </div>
+            </div>
+            
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVolunteerModal(false);
+                  setPendingAction(null);
+                  setAcceptSla(false);
+                }}
+                disabled={volunteeringLoading}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-semibold transition-all"
+              >
+                Cancel
+              </button>
+              
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!acceptSla) {
+                    toast.warning('You must accept the conditions to volunteer.');
+                    return;
+                  }
+                  setVolunteeringLoading(true);
+                  try {
+                    await volunteerAsResponder();
+                    updateUser({ isVolunteer: true });
+                    toast.success('Thank you for volunteering! Answering unlocked.');
+                    setShowVolunteerModal(false);
+                    setAcceptSla(false);
+                    
+                    // Resume the pending action
+                    if (pendingAction) {
+                      const action = pendingAction;
+                      setPendingAction(null);
+                      if (action.type === 'claim') {
+                        handleClaimQuery(action.queryId);
+                      } else if (action.type === 'take') {
+                        handleTakeQuestion();
+                      } else if (action.type === 'answer') {
+                        handleSubmitAnswer(action.queryId);
+                      }
+                    }
+                  } catch (err) {
+                    toast.error(err.response?.data?.error || 'Failed to register as volunteer.');
+                  } finally {
+                    setVolunteeringLoading(false);
+                  }
+                }}
+                disabled={!acceptSla || volunteeringLoading}
+                className="px-5 py-2 bg-primary-650 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all shadow-sm"
+              >
+                {volunteeringLoading ? 'Registering...' : 'Accept & Volunteer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -827,7 +1052,7 @@ function QueryCard({
   onClaimQuery, onUnclaimQuery, onStartEdit,
   isEditing, editForm, onEditFormChange, onSaveEdit, onCancelEdit,
   similarQueries,
-  submitting, currentUser
+  submitting, currentUser, onFacingToggle
 }) {
   const assignedToId = query.assignedTo ? (query.assignedTo._id || query.assignedTo) : null;
   const isAssignedToCurrentUser = currentUser && assignedToId && assignedToId === (currentUser._id || currentUser.id);
@@ -860,7 +1085,7 @@ function QueryCard({
             }`}>
               {query.status}
             </span>
-            <SlaBadge expiresAt={query.expiresAt} />
+            <SlaBadge expiresAt={query.expiresAt} status={query.status} />
             <UnansweredBadge createdAt={query.createdAt} answerCount={query.answerCount} status={query.status} />
             {(!isClosed && (query.escalationCount > 0 || (Date.now() - new Date(query.createdAt)) >= 12 * 60 * 60 * 1000)) && (
               <span className="badge bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 animate-pulse">
@@ -887,6 +1112,27 @@ function QueryCard({
             <span className="text-xs text-slate-400 dark:text-slate-500">
               {query.answerCount || 0} answer{query.answerCount !== 1 ? 's' : ''}
             </span>
+            {!isClosed && (
+              <>
+                <span className="text-xs text-slate-400 dark:text-slate-500">·</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFacingToggle(query._id);
+                  }}
+                  disabled={!currentUser}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                    query.facingUsers?.includes(currentUser?._id || currentUser?.id)
+                      ? 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:bg-amber-600/20 dark:text-amber-400 dark:border-amber-550/30'
+                      : 'bg-slate-50 border-slate-205 text-slate-650 hover:bg-slate-100 hover:border-slate-350 dark:bg-[#191816] dark:border-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-800'
+                  }`}
+                  title={currentUser ? "I'm facing this issue as well" : "Sign in to signal you face this issue"}
+                >
+                  <span>🙋‍♂️ +{query.facingCount || 0}</span>
+                </button>
+              </>
+            )}
             {query.escalationCount > 0 && (
               <>
                 <span className="text-xs text-slate-400 dark:text-slate-500">·</span>
@@ -961,7 +1207,7 @@ function QueryCard({
           ) : (
             // ─── View Mode ───────────────────────────────────────────────────
             <>
-              <SlaWarningBanner expiresAt={query.expiresAt} />
+              <SlaWarningBanner expiresAt={query.expiresAt} status={query.status} />
 
               <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 md:p-5 mb-4 border border-slate-100 dark:border-slate-800/60 mt-3">
                 <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">
@@ -1131,25 +1377,48 @@ function QueryCard({
               )}
 
               {/* Answer input */}
-              {!isClosed && (!currentUser || (currentUser && !isOwnedByCurrentUser)) && (
+              {!isClosed && query.status !== 'answered' && (!currentUser || (currentUser && !isOwnedByCurrentUser)) && (
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <EditIcon /> Your Answer
-                  </p>
-                  <RichTextEditor 
-                    value={answerContent} 
-                    onChange={onAnswerChange} 
-                    placeholder="Write a step-by-step resolution, using Markdown formats..." 
-                  />
-                  <div className="flex justify-end mt-3">
-                    <button 
-                      onClick={onSubmitAnswer} 
-                      disabled={submitting === query._id || !answerContent?.trim()}
-                      className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
-                    >
-                      {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
-                    </button>
-                  </div>
+                  {currentUser && !currentUser.isVolunteer ? (
+                    <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-[#2a2620] dark:to-[#312519] border border-amber-500/20 rounded-2xl p-5 text-center mt-3 relative overflow-hidden select-none">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full pointer-events-none" />
+                      <span className="text-3xl mb-2.5 block">🤝</span>
+                      <h4 className="font-serif font-bold text-slate-850 dark:text-slate-200 text-base mb-1">Volunteer as a Responder to Answer</h4>
+                      <p className="text-xs text-slate-650 dark:text-slate-400 max-w-md mx-auto mb-4 leading-relaxed">
+                        Granth responders are dedicated student peers who claim and resolve community queries under our 24-hour SLA system. Agree to the conditions and become a responder to answer.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onAnswerChange('');
+                          setShowVolunteerModal(true);
+                        }}
+                        className="px-5 py-2 bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white font-semibold rounded-xl text-xs shadow-sm hover:shadow transition-all"
+                      >
+                        Volunteer Now & Answer
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <EditIcon /> Your Answer
+                      </p>
+                      <RichTextEditor 
+                        value={answerContent} 
+                        onChange={onAnswerChange} 
+                        placeholder="Write a step-by-step resolution, using Markdown formats..." 
+                      />
+                      <div className="flex justify-end mt-3">
+                        <button 
+                          onClick={onSubmitAnswer} 
+                          disabled={submitting === query._id || !answerContent?.trim()}
+                          className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
+                        >
+                          {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 

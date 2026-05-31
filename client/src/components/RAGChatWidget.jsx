@@ -166,6 +166,42 @@ export default function RAGChatWidget() {
         }
       }
 
+      // Process any remaining text in buffer after the stream ends
+      if (buffer.trim()) {
+        const line = buffer.trim();
+        try {
+          if (!metaParsed) {
+            const meta = JSON.parse(line);
+            setMessages(prev => prev.map(m =>
+              m.id === assistantMsgId + 1
+                ? { ...m, sources: meta.sources || [], faqsFound: meta.faqsFound || 0 }
+                : m
+            ));
+            metaParsed = true;
+          } else {
+            const chunk = JSON.parse(line);
+            if (chunk.token) {
+              answerText += chunk.token;
+              setMessages(prev => prev.map(m =>
+                m.id === assistantMsgId + 1
+                  ? { ...m, text: m.text + chunk.token }
+                  : m
+              ));
+            }
+            if (chunk.done) {
+              setMessages(prev => prev.map(m =>
+                m.id === assistantMsgId + 1 ? { ...m, streaming: false } : m
+              ));
+            }
+            if (chunk.error) {
+              throw new Error(chunk.error);
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing trailing stream chunk:', e);
+        }
+      }
+
       // Sync session to backend if authenticated!
       const token = localStorage.getItem('token');
       if (token && answerText.trim()) {

@@ -170,3 +170,18 @@ exports.getLikedFAQs = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch liked FAQs' });
   }
 };
+
+// Volunteer as responder
+exports.becomeVolunteer = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.isVolunteer = true;
+    await user.save();
+
+    res.json({ message: 'You are now a volunteer responder!', user });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to volunteer' });
+  }
+};

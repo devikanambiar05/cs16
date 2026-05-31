@@ -15,6 +15,7 @@ import RAGChatWidget from './components/RAGChatWidget';
 import { ToastProvider } from './components/ToastProvider';
 import WikiTagsPage from './pages/WikiTagsPage';
 import ProfilePage from './pages/ProfilePage';
+import StatsPage from './pages/StatsPage';
 
 function App() {
   return (
@@ -47,6 +48,11 @@ function App() {
                 <Route path="profile" element={
                   <ProtectedRoute>
                     <ProfilePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="stats" element={
+                  <ProtectedRoute>
+                    <StatsPage />
                   </ProtectedRoute>
                 } />
               </Route>

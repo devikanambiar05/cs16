@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getQueries, getQueryById, createQuery, closeQuery, deleteQuery, takeQuery, claimQuery, unclaimQuery, getSlaStats, updateQuery, getCommunityCandidates } = require('../controllers/queryController');
+const { getQueries, getQueryById, createQuery, closeQuery, deleteQuery, takeQuery, claimQuery, unclaimQuery, getSlaStats, updateQuery, getCommunityCandidates, toggleFacing } = require('../controllers/queryController');
 const { protect, optionalAuth, adminOnly } = require('../middleware/auth');
 
 // Get all queries (public)
@@ -15,11 +15,14 @@ router.post('/:id/claim', protect, claimQuery);
 // Release a claimed query
 router.delete('/:id/claim', protect, unclaimQuery);
 
+// Toggle facing count on a query
+router.post('/:id/facing', protect, toggleFacing);
+
 // Create query (authenticated)
 router.post('/', protect, createQuery);
 
 // Get single query with answers (public)
-router.get('/sla/stats', protect, getSlaStats);
+router.get('/sla/stats', optionalAuth, getSlaStats);
 
 router.get('/community-candidates', getCommunityCandidates);
 router.get('/sla/stale-claims', protect, adminOnly, async (req, res) => {

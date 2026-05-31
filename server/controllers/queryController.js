@@ -501,3 +501,31 @@ exports.getCommunityCandidates = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch community candidates' });
   }
 };
+
+// Toggle facing count on a query ("I am facing this issue as well")
+exports.toggleFacing = async (req, res) => {
+  try {
+    const query = await Query.findById(req.params.id);
+    if (!query) return res.status(404).json({ error: 'Query not found' });
+    if (query.status === 'closed') {
+      return res.status(400).json({ error: 'Cannot toggle facing on a closed query' });
+    }
+
+    const userId = req.user._id;
+    const hasFaced = query.facingUsers.some(id => id.toString() === userId.toString());
+
+    if (hasFaced) {
+      query.facingUsers = query.facingUsers.filter(id => id.toString() !== userId.toString());
+      query.facingCount = Math.max(0, query.facingCount - 1);
+    } else {
+      query.facingUsers.push(userId);
+      query.facingCount += 1;
+    }
+
+    await query.save();
+    res.json({ facingCount: query.facingCount, facingUsers: query.facingUsers });
+  } catch (error) {
+    console.error('Toggle facing error:', error);
+    res.status(500).json({ error: 'Failed to update facing status' });
+  }
+};

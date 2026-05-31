@@ -251,7 +251,7 @@ async function buildRagIndex() {
     faqs: validatedFaqs.map(f => ({
       _id: f._id,
       title: f.title,
-      content: (f.finalAnswer || '').substring(0, 600),
+      content: f.finalAnswer || '',
       tags: f.tags,
       upvotes: f.upvotes,
       _tokens: tokenize(`${f.title} ${f.finalAnswer || ''}`),
