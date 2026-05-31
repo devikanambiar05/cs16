@@ -160,4 +160,49 @@ const notifyAdminsOfEscalatedQuery = async (query) => {
   }
 };
 
-module.exports = { notifyTieredContributors, notifyAdminsOfEscalatedQuery };
+const notifyTaggedUsers = async (query, taggedUserIds) => {
+  try {
+    if (!taggedUserIds || taggedUserIds.length === 0) return;
+
+    const users = await User.find({ _id: { $in: taggedUserIds }, status: 'active' });
+    if (users.length === 0) return;
+
+    const dashboardUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const queryUrl = `${dashboardUrl}/community`;
+
+    const tag = query.tags && query.tags[0];
+    const categoryName = tag ? tag.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'General';
+
+    for (const user of users) {
+      if (!user.email || user.emailNotifications === false) continue;
+
+      console.log(`[Tagging Notification] Sending email notification to tagged contributor: ${user.email}`);
+      await sendEmail({
+        to: user.email,
+        subject: `🔔 You were tagged in a new query: "${query.title}"`,
+        text: `Hi ${user.name},\n\nYou have been tagged in a new query in the "${categoryName}" category because you are an active responder in this topic!\n\nQuery Title: "${query.title}"\n\nView community board → ${queryUrl}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+            <div style="background: #4f46e5; color: white; padding: 20px 24px; border-radius: 12px 12px 0 0;">
+              <h2 style="margin: 0; font-size: 18px;">🔔 Tagged in Community Query</h2>
+            </div>
+            <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+              <p style="margin: 0 0 8px; font-size: 14px; color: #6b7280;">Hi ${user.name},</p>
+              <p style="margin: 0 0 8px; font-size: 14px; color: #374151;">You have been tagged in a new query under the <strong>${categoryName}</strong> category because you are one of our top active responders!</p>
+              <p style="margin: 16px 0; font-size: 16px; font-weight: 600; color: #111827;">"${query.title}"</p>
+              <a href="${queryUrl}" style="display: inline-block; background: #4f46e5; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;">
+                View Query →
+              </a>
+              <p style="margin-top: 24px; font-size: 12px; color: #9ca3af;">
+                You are receiving this notification because you were tagged by a user and have email notifications enabled.
+              </p>
+            </div>
+          </div>`
+      });
+    }
+  } catch (err) {
+    console.error('Failed to notify tagged users:', err);
+  }
+};
+
+module.exports = { notifyTieredContributors, notifyAdminsOfEscalatedQuery, notifyTaggedUsers };

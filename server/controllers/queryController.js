@@ -128,7 +128,7 @@ exports.getQueryById = async (req, res) => {
 // Create a new query with 24hr SLA
 exports.createQuery = async (req, res) => {
   try {
-    const { title, description, tags } = req.body;
+    const { title, description, tags, taggedUsers } = req.body;
     if (req.user.role === 'admin') {
       return res.status(403).json({ error: 'Admins cannot raise queries' });
     }
@@ -217,7 +217,8 @@ exports.createQuery = async (req, res) => {
       tags: (tags || []).map(t => t.toLowerCase().trim()),
       createdBy: req.user._id,
       status: 'open',
-      expiresAt
+      expiresAt,
+      taggedUsers: taggedUsers || []
     });
 
     await query.populate('createdBy', 'name reputation');
@@ -228,8 +229,12 @@ exports.createQuery = async (req, res) => {
     });
 
     // Notify matching growing contributors (< 100 reputation) who answer matching tags
-    const { notifyTieredContributors } = require('../services/notificationService');
+    const { notifyTieredContributors, notifyTaggedUsers } = require('../services/notificationService');
     notifyTieredContributors(query, false).catch(err => console.error('Failed to notify growing contributors:', err));
+
+    if (taggedUsers && taggedUsers.length > 0) {
+      notifyTaggedUsers(query, taggedUsers).catch(err => console.error('Failed to notify tagged users:', err));
+    }
 
     res.status(201).json({ message: 'Query raised successfully', query });
   } catch (error) {

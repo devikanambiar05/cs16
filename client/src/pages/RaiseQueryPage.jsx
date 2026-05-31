@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { createQuery, searchSimilar, detectTags } from '../services/api';
+import { createQuery, searchSimilar, detectTags, getCategoryContributors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import RichTextEditor from '../components/RichTextEditor';
 import TagInput from '../components/TagInput';
@@ -13,6 +13,8 @@ function RaiseQueryPage() {
   const [detectingTags, setDetectingTags] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [suggestedContributors, setSuggestedContributors] = useState([]);
+  const [taggedUsers, setTaggedUsers] = useState([]);
 
   const [similarFAQs, setSimilarFAQs] = useState([]);
   const [similarQueries, setSimilarQueries] = useState([]);
@@ -94,6 +96,52 @@ function RaiseQueryPage() {
     return () => clearTimeout(tagTimerRef.current);
   }, [form.title, form.description]);
 
+  // ── Fetch active category responders ────────────────────────────────
+  useEffect(() => {
+    const primaryTag = tags[0];
+    if (!primaryTag) {
+      setSuggestedContributors([]);
+      setTaggedUsers([]);
+      return;
+    }
+
+    const fetchContributors = async () => {
+      try {
+        const res = await getCategoryContributors(primaryTag, { week: true });
+        setSuggestedContributors(res.data || []);
+      } catch (err) {
+        console.error('Failed to fetch category contributors:', err);
+      }
+    };
+
+    fetchContributors();
+  }, [tags[0]]);
+
+  const toggleTagContributor = (contrib) => {
+    const isAlreadyTagged = taggedUsers.includes(contrib._id);
+    const tagStr = ` @${contrib.name}`;
+    if (isAlreadyTagged) {
+      setTaggedUsers(prev => prev.filter(id => id !== contrib._id));
+      if (form.description.endsWith(tagStr)) {
+        setForm(prev => ({
+          ...prev,
+          description: prev.description.substring(0, prev.description.length - tagStr.length)
+        }));
+      } else if (form.description.includes(tagStr)) {
+        setForm(prev => ({
+          ...prev,
+          description: prev.description.replace(tagStr, '')
+        }));
+      }
+    } else {
+      setTaggedUsers(prev => [...prev, contrib._id]);
+      setForm(prev => ({
+        ...prev,
+        description: prev.description + tagStr
+      }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -109,7 +157,8 @@ function RaiseQueryPage() {
       await createQuery({
         title: form.title.trim(),
         description: form.description.trim(),
-        tags
+        tags,
+        taggedUsers
       });
       navigate('/community');
     } catch (err) {
@@ -313,6 +362,38 @@ function RaiseQueryPage() {
             placeholder="Provide more context — include course, semester, or any relevant details..."
           />
         </div>
+
+        {suggestedContributors.length > 0 && (
+          <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 mt-3">
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+              <span>💡</span> Suggested Active Responders in Category
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {suggestedContributors.map(contrib => {
+                const isTagged = taggedUsers.includes(contrib._id);
+                return (
+                  <div key={contrib._id} className="flex flex-col justify-between p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 shadow-sm">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-350 truncate">{contrib.name}</p>
+                      <p className="text-[10px] text-primary-600 dark:text-primary-400 font-medium mt-0.5">{contrib.reputation} rep</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleTagContributor(contrib)}
+                      className={`mt-2.5 w-full py-1.5 rounded-md text-[10px] font-semibold transition-all ${
+                        isTagged
+                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                          : 'bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-950/30 dark:text-primary-400'
+                      }`}
+                    >
+                      {isTagged ? '✓ Tagged' : 'Tag Contributor'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Tags */}
         <div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq, getPins, toggleBookmark } from '../services/api';
+import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq, getPins, toggleBookmark, getCategoryContributors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
 import CommunityBoard from '../components/CommunityBoard';
@@ -60,6 +60,8 @@ function FAQsPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [allFAQs, setAllFAQs] = useState([]);
   const [overview, setOverview] = useState(null);
+  const [categoryContributors, setCategoryContributors] = useState([]);
+  const [categoryContributorsLoading, setCategoryContributorsLoading] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -83,6 +85,27 @@ function FAQsPage() {
     if (selectedCategory) {
       loadCategoryFAQs(selectedCategory.tag);
     }
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    if (!selectedCategory) {
+      setCategoryContributors([]);
+      return;
+    }
+
+    const fetchContributors = async () => {
+      setCategoryContributorsLoading(true);
+      try {
+        const res = await getCategoryContributors(selectedCategory.tag);
+        setCategoryContributors(res.data || []);
+      } catch (err) {
+        console.error('Failed to load category contributors:', err);
+      } finally {
+        setCategoryContributorsLoading(false);
+      }
+    };
+
+    fetchContributors();
   }, [selectedCategory]);
 
   const loadCategories = async () => {
@@ -424,6 +447,39 @@ function FAQsPage() {
                 </button>
               ))}
             </div>
+
+            {selectedCategory && (
+              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                  <span>🏆</span> Top Contributors
+                </h4>
+                {categoryContributorsLoading ? (
+                  <div className="flex justify-center py-4">
+                    <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : categoryContributors.length === 0 ? (
+                  <p className="text-slate-400 text-[11px] leading-relaxed">No contributors for this category yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {categoryContributors.map((contrib, idx) => (
+                      <div key={contrib._id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`text-xs font-bold ${idx === 0 ? 'text-amber-500' : idx === 1 ? 'text-slate-400' : 'text-amber-700'}`}>
+                            #{idx + 1}
+                          </span>
+                          <span className="text-xs font-medium text-slate-700 dark:text-slate-350 truncate">
+                            {contrib.name}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-semibold text-primary-600 dark:text-primary-400 shrink-0">
+                          {contrib.reputation} rep
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </aside>
       </div>

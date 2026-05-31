@@ -152,6 +152,7 @@ export const rejectAnswer = (id) => api.post(`/api/admin/answers/${id}/reject`);
 
 // Categories
 export const getCategories = (params) => api.get('/api/categories', params);
+export const getCategoryContributors = (tag, params) => api.get(`/api/categories/${tag}/contributors`, params);
 
 // Search
 export const searchSimilar = (q) => api.get('/api/search/similar', { q });

@@ -1,4 +1,7 @@
 const FAQ = require('../models/FAQ');
+const Query = require('../models/Query');
+const Answer = require('../models/Answer');
+const User = require('../models/User');
 
 // Regex to detect numeric question-ID tags like "13.15", "12.1", etc.
 // These are second-element tags and should not become categories
@@ -161,3 +164,125 @@ function formatCategoryName(tag) {
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
 }
+
+// Get top contributors for category
+exports.getCategoryContributors = async (req, res) => {
+  try {
+    const { tag } = req.params;
+    const { week } = req.query;
+
+    // Find queries that have the category tag
+    const queryIds = await Query.find({ tags: tag, deletedAt: null }).distinct('_id');
+
+    let answerMatch = { queryId: { $in: queryIds }, deletedAt: null };
+
+    // If week filter is true, consider answers from the last 7 days
+    if (week === 'true') {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      answerMatch.createdAt = { $gte: sevenDaysAgo };
+    }
+
+    // Aggregate answers to find top responders
+    let topResponders = await Answer.aggregate([
+      { $match: answerMatch },
+      {
+        $group: {
+          _id: '$userId',
+          answerCount: { $sum: 1 },
+          acceptedCount: { $sum: { $cond: ['$isAccepted', 1, 0] } },
+          upvotesCount: { $sum: '$upvotes' }
+        }
+      },
+      {
+        $addFields: {
+          score: {
+            $add: [
+              { $multiply: ['$answerCount', 5] },
+              { $multiply: ['$acceptedCount', 15] },
+              { $multiply: ['$upvotesCount', 2] }
+            ]
+          }
+        }
+      },
+      { $sort: { score: -1, upvotesCount: -1 } },
+      { $limit: 3 }
+    ]);
+
+    // Fallback: If we wanted week activity but got fewer than 3, grab all-time contributors
+    if (week === 'true' && topResponders.length < 3) {
+      const existingIds = topResponders.map(r => r._id);
+      const fallbackResponders = await Answer.aggregate([
+        { $match: { queryId: { $in: queryIds }, userId: { $nin: existingIds }, deletedAt: null } },
+        {
+          $group: {
+            _id: '$userId',
+            answerCount: { $sum: 1 },
+            acceptedCount: { $sum: { $cond: ['$isAccepted', 1, 0] } },
+            upvotesCount: { $sum: '$upvotes' }
+          }
+        },
+        {
+          $addFields: {
+            score: {
+              $add: [
+                { $multiply: ['$answerCount', 5] },
+                { $multiply: ['$acceptedCount', 15] },
+                { $multiply: ['$upvotesCount', 2] }
+              ]
+            }
+          }
+        },
+        { $sort: { score: -1, upvotesCount: -1 } },
+        { $limit: 3 - topResponders.length }
+      ]);
+      topResponders = [...topResponders, ...fallbackResponders];
+    }
+
+    // Populate user info
+    const userIds = topResponders.map(r => r._id);
+    const users = await User.find({ _id: { $in: userIds }, status: 'active' })
+      .select('name reputation role')
+      .lean();
+
+    // Maintain sorting based on aggregate score
+    let populated = topResponders.map(resp => {
+      const u = users.find(user => user._id.toString() === resp._id.toString());
+      if (!u) return null;
+      return {
+        ...u,
+        score: resp.score,
+        answerCount: resp.answerCount,
+        acceptedCount: resp.acceptedCount,
+        upvotesCount: resp.upvotesCount
+      };
+    }).filter(Boolean);
+
+    // Fallback to top general users if still fewer than 3
+    if (populated.length < 3) {
+      const populatedIds = populated.map(p => p._id.toString());
+      const generalActive = await User.find({
+        _id: { $nin: populatedIds },
+        status: 'active',
+        role: 'user'
+      })
+      .sort({ reputation: -1 })
+      .limit(3 - populated.length)
+      .select('name reputation role')
+      .lean();
+
+      populated.push(...generalActive.map(u => ({
+        ...u,
+        score: 0,
+        answerCount: 0,
+        acceptedCount: 0,
+        upvotesCount: 0
+      })));
+    }
+
+    res.json(populated.slice(0, 3));
+  } catch (error) {
+    console.error('Error fetching category contributors:', error);
+    res.status(500).json({ error: 'Failed to fetch category contributors' });
+  }
+};

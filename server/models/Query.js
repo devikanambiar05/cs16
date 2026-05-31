@@ -70,6 +70,10 @@ const querySchema = new mongoose.Schema({
     ref: 'FAQ',
     default: null
   },
+  taggedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   answerCount: {
     type: Number,
     default: 0
