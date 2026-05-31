@@ -179,3 +179,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Complex flexbox layouts broke badge alignments on smaller viewport devices.
 * **🛡️ Edge Cases Tested**: A user crossing multiple reputation levels at once on a single high-impact answer approval.
 
+### 🌳 v0.612: Granular profiling of reputation milestones
+* **Release Date**: May 31, 2026 - 21:00
+* **Details**: Elite verification detailing progressive badge limits (Highly granular).
+* **🎨 Visual Wireframe & Layout**: Interactive tooltips showing exact requirements (`12/25 Accepted Answers`) when hovering over badges.
+* **🧠 Team Thinking & Rationale**: High-tier contributors need micro-feedback on their progress. Fine-grained thresholds build engagement.
+* **💬 Discussions & Decisions**: Debated the complexity of adding sub-levels. Settled on highly specific sub-milestone checks to ensure balance.
+* **⚠️ Errors & Roadblocks Faced**: Hover tooltips clipped out of screen boundaries on tablet viewports.
+* **🛡️ Edge Cases Tested**: Verifying calculations at the exact threshold boundary (e.g. exactly 300 reputation points).
+
