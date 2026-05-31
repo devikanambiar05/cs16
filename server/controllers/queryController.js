@@ -166,6 +166,14 @@ exports.createQuery = async (req, res) => {
       if (sim >= 0.85) {
         const acceptedAnswer = await Answer.findOne({ queryId: q._id, isAccepted: true })
           .select('_id content upvotes').lean();
+        
+        // Deduct duplicate penalty
+        const userDoc = await User.findById(req.user._id);
+        if (userDoc) {
+          userDoc.reputation = Math.max(0, userDoc.reputation - 2);
+          await userDoc.save();
+        }
+
         return res.status(409).json({
           error: 'This question already has an accepted answer in the community',
           duplicateQueryId: q._id,
@@ -183,6 +191,13 @@ exports.createQuery = async (req, res) => {
     for (const faq of allFaqs) {
       const sim = jaccardSimilarity(title, faq.title);
       if (sim >= 0.80) {
+        // Deduct duplicate penalty
+        const userDoc = await User.findById(req.user._id);
+        if (userDoc) {
+          userDoc.reputation = Math.max(0, userDoc.reputation - 2);
+          await userDoc.save();
+        }
+
         return res.status(409).json({
           error: 'This question is already answered in the FAQ knowledge base',
           duplicateQueryId: null,
@@ -252,6 +267,20 @@ exports.claimQuery = async (req, res) => {
 
     // Atomic claim: fail if already claimed by someone else (prevents race condition)
     const freshSla = query.expiresAt < new Date();
+    
+    const setFields = {
+      assignedTo: req.user._id,
+      claimedAt: new Date(),
+      status: 'claimed'
+    };
+    
+    if (freshSla) {
+      setFields.expiresAt = new Date(Date.now() + SLA_24HR);
+      if (!query.escalatedAt) {
+        setFields.escalatedAt = new Date();
+      }
+    }
+
     const claimed = await Query.findOneAndUpdate(
       {
         _id: query._id,
@@ -259,14 +288,8 @@ exports.claimQuery = async (req, res) => {
         status: { $in: ['open', 'claimed'] }
       },
       {
-        $set: {
-          assignedTo: req.user._id,
-          claimedAt: new Date(),
-          status: 'claimed',
-          ...(freshSla ? { expiresAt: new Date(Date.now() + SLA_24HR) } : {})
-        },
-        ...(freshSla ? { $inc: { escalationCount: 1 } } : {}),
-        ...(freshSla && !query.escalatedAt ? { $set: { escalatedAt: new Date() } } : {})
+        $set: setFields,
+        ...(freshSla ? { $inc: { escalationCount: 1 } } : {})
       },
       { new: true }
     );

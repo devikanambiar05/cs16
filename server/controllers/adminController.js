@@ -307,6 +307,13 @@ exports.deleteAnswer = async (req, res) => {
       await query.save();
     }
 
+    // Deduct garbage answer penalty (-15 rep)
+    const author = await User.findById(answer.userId);
+    if (author) {
+      author.reputation = Math.max(0, author.reputation - 15);
+      await author.save();
+    }
+
     res.json({ message: 'Answer deleted', answer });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete answer' });
@@ -329,6 +336,13 @@ exports.deleteQuery = async (req, res) => {
     query.deletedAt = new Date();
     query.status = 'closed';
     await query.save();
+
+    // Deduct garbage query penalty (-10 rep)
+    const author = await User.findById(query.createdBy);
+    if (author) {
+      author.reputation = Math.max(0, author.reputation - 10);
+      await author.save();
+    }
 
     res.json({ message: 'Query deleted', query });
   } catch (error) {
@@ -499,6 +513,13 @@ exports.rejectAnswer = async (req, res) => {
       query.answerCount = Math.max(0, (query.answerCount || 1) - 1);
       if (query.answerCount === 0) query.status = 'open';
       await query.save();
+    }
+
+    // Deduct garbage answer penalty (-15 rep)
+    const author = await User.findById(answer.userId);
+    if (author) {
+      author.reputation = Math.max(0, author.reputation - 15);
+      await author.save();
     }
 
     res.json({ message: 'Answer rejected and removed', answer });

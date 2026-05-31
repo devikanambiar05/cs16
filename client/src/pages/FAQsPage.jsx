@@ -455,123 +455,134 @@ function FAQItem({ faq, onUpvote, onPin, user, compact = false }) {
 
   return (
     <div
-      className={`card group transition-all duration-200 cursor-pointer ${
-        isExpanded ? 'ring-2 ring-primary-200 bg-slate-50/50 shadow-sm' : 'hover:border-primary-300 hover:shadow-sm'
-      } ${compact ? 'py-4' : ''}`}
+      className={`card group transition-all duration-200 cursor-pointer border-slate-100/75 hover:border-primary-300/80 dark:border-slate-800/80 dark:hover:border-primary-500/80 ${
+        isExpanded ? 'ring-2 ring-primary-100 bg-slate-50/50 shadow-sm' : 'hover:shadow-sm'
+      } ${compact ? 'py-3' : ''}`}
       onClick={() => setIsExpanded(!isExpanded)}
     >
-      <div className="flex gap-3">
-        <div className="flex-1 min-w-0">
-          <p className={`font-semibold text-slate-900 ${compact ? 'text-sm' : ''} flex items-center gap-2`}>
+      <div className="flex flex-col">
+        {/* Header Question Row */}
+        <div className="flex items-start justify-between gap-3">
+          <p className={`font-semibold text-slate-900 dark:text-slate-100 ${compact ? 'text-sm' : ''} flex items-center gap-2`}>
             {faq.pinned && <span className="text-amber-500 text-xs font-bold">📌</span>}
             {faq.title}
           </p>
           
-          <div
-            className={`transition-all duration-300 overflow-hidden ${
-              isExpanded ? 'max-h-[1000px] mt-2.5' : 'max-h-0'
-            }`}
-          >
-            <p className="text-sm text-slate-600 dark:text-slate-350 whitespace-pre-line">
-              {faq.finalAnswer}
-            </p>
-          </div>
-
-          {faq.tags && faq.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {faq.tags.slice(0, 3).map(tag => (
-                <span
-                  key={tag}
-                  className="badge badge-gray text-xs"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col items-center gap-3 text-slate-400 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-          <div className="flex flex-col items-center gap-1">
-            <button
-              onClick={() => onUpvote(faq._id)}
-              disabled={!user}
-              className="hover:text-primary-600 transition-colors disabled:cursor-not-allowed"
-              title={user ? 'Upvote' : 'Sign in to upvote'}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-            </button>
-            <span className="text-sm font-medium text-slate-600">{faq.upvotes}</span>
-          </div>
-
-          <button
-            onClick={handleBookmarkToggle}
-            className={`hover:text-primary-600 transition-colors ${
-              isBookmarked ? 'text-primary-600' : 'text-slate-350'
-            }`}
-            title={user ? (isBookmarked ? 'Remove bookmark' : 'Bookmark FAQ') : 'Sign in to bookmark'}
-          >
+          {/* Expand Indicator */}
+          <div className="flex items-center shrink-0 self-start pt-1 text-slate-400 dark:text-slate-600">
             <svg
-              className="w-4 h-4"
-              fill={isBookmarked ? 'currentColor' : 'none'}
+              className={`w-4 h-4 transition-transform duration-200 ${
+                isExpanded ? 'rotate-180 text-primary-500' : 'group-hover:text-slate-650 dark:group-hover:text-slate-400'
+              }`}
+              fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
-              strokeWidth="2"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
-          </button>
+          </div>
+        </div>
+        
+        {/* Expanded Answer */}
+        <div
+          className={`transition-all duration-300 overflow-hidden ${
+            isExpanded ? 'max-h-[1000px] mt-3' : 'max-h-0'
+          }`}
+        >
+          <p className="text-sm text-slate-650 dark:text-slate-350 whitespace-pre-line leading-relaxed pb-1">
+            {faq.finalAnswer}
+          </p>
+        </div>
 
-          <button
-            type="button"
-            onClick={async (e) => {
-              e.stopPropagation();
-              const url = `${window.location.origin}/wiki?highlight=${faq._id}`;
-              try {
-                await navigator.clipboard.writeText(url);
-                toast.success('📋 Share link copied to clipboard!');
-              } catch (err) {
-                toast.error('Failed to copy link');
-              }
-            }}
-            className="hover:text-primary-600 text-slate-350 transition-colors"
-            title="Share FAQ"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 10.742l5.474-3.285M8.684 13.258l5.474 3.285M19 6.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm0 11a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM7 12a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-            </svg>
-          </button>
+        {/* Bottom Actions Row - Tags on Left, Horizontal Actions on Right */}
+        <div className="flex items-center justify-between mt-3.5 pt-2.5 border-t border-slate-100/40 dark:border-slate-800/40" onClick={(e) => e.stopPropagation()}>
+          {/* Tags */}
+          <div className="flex flex-wrap gap-1">
+            {faq.tags && faq.tags.slice(0, 3).map(tag => (
+              <span
+                key={tag}
+                className="badge badge-gray text-[10px] md:text-xs"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
 
-          {user?.role === 'admin' && (
+          {/* Horizontal Actions Toolbar */}
+          <div className="flex items-center gap-4 text-slate-400 dark:text-slate-550 shrink-0 select-none">
+            
+            {/* Upvotes */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onUpvote(faq._id)}
+                disabled={!user}
+                className="hover:text-primary-600 transition-colors disabled:cursor-not-allowed"
+                title={user ? 'Upvote' : 'Sign in to upvote'}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                </svg>
+              </button>
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{faq.upvotes}</span>
+            </div>
+
+            {/* Bookmark */}
             <button
-              onClick={() => onPin(faq._id, !!faq.pinned)}
-              className={`hover:text-amber-500 transition-colors ${faq.pinned ? 'text-amber-500' : ''}`}
-              title={faq.pinned ? 'Unpin FAQ' : 'Pin FAQ'}
+              onClick={handleBookmarkToggle}
+              className={`hover:text-primary-600 transition-colors ${
+                isBookmarked ? 'text-primary-600' : 'text-slate-350 dark:text-slate-500'
+              }`}
+              title={user ? (isBookmarked ? 'Remove bookmark' : 'Bookmark FAQ') : 'Sign in to bookmark'}
             >
-              <svg className="w-4 h-4" fill={faq.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              <svg
+                className="w-4 h-4"
+                fill={isBookmarked ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                />
               </svg>
             </button>
-          )}
 
-          {/* Expand icon indicator */}
-          <svg
-            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-              isExpanded ? 'rotate-180 text-primary-500' : 'group-hover:text-slate-600'
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+            {/* Share */}
+            <button
+              type="button"
+              onClick={async (e) => {
+                const url = `${window.location.origin}/wiki?highlight=${faq._id}`;
+                try {
+                  await navigator.clipboard.writeText(url);
+                  toast.success('📋 Share link copied to clipboard!');
+                } catch (err) {
+                  toast.error('Failed to copy link');
+                }
+              }}
+              className="hover:text-primary-600 text-slate-350 dark:text-slate-500 transition-colors"
+              title="Share FAQ"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 10.742l5.474-3.285M8.684 13.258l5.474 3.285M19 6.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm0 11a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM7 12a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+            </button>
+
+            {/* Admin Pin */}
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => onPin(faq._id, !!faq.pinned)}
+                className={`hover:text-amber-500 transition-colors ${faq.pinned ? 'text-amber-500' : ''}`}
+                title={faq.pinned ? 'Unpin FAQ' : 'Pin FAQ'}
+              >
+                <svg className="w-4 h-4" fill={faq.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </button>
+            )}
+
+          </div>
         </div>
       </div>
     </div>

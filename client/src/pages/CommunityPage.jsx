@@ -19,6 +19,142 @@ import { useToast } from '../components/ToastProvider';
 import RichTextEditor, { MarkdownContent } from '../components/RichTextEditor';
 import TagInput from '../components/TagInput';
 
+// ─── Premium Custom SVGs ──────────────────────────────────────────────────────
+const TimerIcon = ({ className = "w-3.5 h-3.5 inline-block text-amber-500 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <circle cx="12" cy="12" r="10" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+  </svg>
+);
+
+const HourglassIcon = ({ className = "w-3.5 h-3.5 inline-block text-amber-500 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8V4H8m4 4v8M8 4h8M8 20h8m-8-4h8M12 16v4" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 4v4c0 3 2.5 5 6 5s6-2 6-5V4m0 16v-4c0-3-2.5-5-6-5s-6 2-6 5v4" />
+  </svg>
+);
+
+const WarningIcon = ({ className = "w-4 h-4 inline-block text-orange-500 mr-1.5 align-text-bottom" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+  </svg>
+);
+
+const CriticalIcon = ({ className = "w-4 h-4 inline-block text-red-500 mr-1.5 align-text-bottom" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+  </svg>
+);
+
+const TrophyIcon = ({ className = "w-5 h-5 inline-block text-amber-500 mr-2" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V17M10 21H14M12 15C15 15 17 13 17 10V5H7V10C7 13 9 15 12 15ZM17 7H19.5C20.5 7 21 8 21 9V10C21 11 20 12 19 12H17ZM7 7H4.5C3.5 7 3 8 3 9V10C3 11 4 12 5 12H7" />
+  </svg>
+);
+
+const GoldMedal = ({ className = "w-5 h-5 text-yellow-500 shrink-0" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="5" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L8 8h8zM8 8l-2 6h12l-2-6zM12 17v5M9 22h6" />
+  </svg>
+);
+
+const SilverMedal = ({ className = "w-5 h-5 text-slate-400 shrink-0" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="5" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L8 8h8zM8 8l-2 6h12l-2-6zM12 17v5M9 22h6" />
+  </svg>
+);
+
+const BronzeMedal = ({ className = "w-5 h-5 text-amber-600 shrink-0" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="5" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L8 8h8zM8 8l-2 6h12l-2-6zM12 17v5M9 22h6" />
+  </svg>
+);
+
+const TargetIcon = ({ className = "w-4 h-4 inline-block text-amber-500 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+);
+
+const SearchIcon = ({ className = "w-4 h-4 inline-block text-slate-400" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="8" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35" />
+  </svg>
+);
+
+const FlameIcon = ({ className = "w-4 h-4 inline-block text-orange-500 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const BookIcon = ({ className = "w-4 h-4 inline-block text-primary-600 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+  </svg>
+);
+
+const ChatIcon = ({ className = "w-4 h-4 inline-block text-slate-500 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
+
+const EditIcon = ({ className = "w-4 h-4 inline-block text-slate-500 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
+const CloseIcon = ({ className = "w-4 h-4 inline-block text-red-500 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+const ShieldCheckIcon = ({ className = "w-4 h-4 inline-block text-emerald-500 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+);
+
+const ClipboardIcon = ({ className = "w-4 h-4 inline-block text-primary-650 mr-1" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+  </svg>
+);
+
+const ChevronUpIcon = ({ className = "w-3.5 h-3.5 inline-block mr-1 align-middle" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+  </svg>
+);
+
+const WandIcon = ({ className = "w-3.5 h-3.5 inline-block text-primary-500 ml-1 align-middle" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.485 12L11.243 3.757 3 12h16.485zm0 0l-8.243 8.243L3 12h16.485z" />
+  </svg>
+);
+
+const CheckIcon = ({ className = "w-4 h-4 inline-block text-emerald-500 mr-1 align-middle" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+);
+
+const StatsIcon = ({ className = "w-5 h-5 inline-block text-slate-650 dark:text-slate-400 mr-2" }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+);
+
 // ─── SLA helpers ──────────────────────────────────────────────────────────────
 
 function getSlaStatus(expiresAt) {
@@ -52,7 +188,7 @@ function SlaBadge({ expiresAt }) {
   };
   return (
     <span className={`badge text-xs border ${classes[status.urgency]}`}>
-      ⏱ {status.label}
+      <TimerIcon /> {status.label}
     </span>
   );
 }
@@ -66,9 +202,15 @@ function SlaWarningBanner({ expiresAt }) {
         ? 'bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400'
         : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 font-medium'
     }`}>
-      {status.urgency === 'warning'
-        ? '⚠️ This query needs an answer soon — SLA deadline approaching'
-        : '🚨 SLA breached! Answer immediately or claim will be released'}
+      {status.urgency === 'warning' ? (
+        <>
+          <WarningIcon /> This query needs an answer soon — SLA deadline approaching
+        </>
+      ) : (
+        <>
+          <CriticalIcon /> SLA breached! Answer immediately or claim will be released
+        </>
+      )}
     </div>
   );
 }
@@ -82,7 +224,7 @@ function UnansweredBadge({ createdAt, answerCount, status }) {
   };
   return (
     <span className={`badge text-xs border ${classes[info.urgency]}`}>
-      ⏳ {info.label}
+      <HourglassIcon /> {info.label}
     </span>
   );
 }
@@ -379,7 +521,7 @@ function CommunityPage() {
               disabled={loading} 
               className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
             >
-              🎯 Take a Question
+              <TargetIcon className="w-4 h-4 inline-block text-white" /> Take a Question
             </button>
             <Link 
               to="/ask" 
@@ -413,7 +555,9 @@ function CommunityPage() {
                 }}
                 className="w-full pl-10 pr-12 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-white dark:bg-[#191816] focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm flex items-center">
+                <SearchIcon />
+              </span>
               {searchInput && (
                 <button
                   onClick={() => { setSearchInput(''); setSearchQuery(''); setPage(1); }}
@@ -458,7 +602,7 @@ function CommunityPage() {
                   className="text-xs md:text-sm border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-slate-600 dark:text-slate-400 focus:outline-none focus:border-primary-400 dark:bg-[#191816]"
                 >
                   <option value="recent">Most Recent</option>
-                  <option value="trending">🔥 Trending</option>
+                  <option value="trending">Trending</option>
                 </select>
               </div>
             </div>
@@ -475,7 +619,7 @@ function CommunityPage() {
             </div>
           ) : queries.length === 0 ? (
             <div className="text-center py-16 bg-white dark:bg-[#22211e] border border-slate-200 dark:border-slate-800 rounded-2xl p-8">
-              <div className="text-5xl mb-4">🔍</div>
+              <div className="text-5xl mb-4 flex justify-center text-slate-350 dark:text-slate-700"><SearchIcon className="w-12 h-12" /></div>
               <h3 className="text-lg font-serif font-bold text-slate-850 dark:text-slate-200 mb-2">No queries found</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xs mx-auto mb-4">
                 We couldn't find any queries matching your active filters or search criteria.
@@ -557,7 +701,7 @@ function CommunityPage() {
           {/* SLA Warning / Policy Card */}
           <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-amber-500/5 dark:to-orange-500/5 border border-amber-500/20 rounded-2xl p-5 shadow-sm relative overflow-hidden">
             <div className="flex items-start gap-4">
-              <span className="text-3xl shrink-0">⏱</span>
+              <TimerIcon className="w-8 h-8 text-amber-600 dark:text-amber-300 shrink-0" />
               <div>
                 <h4 className="font-serif font-bold text-amber-800 dark:text-amber-300 text-base mb-1.5">
                   24-Hour SLA Policy
@@ -578,7 +722,7 @@ function CommunityPage() {
           {user && (
             <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
               <h4 className="font-serif font-bold text-slate-800 dark:text-slate-200 text-lg mb-4 flex items-center gap-2">
-                📊 Board Statistics
+                <StatsIcon /> Board Statistics
               </h4>
               <div className="grid grid-cols-2 gap-3.5">
                 <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800/50">
@@ -604,7 +748,7 @@ function CommunityPage() {
           {/* Leaderboard Card */}
           <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
             <h4 className="font-serif font-bold text-slate-800 dark:text-slate-200 text-lg mb-4 flex items-center gap-2">
-              🏆 Top Contributors
+              <TrophyIcon /> Top Contributors
             </h4>
             {leaderboard.length === 0 ? (
               <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-4">Loading leaderboard...</p>
@@ -612,9 +756,9 @@ function CommunityPage() {
               <div className="space-y-3">
                 {leaderboard.slice(0, 3).map((item, index) => {
                   const rankStyles = [
-                    { bg: 'bg-yellow-500/10 border-yellow-500/30', badge: '🥇', text: 'text-yellow-700 dark:text-yellow-400' },
-                    { bg: 'bg-slate-500/10 border-slate-500/20', badge: '🥈', text: 'text-slate-700 dark:text-slate-400' },
-                    { bg: 'bg-amber-600/10 border-amber-600/20', badge: '🥉', text: 'text-amber-700 dark:text-amber-500' }
+                    { bg: 'bg-yellow-500/10 border-yellow-500/30', badge: <GoldMedal />, text: 'text-yellow-700 dark:text-yellow-400' },
+                    { bg: 'bg-slate-500/10 border-slate-500/20', badge: <SilverMedal />, text: 'text-slate-700 dark:text-slate-400' },
+                    { bg: 'bg-amber-600/10 border-amber-600/20', badge: <BronzeMedal />, text: 'text-amber-700 dark:text-amber-500' }
                   ][index] || { bg: 'bg-slate-50 dark:bg-[#191816] border-slate-100 dark:border-slate-800', badge: `${index + 1}.`, text: 'text-slate-600 dark:text-slate-400' };
 
                   return (
@@ -623,7 +767,7 @@ function CommunityPage() {
                       className={`flex items-center justify-between p-3 rounded-xl border transition-all hover:scale-[1.02] ${rankStyles.bg}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-xl shrink-0 select-none">{rankStyles.badge}</span>
+                        <span className="text-xl shrink-0 select-none flex items-center justify-center w-8 h-8">{rankStyles.badge}</span>
                         <div className="min-w-0">
                           <span className="block font-semibold text-xs md:text-sm text-slate-850 dark:text-slate-200 truncate">
                             {item.name}
@@ -649,7 +793,7 @@ function CommunityPage() {
           {/* SLA Guidelines Card */}
           <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3.5">
             <h4 className="font-serif font-bold text-slate-850 dark:text-slate-250 text-base flex items-center gap-2">
-              📖 Contribution Guidelines
+              <BookIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" /> Contribution Guidelines
             </h4>
             <div className="space-y-3 text-xs text-slate-650 dark:text-slate-400 leading-relaxed">
               <div className="flex gap-2">
@@ -720,12 +864,12 @@ function QueryCard({
             <UnansweredBadge createdAt={query.createdAt} answerCount={query.answerCount} status={query.status} />
             {(!isClosed && (query.escalationCount > 0 || (Date.now() - new Date(query.createdAt)) >= 12 * 60 * 60 * 1000)) && (
               <span className="badge bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 animate-pulse">
-                🔥 Double Rep Active
+                <FlameIcon className="w-3.5 h-3.5 inline-block text-amber-500 animate-pulse mr-0.5" /> Double Rep Active
               </span>
             )}
             {(!isClosed && query.skipCount >= 3) && (
               <span className="badge bg-red-500/10 text-red-600 dark:text-red-450 border border-red-500/20 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
-                🚨 Escalated to Admin
+                <CriticalIcon className="w-3.5 h-3.5 inline-block text-red-500 mr-0.5" /> Escalated to Admin
               </span>
             )}
           </div>
@@ -747,7 +891,7 @@ function QueryCard({
               <>
                 <span className="text-xs text-slate-400 dark:text-slate-500">·</span>
                 <span className="text-xs text-red-500 font-semibold flex items-center gap-0.5">
-                  ⚠️ escalated {query.escalationCount}x
+                  <WarningIcon className="w-3.5 h-3.5 inline-block text-orange-500 mr-0.5" /> escalated {query.escalationCount}x
                 </span>
               </>
             )}
@@ -757,8 +901,8 @@ function QueryCard({
         {!isExpanded && assignedToId && (
           <div className="shrink-0 self-center">
             {isAssignedToCurrentUser ? (
-              <span className="badge bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 text-xs font-semibold px-2.5 py-1">
-                🎯 Claimed by You
+              <span className="badge bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 text-xs font-semibold px-2.5 py-1 flex items-center">
+                <TargetIcon className="w-3.5 h-3.5 inline-block text-indigo-700 dark:text-indigo-400 mr-1" /> Claimed by You
               </span>
             ) : (
               <span className="badge bg-amber-50 text-amber-700 border border-amber-250 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 text-xs font-semibold px-2.5 py-1">
@@ -831,18 +975,18 @@ function QueryCard({
               {/* Action buttons */}
               <div className="flex flex-wrap gap-2.5 mb-5 items-center">
                 {canClaim && (
-                  <button onClick={onClaimQuery} className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-all duration-150 shadow-sm">
-                    🎯 Claim to Answer
+                  <button onClick={onClaimQuery} className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-all duration-150 shadow-sm flex items-center gap-1">
+                    <TargetIcon className="w-4 h-4 text-white" /> Claim to Answer
                   </button>
                 )}
                 {canRelease && (
-                  <button onClick={onUnclaimQuery} className="px-4 py-2 border border-red-200 dark:border-red-950 text-red-650 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl text-sm font-semibold transition-all duration-150">
-                    ✖ Release Claim
+                  <button onClick={onUnclaimQuery} className="px-4 py-2 border border-red-200 dark:border-red-950 text-red-650 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl text-sm font-semibold transition-all duration-150 flex items-center gap-1">
+                    <CloseIcon className="w-4 h-4 text-red-650" /> Release Claim
                   </button>
                 )}
                 {isOwnedByCurrentUser && !isClosed && (
-                  <button onClick={onStartEdit} className="px-4 py-2 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all duration-150">
-                    ✏️ Edit Query
+                  <button onClick={onStartEdit} className="px-4 py-2 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-sm font-semibold transition-all duration-150 flex items-center gap-1">
+                    <EditIcon className="w-4 h-4 text-slate-500" /> Edit Query
                   </button>
                 )}
                 {isOwnedByCurrentUser && !isClosed && (
@@ -885,7 +1029,7 @@ function QueryCard({
               {query.answers && query.answers.length > 0 && (
                 <div className="space-y-4 mb-6">
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                    💬 {query.answers.length} Answer{query.answers.length !== 1 ? 's' : ''} Submitted
+                    <ChatIcon /> {query.answers.length} Answer{query.answers.length !== 1 ? 's' : ''} Submitted
                   </p>
                   
                   {query.answers.map(answer => {
@@ -924,15 +1068,15 @@ function QueryCard({
                                 
                                 {answer.isAccepted ? (
                                   <span className="badge badge-green text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
-                                    ✓ Accepted
+                                    <CheckIcon className="w-3.5 h-3.5 text-emerald-600 mr-0.5" /> Accepted
                                   </span>
                                 ) : answer.isVetted ? (
-                                  <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 text-xs px-2.5 py-0.5 rounded-full font-medium">
-                                    🛡️ Verified
+                                  <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 text-xs px-2.5 py-0.5 rounded-full font-medium flex items-center">
+                                    <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-600 mr-0.5" /> Verified
                                   </span>
                                 ) : (
-                                  <span className="badge bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 text-xs px-2.5 py-0.5 rounded-full font-medium">
-                                    ⏳ Unverified
+                                  <span className="badge bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 text-xs px-2.5 py-0.5 rounded-full font-medium flex items-center">
+                                    <HourglassIcon className="w-3.5 h-3.5 text-amber-600 mr-0.5" /> Unverified
                                   </span>
                                 )}
                               </div>
@@ -942,24 +1086,24 @@ function QueryCard({
                                   onClick={() => onUpvoteAnswer(answer._id)} 
                                   className="text-xs bg-slate-50 dark:bg-[#191816] hover:bg-primary-50 dark:hover:bg-primary-950/20 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 px-2 py-1 rounded-lg transition-all duration-150 flex items-center gap-1 font-semibold"
                                 >
-                                  ▲ {answer.upvotes || 0}
+                                  <ChevronUpIcon /> {answer.upvotes || 0}
                                 </button>
                                 
                                 {!answer.isVetted && currentUser && (currentUser.role === 'admin' || currentUser.reputation >= 100) && (
                                   <button 
                                     onClick={() => onVetAnswer(answer._id)} 
-                                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline font-semibold"
+                                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline font-semibold flex items-center"
                                   >
-                                    Verify 🪄
+                                    Verify <WandIcon />
                                   </button>
                                 )}
                                 
                                 {isOwnedByCurrentUser && !answer.isAccepted && !query.resolvedFAQ && (
                                   <button 
                                     onClick={() => onAcceptAnswer(answer._id)} 
-                                    className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
+                                    className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold flex items-center"
                                   >
-                                    Accept ✓
+                                    Accept <CheckIcon className="w-3.5 h-3.5 text-emerald-650 ml-0.5" />
                                   </button>
                                 )}
                                 
@@ -968,7 +1112,7 @@ function QueryCard({
                                     onClick={() => onRequestFAQ(answer._id, query._id, query)} 
                                     className="text-[11px] text-primary-600 dark:text-primary-400 hover:underline font-semibold flex items-center gap-0.5"
                                   >
-                                    📋 FAQ Request
+                                    <ClipboardIcon /> FAQ Request
                                   </button>
                                 )}
                               </div>
@@ -990,7 +1134,7 @@ function QueryCard({
               {!isClosed && (!currentUser || (currentUser && !isOwnedByCurrentUser)) && (
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    ✏️ Your Answer
+                    <EditIcon /> Your Answer
                   </p>
                   <RichTextEditor 
                     value={answerContent} 
@@ -1011,7 +1155,7 @@ function QueryCard({
 
               {isClosed && (
                 <div className="bg-slate-100/70 dark:bg-[#191816] rounded-xl px-4 py-3 text-xs md:text-sm text-slate-500 dark:text-slate-400 text-center font-medium border border-slate-200/50 dark:border-slate-850 flex items-center justify-center gap-1.5 mt-3">
-                  ✓ This query has been successfully resolved and closed.
+                  <CheckIcon className="w-4 h-4 text-emerald-650 mr-1" /> This query has been successfully resolved and closed.
                 </div>
               )}
             </>
