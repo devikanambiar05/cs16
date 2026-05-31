@@ -161,3 +161,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Soft-deleted entries continued to appear in full-text search results due to a missing filter flag.
 * **🛡️ Edge Cases Tested**: Admin editing and submitting a pending FAQ entry while another admin processes its deletion.
 
+### 📊 v0.55: Reputation calculators & level tier metrics
+* **Release Date**: May 31, 2026 - 15:00
+* **Details**: Formulate reputation tiers and gamified milestones.
+* **🎨 Visual Wireframe & Layout**: Structured gamification matrices in profile sections displaying user progress metrics.
+* **🧠 Team Thinking & Rationale**: Gamified engagement metrics drive contribution quality. Higher reputation translates to expert tiers.
+* **💬 Discussions & Decisions**: Decided whether to calculate reputation dynamically via collection aggregates vs caching them on user documents. Caching was selected for performance.
+* **⚠️ Errors & Roadblocks Faced**: Race conditions when simultaneous upvotes triggered concurrent reputation recalculation writes.
+* **🛡️ Edge Cases Tested**: De-upvoting questions, reputation adjustments when answers are soft-deleted by admins.
+
