@@ -170,3 +170,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Race conditions when simultaneous upvotes triggered concurrent reputation recalculation writes.
 * **🛡️ Edge Cases Tested**: De-upvoting questions, reputation adjustments when answers are soft-deleted by admins.
 
+### 🏆 v0.6: Reputation Levels & Gamified Badges
+* **Release Date**: May 31, 2026 - 18:00
+* **Details**: Full Beta release implementing progressive Levels 1-4 and Profile achievement shelves.
+* **🎨 Visual Wireframe & Layout**: Colorful level pills (e.g. `🛡️ Lvl 2`) and achievement badges displayed in responsive shelves.
+* **🧠 Team Thinking & Rationale**: Visual rewards acknowledge the value of community volunteers and provide strong incentives for accuracy.
+* **💬 Discussions & Decisions**: Decided on rendering user badges everywhere vs restricting them to profile views. We opted for showing them near answers to build user credibility.
+* **⚠️ Errors & Roadblocks Faced**: Complex flexbox layouts broke badge alignments on smaller viewport devices.
+* **🛡️ Edge Cases Tested**: A user crossing multiple reputation levels at once on a single high-impact answer approval.
+
