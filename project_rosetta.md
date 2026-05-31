@@ -143,3 +143,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Overlapping interval ticks caused active SLA claim timer countdowns to skip numbers.
 * **🛡️ Edge Cases Tested**: Multiple volunteers attempting to claim the exact same question at the millisecond scale.
 
+### 🧪 v0.45: Vetting triggers & convert answer flow
+* **Release Date**: May 31, 2026 - 09:00
+* **Details**: Link accepted community answers to pending FAQ Request conversions.
+* **🎨 Visual Wireframe & Layout**: Visual "Verify & Promote" buttons appearing alongside accepted peer responses.
+* **🧠 Team Thinking & Rationale**: High-quality community answers represent invaluable knowledge; we need an automated way to convert them into standard platform FAQs.
+* **💬 Discussions & Decisions**: Discussed auto-publishing accepted answers vs placing them in a vetting queue. Opted for placing them in a vetting queue for moderator review.
+* **⚠️ Errors & Roadblocks Faced**: Redundant database duplicates when double-clicking the promote button rapidly.
+* **🛡️ Edge Cases Tested**: Converting answers that contain complex HTML strings or embedded images.
+
