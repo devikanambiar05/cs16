@@ -8,8 +8,17 @@ async function bootstrap() {
   try {
     await connectDB();
     console.log('Database connected');
+
+    // Auto-seed if database is empty or explicitly requested via RESET_DB=true
+    const User = require('./models/User');
+    const userCount = await User.countDocuments();
+    if (userCount === 0 || process.env.RESET_DB === 'true') {
+      console.log('Auto-seeding database...');
+      const { seedDatabase } = require('./seed');
+      await seedDatabase();
+    }
   } catch (err) {
-    console.error('Database connection failed:', err.message);
+    console.error('Database connection or seeding failed:', err.message);
     process.exit(1);
   }
 

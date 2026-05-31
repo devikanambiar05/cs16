@@ -365,12 +365,19 @@ function RaiseQueryPage() {
 
         {suggestedContributors.length > 0 && (
           <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 mt-3">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-              <span>💡</span> Suggested Active Responders in Category
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                <span>💡</span> Suggested Active Responders in Category
+              </p>
+              {taggedUsers.length >= 2 && (
+                <span className="text-[10px] text-amber-500 font-medium animate-pulse">(Max 2 tags reached)</span>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {suggestedContributors.map(contrib => {
                 const isTagged = taggedUsers.includes(contrib._id);
+                const isLimitReached = taggedUsers.length >= 2;
+                const isDisabled = !isTagged && isLimitReached;
                 return (
                   <div key={contrib._id} className="flex flex-col justify-between p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 shadow-sm">
                     <div className="min-w-0">
@@ -380,10 +387,13 @@ function RaiseQueryPage() {
                     <button
                       type="button"
                       onClick={() => toggleTagContributor(contrib)}
+                      disabled={isDisabled}
                       className={`mt-2.5 w-full py-1.5 rounded-md text-[10px] font-semibold transition-all ${
                         isTagged
                           ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
-                          : 'bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-950/30 dark:text-primary-400'
+                          : isDisabled
+                            ? 'bg-slate-100 text-slate-400 dark:bg-slate-900 dark:text-slate-600 cursor-not-allowed'
+                            : 'bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-950/30 dark:text-primary-400'
                       }`}
                     >
                       {isTagged ? '✓ Tagged' : 'Tag Contributor'}

@@ -177,4 +177,9 @@ export const createPin = (data) => api.post('/api/admin/pins', data);
 export const updatePin = (id, data) => api.patch(`/api/admin/pins/${id}`, data);
 export const deletePin = (id) => api.delete(`/api/admin/pins/${id}`);
 
+// Notifications
+export const getNotifications = () => api.get('/api/notifications');
+export const markNotificationRead = (id) => api.patch(`/api/notifications/${id}/read`);
+export const markAllNotificationsRead = () => api.patch('/api/notifications/read-all');
+
 export default api;

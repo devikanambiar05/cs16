@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Answer = require('../models/Answer');
 const Query = require('../models/Query');
+const Notification = require('../models/Notification');
 const { sendEmail } = require('./emailService');
 
 const getCategoryContributors = async (query, isExpert = false) => {
@@ -174,6 +175,16 @@ const notifyTaggedUsers = async (query, taggedUserIds) => {
     const categoryName = tag ? tag.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'General';
 
     for (const user of users) {
+      // Create in-app notification
+      await Notification.create({
+        recipient: user._id,
+        sender: query.createdBy,
+        type: 'tag',
+        title: 'Tagged in a Query',
+        message: `You were tagged in a new query: "${query.title}" in the ${categoryName} category!`,
+        link: '/community'
+      }).catch(err => console.error('Failed to create in-app notification:', err));
+
       if (!user.email || user.emailNotifications === false) continue;
 
       console.log(`[Tagging Notification] Sending email notification to tagged contributor: ${user.email}`);

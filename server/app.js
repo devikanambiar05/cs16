@@ -16,6 +16,7 @@ const searchRoutes = require('./routes/searchRoutes');
 const ragRoutes = require('./routes/ragRoutes');
 const path = require('path');
 const uploadRoutes = require('./routes/uploadRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const connectDB = require('./utils/connectDB');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
@@ -64,6 +65,7 @@ app.use('/api/faq-requests', faqRequestRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/rag', ragRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth/forgot-password', resetLimiter);

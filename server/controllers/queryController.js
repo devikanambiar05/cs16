@@ -135,6 +135,9 @@ exports.createQuery = async (req, res) => {
     if (!title || !description) {
       return res.status(400).json({ error: 'Title and description are required' });
     }
+    if (taggedUsers && Array.isArray(taggedUsers) && taggedUsers.length > 2) {
+      return res.status(400).json({ error: 'You are allowed to tag a maximum of 2 contributors' });
+    }
 
     // Cooldown: max 3 queries per 24 hours
     const COOLDOWN_LIMIT = 3;

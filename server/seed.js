@@ -104,6 +104,36 @@ async function seed() {
       questionsAsked: 3
     });
 
+    const amit = await User.create({
+      name: 'Amit Patel',
+      email: 'amit@example.com',
+      password: 'password123',
+      role: 'user',
+      reputation: 400,
+      isVerified: true,
+      answersGiven: 8
+    });
+
+    const neha = await User.create({
+      name: 'Neha Sharma',
+      email: 'neha@example.com',
+      password: 'password123',
+      role: 'user',
+      reputation: 300,
+      isVerified: true,
+      answersGiven: 6
+    });
+
+    const priya = await User.create({
+      name: 'Priya Nair',
+      email: 'priya@example.com',
+      password: 'password123',
+      role: 'user',
+      reputation: 200,
+      isVerified: true,
+      answersGiven: 4
+    });
+
     console.log('Synthetic users created successfully.');
 
     // Parse FAQs from FAQ.txt
@@ -257,6 +287,240 @@ async function seed() {
       isVetted: false
     });
 
+    // Query 5: About the Internship
+    const query5 = await Query.create({
+      title: 'What is the structure of the weekly check-ins for the internship?',
+      description: 'Can someone explain how the weekly check-ins are structured? Is it individual or team-based?',
+      tags: ['about-the-internship'],
+      createdBy: rohan._id,
+      status: 'closed',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      answerCount: 3
+    });
+
+    await Answer.create({
+      content: 'Weekly check-ins are structured as group syncs on Fridays. You will present your team progress and showcase any completed modules.',
+      queryId: query5._id,
+      userId: siddharth._id,
+      upvotes: 15,
+      isAccepted: true,
+      acceptedAt: new Date(),
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'Yes, it is mostly team-based. We present in our Slack channels and review slide decks.',
+      queryId: query5._id,
+      userId: amit._id,
+      upvotes: 8,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'I think it is individual.',
+      queryId: query5._id,
+      userId: rohan._id,
+      upvotes: 2,
+      isAccepted: false,
+      isVetted: false
+    });
+
+    // Query 6: Selection Offer Letter
+    const query6 = await Query.create({
+      title: 'Can we change the start date on our internship offer letter?',
+      description: 'I need to adjust the start date on my offer letter to align with my university holiday schedule. Who do I contact?',
+      tags: ['selection-offer-letter-and-cer'],
+      createdBy: rohan._id,
+      status: 'closed',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      answerCount: 3
+    });
+
+    await Answer.create({
+      content: 'You should email HR at admissions@faqapp.com with your offer letter and your requested revised dates.',
+      queryId: query6._id,
+      userId: pooja._id,
+      upvotes: 12,
+      isAccepted: true,
+      acceptedAt: new Date(),
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'Send a Slack message to the HR channel with your registration number and requested schedule.',
+      queryId: query6._id,
+      userId: neha._id,
+      upvotes: 7,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'I had my date shifted by calling the support team directly.',
+      queryId: query6._id,
+      userId: ananya._id,
+      upvotes: 3,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    // Query 7: NOC Certificate
+    const query6b = await Query.create({
+      title: 'How long does it take to process an NOC request?',
+      description: 'I submitted my NOC application form on Monday. When can I expect the signed PDF?',
+      tags: ['noc-no-objection-certificate'],
+      createdBy: rohan._id,
+      status: 'closed',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      answerCount: 3
+    });
+
+    await Answer.create({
+      content: 'NOC requests generally take 3-5 business days. Once signed by the registrar, it will be emailed directly to you.',
+      queryId: query6b._id,
+      userId: vikram._id,
+      upvotes: 14,
+      isAccepted: true,
+      acceptedAt: new Date(),
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'Yes, mine took exactly 4 days. Make sure your college details are correct.',
+      queryId: query6b._id,
+      userId: amit._id,
+      upvotes: 9,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'You can check your status in the Student Services portal.',
+      queryId: query6b._id,
+      userId: siddharth._id,
+      upvotes: 4,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    // Query 8: Timing and Dates
+    const query7 = await Query.create({
+      title: 'What are the daily check-in and check-out timings?',
+      description: 'Is there a strict login/logout window we need to adhere to during our remote working shifts?',
+      tags: ['timing-and-dates'],
+      createdBy: ananya._id,
+      status: 'closed',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      answerCount: 3
+    });
+
+    await Answer.create({
+      content: 'The core hours are 10 AM to 5 PM. You need to log your daily standup by 10:15 AM and checkout standdown by 5:00 PM.',
+      queryId: query7._id,
+      userId: siddharth._id,
+      upvotes: 16,
+      isAccepted: true,
+      acceptedAt: new Date(),
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'Login by 10 AM, and checkout anytime after 5 PM is acceptable as long as core tasks are submitted.',
+      queryId: query7._id,
+      userId: neha._id,
+      upvotes: 8,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'You can also request flexible hours if approved by your team lead.',
+      queryId: query7._id,
+      userId: vikram._id,
+      upvotes: 2,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    // Query 9: Work Mentorship and Projects
+    const query8 = await Query.create({
+      title: 'Who is our assigned mentor for the Phase 2 React project?',
+      description: 'We are starting our Phase 2 web application development. Has our group mentor been announced yet?',
+      tags: ['work-mentorship-and-projects'],
+      createdBy: ananya._id,
+      status: 'closed',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      answerCount: 3
+    });
+
+    await Answer.create({
+      content: 'Phase 2 mentors are listed on the Project Sheet pinned in your team Slack channel. Each team of 5 has a designated senior engineer.',
+      queryId: query8._id,
+      userId: vikram._id,
+      upvotes: 11,
+      isAccepted: true,
+      acceptedAt: new Date(),
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'Yes, check the Excel sheet on Google Drive. Our team is assigned to Amit Patel.',
+      queryId: query8._id,
+      userId: priya._id,
+      upvotes: 10,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'Check with your coordinator if your group is not listed.',
+      queryId: query8._id,
+      userId: pooja._id,
+      upvotes: 3,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    // Query 10: Certificate
+    const query9 = await Query.create({
+      title: 'How do we obtain the signed physical copy of the internship certificate?',
+      description: 'Will the physical certificates be posted to our home addresses, or is it digital only?',
+      tags: ['certificate'],
+      createdBy: ananya._id,
+      status: 'closed',
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      answerCount: 3
+    });
+
+    await Answer.create({
+      content: 'Digital certificates are issued via email. You can request a physical signed copy by paying a small courier fee in the portal.',
+      queryId: query9._id,
+      userId: pooja._id,
+      upvotes: 15,
+      isAccepted: true,
+      acceptedAt: new Date(),
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: 'You can collect it in-person from the university office on graduation day, or request shipping.',
+      queryId: query9._id,
+      userId: priya._id,
+      upvotes: 9,
+      isAccepted: false,
+      isVetted: true
+    });
+
+    await Answer.create({
+      content: ' डिजिटल कॉपी ही मिलेगी, फिजिकल के लिए आवेदन करें।',
+      queryId: query9._id,
+      userId: neha._id,
+      upvotes: 4,
+      isAccepted: false,
+      isVetted: true
+    });
+
     console.log('Seeded community Q&A successfully!');
 
     // Summary by section
@@ -268,11 +532,20 @@ async function seed() {
 
     console.log('\n✅ Seed completed successfully!');
     console.log(`\nTotal: ${inserted.length} FAQs`);
-    process.exit(0);
+    if (require.main === module) {
+      process.exit(0);
+    }
   } catch (error) {
     console.error('Seed error:', error);
-    process.exit(1);
+    if (require.main === module) {
+      process.exit(1);
+    }
+    throw error;
   }
 }
 
-seed();
+if (require.main === module) {
+  seed();
+} else {
+  module.exports = { seedDatabase: seed };
+}
