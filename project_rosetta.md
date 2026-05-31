@@ -152,3 +152,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Redundant database duplicates when double-clicking the promote button rapidly.
 * **🛡️ Edge Cases Tested**: Converting answers that contain complex HTML strings or embedded images.
 
+### 🛡️ v0.5: FAQ Vetting & Admin Moderation Queues
+* **Release Date**: May 31, 2026 - 12:00
+* **Details**: Full Beta release implementing admin vetting queue and soft-deletes.
+* **🎨 Visual Wireframe & Layout**: Moderator dashboard listing pending FAQs with interactive edit, approve, and delete inputs.
+* **🧠 Team Thinking & Rationale**: Prevent platform defacement by giving admins the power to clean and shape knowledge entries before public release.
+* **💬 Discussions & Decisions**: Hard deletes vs soft deletes. Chose soft deletes (updating active status boolean flags) to preserve auditing history.
+* **⚠️ Errors & Roadblocks Faced**: Soft-deleted entries continued to appear in full-text search results due to a missing filter flag.
+* **🛡️ Edge Cases Tested**: Admin editing and submitting a pending FAQ entry while another admin processes its deletion.
+
