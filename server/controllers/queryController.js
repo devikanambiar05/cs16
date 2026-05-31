@@ -512,6 +512,10 @@ exports.toggleFacing = async (req, res) => {
     }
 
     const userId = req.user._id;
+    if (query.createdBy.toString() === userId.toString()) {
+      return res.status(400).json({ error: 'You cannot toggle facing on your own query' });
+    }
+
     const hasFaced = query.facingUsers.some(id => id.toString() === userId.toString());
 
     if (hasFaced) {

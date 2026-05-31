@@ -661,10 +661,10 @@ function CommunityPage() {
                   <button
                     key={tab.id}
                     onClick={() => { setFilter(tab.id); setPage(1); }}
-                    className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all duration-150 ${
+                    className={`px-2.5 py-1 rounded-lg text-[11px] md:text-xs font-semibold transition-all duration-150 ${
                       filter === tab.id
                         ? 'bg-white dark:bg-[#22211e] text-primary-600 dark:text-primary-400 shadow-sm border border-slate-200/50 dark:border-slate-850'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-250'
+                        : 'text-slate-650 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-250'
                     }`}
                   >
                     {tab.label}
@@ -676,7 +676,7 @@ function CommunityPage() {
                 <select
                   value={sort}
                   onChange={e => { setSort(e.target.value); setPage(1); }}
-                  className="text-xs md:text-sm border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-slate-600 dark:text-slate-400 focus:outline-none focus:border-primary-400 dark:bg-[#191816]"
+                  className="text-[11px] md:text-xs border border-slate-205 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-slate-650 dark:text-slate-400 focus:outline-none focus:border-primary-400 dark:bg-[#191816]"
                 >
                   <option value="recent">Most Recent</option>
                   <option value="trending">Trending</option>
@@ -789,26 +789,6 @@ function CommunityPage() {
 
         {/* RIGHT COLUMN: SIDEBAR (Col 4) */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
-
-          {/* SLA Warning / Policy Card */}
-          <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-amber-500/5 dark:to-orange-500/5 border border-amber-500/20 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-            <div className="flex items-start gap-4">
-              <TimerIcon className="w-8 h-8 text-amber-600 dark:text-amber-300 shrink-0" />
-              <div>
-                <h4 className="font-serif font-bold text-amber-800 dark:text-amber-300 text-base mb-1.5">
-                  24-Hour SLA Policy
-                </h4>
-                <p className="text-xs md:text-sm text-amber-900/80 dark:text-amber-400/80 leading-relaxed">
-                  Every community query is subject to a strict 24-hour Service Level Agreement.
-                </p>
-                <ul className="list-disc list-inside text-[11px] md:text-xs text-amber-900/70 dark:text-amber-400/70 space-y-1 mt-2.5">
-                  <li>Claimed queries must receive an answer within 24h.</li>
-                  <li>Unanswered claims are released automatically.</li>
-                  <li>Breached queries receive elevated public visibility.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
 
           {/* Generic Community Statistics Card */}
           <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm select-none">
@@ -1121,13 +1101,21 @@ function QueryCard({
                     e.stopPropagation();
                     onFacingToggle(query._id);
                   }}
-                  disabled={!currentUser}
+                  disabled={!currentUser || isOwnedByCurrentUser}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-200 ${
                     query.facingUsers?.includes(currentUser?._id || currentUser?.id)
                       ? 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:bg-amber-600/20 dark:text-amber-400 dark:border-amber-550/30'
+                      : isOwnedByCurrentUser
+                      ? 'bg-slate-100 dark:bg-[#191816] border-slate-200/50 dark:border-slate-800/50 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
                       : 'bg-slate-50 border-slate-205 text-slate-650 hover:bg-slate-100 hover:border-slate-350 dark:bg-[#191816] dark:border-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-800'
                   }`}
-                  title={currentUser ? "I'm facing this issue as well" : "Sign in to signal you face this issue"}
+                  title={
+                    !currentUser 
+                      ? "Sign in to signal you face this issue"
+                      : isOwnedByCurrentUser
+                      ? "You cannot signal 'facing' on your own query"
+                      : "I'm facing this issue as well"
+                  }
                 >
                   <span>🙋‍♂️ +{query.facingCount || 0}</span>
                 </button>

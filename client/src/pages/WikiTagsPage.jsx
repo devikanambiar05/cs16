@@ -120,9 +120,42 @@ export default function WikiTagsPage() {
       }
       letterMap[key].push({
         name: tag,
-        faqs: grouped[tag].sort((a, b) => a.title.localeCompare(b.title))
+        faqs: grouped[tag].sort((a, b) => {
+          // Sort numerically if they are like '1.1 Question' or '1.2 Question'
+          const partsA = a.title.split(' ')[0].split('.').map(Number);
+          const partsB = b.title.split(' ')[0].split('.').map(Number);
+          if (partsA.every(n => !isNaN(n)) && partsB.every(n => !isNaN(n)) && partsA.length > 0 && partsB.length > 0) {
+            for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+              const numA = partsA[i] || 0;
+              const numB = partsB[i] || 0;
+              if (numA !== numB) return numA - numB;
+            }
+          }
+          return a.title.localeCompare(b.title);
+        })
       });
     });
+
+    // Natural numeric sorting for the '#' section tags (e.g., "1.1", "1.2", ..., "10.1")
+    if (letterMap['#']) {
+      letterMap['#'].sort((a, b) => {
+        const partsA = a.name.split('.').map(Number);
+        const partsB = b.name.split('.').map(Number);
+        const isNumA = partsA.every(n => !isNaN(n)) && partsA.length > 0;
+        const isNumB = partsB.every(n => !isNaN(n)) && partsB.length > 0;
+        
+        if (isNumA && !isNumB) return -1;
+        if (!isNumA && isNumB) return 1;
+        if (!isNumA && !isNumB) return a.name.localeCompare(b.name);
+
+        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+          const numA = partsA[i] || 0;
+          const numB = partsB[i] || 0;
+          if (numA !== numB) return numA - numB;
+        }
+        return a.name.localeCompare(b.name);
+      });
+    }
 
     return letterMap;
   }, [faqs, searchQuery, selectedCategory]);
