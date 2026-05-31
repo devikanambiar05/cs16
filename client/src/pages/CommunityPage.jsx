@@ -1379,46 +1379,23 @@ function QueryCard({
               {/* Answer input */}
               {!isClosed && query.status !== 'answered' && (!currentUser || (currentUser && !isOwnedByCurrentUser)) && (
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  {currentUser && !currentUser.isVolunteer ? (
-                    <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-[#2a2620] dark:to-[#312519] border border-amber-500/20 rounded-2xl p-5 text-center mt-3 relative overflow-hidden select-none">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full pointer-events-none" />
-                      <span className="text-3xl mb-2.5 block">🤝</span>
-                      <h4 className="font-serif font-bold text-slate-850 dark:text-slate-200 text-base mb-1">Volunteer as a Responder to Answer</h4>
-                      <p className="text-xs text-slate-650 dark:text-slate-400 max-w-md mx-auto mb-4 leading-relaxed">
-                        Granth responders are dedicated student peers who claim and resolve community queries under our 24-hour SLA system. Agree to the conditions and become a responder to answer.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onAnswerChange('');
-                          setShowVolunteerModal(true);
-                        }}
-                        className="px-5 py-2 bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white font-semibold rounded-xl text-xs shadow-sm hover:shadow transition-all"
-                      >
-                        Volunteer Now & Answer
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                        <EditIcon /> Your Answer
-                      </p>
-                      <RichTextEditor 
-                        value={answerContent} 
-                        onChange={onAnswerChange} 
-                        placeholder="Write a step-by-step resolution, using Markdown formats..." 
-                      />
-                      <div className="flex justify-end mt-3">
-                        <button 
-                          onClick={onSubmitAnswer} 
-                          disabled={submitting === query._id || !answerContent?.trim()}
-                          className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
-                        >
-                          {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
-                        </button>
-                      </div>
-                    </>
-                  )}
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <EditIcon /> Your Answer
+                  </p>
+                  <RichTextEditor 
+                    value={answerContent} 
+                    onChange={onAnswerChange} 
+                    placeholder="Write a step-by-step resolution, using Markdown formats..." 
+                  />
+                  <div className="flex justify-end mt-3">
+                    <button 
+                      onClick={onSubmitAnswer} 
+                      disabled={submitting === query._id || !answerContent?.trim()}
+                      className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
+                    >
+                      {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
+                    </button>
+                  </div>
                 </div>
               )}
 
