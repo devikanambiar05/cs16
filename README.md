@@ -1,7 +1,9 @@
 
 <div align="center">
   <img src="./client/src/assets/Granth-Repo-Logo.png" alt="Granth Logo" width="100%" />
+    <br><br>
     A Crowd-Sourced FAQ & Knowledge Base
+    <br><br>
 </div>
 
 <p align="center">
