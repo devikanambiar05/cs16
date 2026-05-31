@@ -1,9 +1,8 @@
-# Granth 
-A Crowd-Sourced FAQ & Knowledge Base
 
 <div align="center">
   <img src="./client/src/assets/Granth-Repo-Logo.png" alt="Granth Logo" width="100%" />
 </div>
+A Crowd-Sourced FAQ & Knowledge Base
 
 <p align="center">
   <img src="https://img.shields.io/badge/Version-1.0.0-6366f1?style=for-the-badge" alt="Version 1.0.0" />
