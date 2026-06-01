@@ -73,6 +73,7 @@ export default function Layout() {
 
   const navLinks = [
     { to: '/', label: 'FAQs' },
+    { to: '/wiki', label: 'Wiki' },
     { to: '/community', label: 'Community' },
     ...(user ? [{ to: '/leaderboard', label: 'Leaderboard' }] : []),
   ];
