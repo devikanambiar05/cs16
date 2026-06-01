@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
 import { getBookmarks, toggleBookmark, getLikedFAQs, getChatSessions, getChatSessionDetails } from '../services/api';
 import { Link } from 'react-router-dom';
+import { getVolunteerLevel, getUserBadges } from '../utils/gamificationHelper';
 
 export default function ProfilePage() {
   const { user, setBookmarks } = useAuth();
@@ -136,6 +137,59 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* Volunteer Level & Badges Card */}
+          {user.isVolunteer && getVolunteerLevel(user) && (
+            <div className="card bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.01)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.25)] backdrop-blur-md space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-serif font-bold text-base text-slate-850 dark:text-slate-100 flex items-center gap-2">
+                  🎖️ Responder Rank
+                </h3>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getVolunteerLevel(user).badgeClass}`}>
+                  {getVolunteerLevel(user).icon} {getVolunteerLevel(user).name}
+                </span>
+              </div>
+
+              {/* Level progression bar if there is a next level */}
+              {getVolunteerLevel(user).nextThreshold && (
+                <div className="space-y-2 select-none">
+                  <div className="flex items-center justify-between text-[11px] text-slate-450 dark:text-slate-500 font-semibold">
+                    <span>Progress to {getVolunteerLevel(user).nextThreshold.label}</span>
+                    <span>{user.acceptedAnswersCount} / {getVolunteerLevel(user).nextThreshold.accepted} accepts</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-850 rounded-full h-2 overflow-hidden border border-slate-200/30 dark:border-slate-800/40">
+                    <div 
+                      className="bg-primary-500 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (user.acceptedAnswersCount / getVolunteerLevel(user).nextThreshold.accepted) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 leading-normal font-light">
+                    Unlock next level at {getVolunteerLevel(user).nextThreshold.reputation} reputation points and {getVolunteerLevel(user).nextThreshold.accepted} accepted answers.
+                  </p>
+                </div>
+              )}
+
+              {/* Achievements Badges list */}
+              <div className="pt-4 border-t border-slate-150 dark:border-slate-800/80">
+                <h4 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Earned Achievements Badges</h4>
+                {getUserBadges(user).length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-2">No badges unlocked yet. Keep answering queries to earn achievements!</p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {getUserBadges(user).map(badge => (
+                      <div key={badge.id} className={`flex items-start gap-2.5 p-3 rounded-2xl border ${badge.colorClass} select-none`}>
+                        <span className="text-xl shrink-0 mt-0.5">{badge.icon}</span>
+                        <div>
+                          <h5 className="text-[11px] font-bold leading-none mb-1 uppercase tracking-wide">{badge.name}</h5>
+                          <p className="text-[10px] leading-normal opacity-85 font-light">{badge.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Tabbed Dashboard Section */}

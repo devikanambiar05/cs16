@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getLeaderboard } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { getVolunteerLevel } from '../utils/gamificationHelper';
 
 export default function LeaderboardPage() {
   const { user } = useAuth();
@@ -54,10 +55,15 @@ export default function LeaderboardPage() {
 
               {/* User info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-slate-900 truncate">{u.name}</span>
+                  {getVolunteerLevel(u) && (
+                    <span className={`px-2 py-px rounded-full text-[9px] font-bold border uppercase tracking-wider select-none shrink-0 ${getVolunteerLevel(u).badgeClass}`} title={`${getVolunteerLevel(u).name} (Level ${getVolunteerLevel(u).level})`}>
+                      {getVolunteerLevel(u).icon} Lvl {getVolunteerLevel(u).level}
+                    </span>
+                  )}
                   {u.role === 'admin' && (
-                    <span className="badge badge-red text-xs">Admin</span>
+                    <span className="badge badge-red text-xs shrink-0">Admin</span>
                   )}
                 </div>
                 <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">

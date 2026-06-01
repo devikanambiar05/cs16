@@ -13,6 +13,7 @@ export default function Layout() {
 
   const [notifications, setNotifications] = useState([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [showAnalyticsTooltip, setShowAnalyticsTooltip] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,6 +21,19 @@ export default function Layout() {
   }, []);
 
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+
+  useEffect(() => {
+    const handleVolunteerSuccess = () => {
+      setShowAnalyticsTooltip(true);
+      const timer = setTimeout(() => {
+        setShowAnalyticsTooltip(false);
+      }, 8000);
+      return () => clearTimeout(timer);
+    };
+
+    window.addEventListener('volunteer-success', handleVolunteerSuccess);
+    return () => window.removeEventListener('volunteer-success', handleVolunteerSuccess);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -215,6 +229,28 @@ export default function Layout() {
                     <button className="w-8 h-8 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold flex items-center justify-center hover:bg-primary-200 transition-colors">
                       {user.name?.charAt(0).toUpperCase()}
                     </button>
+                    
+                    {/* Analytics Tooltip pointing directly up at avatar */}
+                    {showAnalyticsTooltip && (
+                      <div className="absolute right-0 top-full mt-2 w-60 bg-amber-500 text-white rounded-xl shadow-xl p-3 z-50 animate-bounce-slow flex flex-col gap-1 border border-amber-400">
+                        <div className="absolute right-3.5 -top-1 w-3 h-3 bg-amber-500 transform rotate-45 border-l border-t border-amber-400" />
+                        <div className="flex items-start justify-between gap-1.5">
+                          <p className="text-[11px] font-bold leading-normal">
+                            📊 Responder status active! Analytics added.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setShowAnalyticsTooltip(false); }}
+                            className="text-white/80 hover:text-white transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Dropdown */}
                     <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                       <div className="px-3 py-2 border-b border-slate-100">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getVolunteerLevel, getUserBadges } from '../utils/gamificationHelper';
 import { 
   getQueries, 
   getSimilarQueries, 
@@ -856,27 +857,6 @@ function CommunityPage() {
             )}
           </div>
 
-          {/* SLA Guidelines Card */}
-          <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3.5">
-            <h4 className="font-serif font-bold text-slate-850 dark:text-slate-250 text-base flex items-center gap-2">
-              <BookIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" /> Contribution Guidelines
-            </h4>
-            <div className="space-y-3 text-xs text-slate-650 dark:text-slate-400 leading-relaxed">
-              <div className="flex gap-2">
-                <span className="text-primary-600 dark:text-primary-400 font-bold shrink-0">1.</span>
-                <p><strong>Claim responsibility:</strong> Only claim a query if you possess a high-confidence answer. Be respectful of the 24h timer.</p>
-              </div>
-              <div className="flex gap-2">
-                <span className="text-primary-600 dark:text-primary-400 font-bold shrink-0">2.</span>
-                <p><strong>Provide clear markdown:</strong> Detail step-by-step instructions. Use code snippets and diagrams where appropriate.</p>
-              </div>
-              <div className="flex gap-2">
-                <span className="text-primary-600 dark:text-primary-400 font-bold shrink-0">3.</span>
-                <p><strong>Review and upvote:</strong> Vet your peers' answers to raise their confidence score. Admins can verify high-quality inputs.</p>
-              </div>
-            </div>
-          </div>
-
         </div>
 
       </div>
@@ -918,37 +898,51 @@ function CommunityPage() {
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
+            <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1 scrollbar-thin max-h-[55vh]">
               <div className="bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-400 rounded-xl p-4 flex gap-3">
                 <TimerIcon className="w-6 h-6 text-amber-600 dark:text-amber-300 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-bold text-xs md:text-sm mb-1">24-Hour SLA Policy</h4>
+                  <h4 className="font-bold text-xs md:text-sm mb-1">24-Hour SLA Commitments</h4>
                   <p className="text-[11px] leading-relaxed text-amber-900/80 dark:text-amber-450/80">
                     To keep Grantha highly reliable and responsive, volunteers commit to our strict Service Level Agreement:
                   </p>
                 </div>
               </div>
-              
-              <div className="space-y-3.5">
-                <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
-                  <p className="text-xs text-slate-650 dark:text-slate-400 leading-relaxed">
-                    <strong>24-Hour Timeline:</strong> Once you claim a query, you must submit a step-by-step resolution within 24 hours.
-                  </p>
-                </div>
+
+              {/* Scrollable guidelines checklist inside the modal */}
+              <div className="space-y-4 pt-1">
+                <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Contribution Guidelines
+                </h4>
                 
-                <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
-                  <p className="text-xs text-slate-650 dark:text-slate-400 leading-relaxed">
-                    <strong>Automatic Release:</strong> Unresolved claims are automatically returned to the community pool after 24 hours.
-                  </p>
-                </div>
-                
-                <div className="flex items-start gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</span>
-                  <p className="text-xs text-slate-650 dark:text-slate-400 leading-relaxed">
-                    <strong>High Quality Standard:</strong> Answers should use rich markdown, clear code snippets, and be highly helpful. Irrelevant or garbage answers are penalized.
-                  </p>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 select-none">1</span>
+                    <div className="text-xs leading-relaxed text-slate-650 dark:text-slate-400">
+                      <strong className="text-slate-850 dark:text-slate-200">24-Hour Claim SLA:</strong> Once you claim a query, you commit to submitting a step-by-step resolution within 24 hours. Unresolved claims are automatically returned to the public pool.
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 select-none">2</span>
+                    <div className="text-xs leading-relaxed text-slate-650 dark:text-slate-400">
+                      <strong className="text-slate-850 dark:text-slate-200">Provide Clear Markdown:</strong> Detail your step-by-step resolution using rich markdown, clean code snippets, and helpful links. Answers must be high quality and accurate.
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 select-none">3</span>
+                    <div className="text-xs leading-relaxed text-slate-650 dark:text-slate-400">
+                      <strong className="text-slate-850 dark:text-slate-200">Review & Upvote:</strong> Vet your peers' answers to raise their confidence score. Collaborate and build trust in the Grantha community.
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 select-none">4</span>
+                    <div className="text-xs leading-relaxed text-slate-650 dark:text-slate-400">
+                      <strong className="text-slate-850 dark:text-slate-200">Reputation & Levels:</strong> Earn reputation points and accepted answers to climb ranks (Level 1 to Level 4) and unlock premium badges like Fast Responder and SLA Champion!
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -995,6 +989,9 @@ function CommunityPage() {
                     toast.success('Thank you for volunteering! Answering unlocked.');
                     setShowVolunteerModal(false);
                     setAcceptSla(false);
+                    
+                    // Dispatch the volunteer success custom event to trigger Layout's analytics tooltip
+                    window.dispatchEvent(new CustomEvent('volunteer-success'));
                     
                     // Resume the pending action
                     if (pendingAction) {
@@ -1089,8 +1086,13 @@ function QueryCard({
                 #{tag}
               </span>
             ))}
-            <span className="text-xs text-slate-400 dark:text-slate-500">
+            <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5 flex-wrap">
               by <span className="font-medium text-slate-500 dark:text-slate-400">{query.createdBy?.name || 'Unknown'}</span>
+              {getVolunteerLevel(query.createdBy) && (
+                <span className={`px-1.5 py-px rounded-full text-[8px] font-bold border uppercase tracking-wider select-none ${getVolunteerLevel(query.createdBy).badgeClass}`} title={`${getVolunteerLevel(query.createdBy).name} (Level ${getVolunteerLevel(query.createdBy).level})`}>
+                  {getVolunteerLevel(query.createdBy).icon} Lvl {getVolunteerLevel(query.createdBy).level}
+                </span>
+              )}
             </span>
             <span className="text-xs text-slate-400 dark:text-slate-500">·</span>
             <span className="text-xs text-slate-400 dark:text-slate-500">
@@ -1298,13 +1300,23 @@ function QueryCard({
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-                              <div className="flex items-center gap-2 flex-wrap">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-100">
                                   {answer.userId?.name || 'Anonymous User'}
                                 </span>
-                                <span className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold px-2 py-0.5 bg-slate-50 dark:bg-[#191816] rounded-md border border-slate-100 dark:border-slate-850">
+                                {getVolunteerLevel(answer.userId) && (
+                                  <span className={`px-1.5 py-px rounded-full text-[8px] font-bold border uppercase tracking-wider select-none ${getVolunteerLevel(answer.userId).badgeClass}`} title={`${getVolunteerLevel(answer.userId).name} (Level ${getVolunteerLevel(answer.userId).level})`}>
+                                    {getVolunteerLevel(answer.userId).icon} Lvl {getVolunteerLevel(answer.userId).level}
+                                  </span>
+                                )}
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold px-2 py-0.5 bg-slate-50 dark:bg-[#191816] rounded-md border border-slate-100 dark:border-slate-850 select-none">
                                   {answer.userId?.reputation || 0} Rep
                                 </span>
+                                {getUserBadges(answer.userId).map(badge => (
+                                  <span key={badge.id} className="text-xs shrink-0 select-none cursor-help" title={`${badge.name}: ${badge.desc}`}>
+                                    {badge.icon}
+                                  </span>
+                                ))}
                                 
                                 {answer.isAccepted ? (
                                   <span className="badge badge-green text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-0.5">
