@@ -320,10 +320,10 @@ function FAQsPage() {
         <div className="flex-1 min-w-0">
           {searchResults === null ? (
             <>
-              <CommunityBoard />
+              {!selectedCategory && <CommunityBoard />}
 
               {/* Pinned FAQs isolated section under Announcements */}
-              {pinnedFAQs.length > 0 && (
+              {!selectedCategory && pinnedFAQs.length > 0 && (
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-3 select-none">
                     <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center text-amber-600 dark:text-amber-400">

@@ -193,7 +193,7 @@ function RaiseQueryPage() {
     }
   };
 
-  const hasSuggestions = similarFAQs.length > 0 || similarQueries.length > 0 || resolvedQueries.length > 0;
+  const hasSuggestions = similarFAQs.length > 0 || (isInScope && similarQueries.length > 0) || resolvedQueries.length > 0;
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
@@ -333,7 +333,7 @@ function RaiseQueryPage() {
               </div>
             )}
 
-            {similarQueries.length > 0 && (
+            {isInScope && similarQueries.length > 0 && (
               <div className="p-4">
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">
                   Open community queries

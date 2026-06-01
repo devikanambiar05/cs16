@@ -274,3 +274,18 @@
   border-color: var(--border);
   border-top-color: var(--accent);
 }
+
+/* Underline and divider elements styling (light and dark mode) */
+.prose hr, hr {
+  border: 0;
+  border-top: 1px solid #e6dfd3 !important;
+  margin: 1.25rem 0;
+}
+.dark .prose hr, .dark hr {
+  border-top-color: #3e3b36 !important;
+}
+
+.prose u, u {
+  text-decoration: underline !important;
+  text-underline-offset: 2.5px;
+}

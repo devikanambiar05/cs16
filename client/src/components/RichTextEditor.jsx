@@ -62,7 +62,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   const toolbarButtons = [
     { label: 'B', title: 'Bold', wrap: ['**', '**'], className: 'font-bold' },
     { label: 'I', title: 'Italic', wrap: ['*', '*'], className: 'italic' },
-    { label: 'U', title: 'Underline', wrap: ['__', '__'], className: 'underline' },
+    { label: 'U', title: 'Underline', wrap: ['<u>', '</u>'], className: 'underline' },
     { label: '—', title: 'Divider', wrap: ['\n---\n', ''], className: '' },
   ];
 

@@ -114,13 +114,14 @@ export const voteAnswer = (answerId) => api.post(`/api/answers/${answerId}/vote`
 export const deleteAnswer = (id) => api.delete(`/api/answers/${id}`);
 
 // FAQs
-export const getFAQs = ({ page, pageSize, limit, search, q, tag, category } = {}) =>
+export const getFAQs = ({ page, pageSize, limit, search, q, tag, category, pinned } = {}) =>
   api.get('/api/faqs', { 
     page, 
     limit: limit || pageSize, 
     q: q || search, 
     tag, 
-    category 
+    category,
+    pinned
   });
 export const getFAQById = (id) => api.get(`/api/faqs/${id}`);
 export const getFAQ = (id) => api.get(`/api/faqs/${id}`);
