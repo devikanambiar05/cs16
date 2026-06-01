@@ -605,12 +605,14 @@ exports.createPin = async (req, res) => {
 
 exports.updatePin = async (req, res) => {
   try {
-    const { title, content, order } = req.body;
+    const { title, content, order, type, faqId } = req.body;
     const pin = await Pin.findById(req.params.id);
     if (!pin) return res.status(404).json({ error: 'Pin not found' });
     if (title !== undefined) pin.title = title;
     if (content !== undefined) pin.content = content;
     if (order !== undefined) pin.order = order;
+    if (type !== undefined) pin.type = type;
+    if (faqId !== undefined) pin.faqId = faqId || null;
     await pin.save();
     await pin.populate('pinnedBy', 'name');
     await pin.populate('faqId', 'title finalAnswer tags');

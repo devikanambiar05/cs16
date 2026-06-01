@@ -5,9 +5,51 @@ import { uploadImage } from '../services/api';
 marked.setOptions({ breaks: true, gfm: true });
 
 export function MarkdownContent({ content }) {
+  const [activeImgUrl, setActiveImgUrl] = useState(null);
+
   if (!content) return null;
   const html = marked.parse(content);
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+
+  return (
+    <>
+      <div 
+        className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200"
+        dangerouslySetInnerHTML={{ __html: html }} 
+        onClick={(e) => {
+          if (e.target.tagName === 'IMG') {
+            e.preventDefault();
+            e.stopPropagation();
+            setActiveImgUrl(e.target.src);
+          }
+        }}
+      />
+
+      {activeImgUrl && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-zoom-out animate-fade-in"
+          onClick={() => setActiveImgUrl(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+            <img 
+              src={activeImgUrl} 
+              alt="Preview" 
+              className="max-w-full max-h-[85vh] rounded-xl shadow-2xl border border-white/10 object-contain select-none animate-zoom-in"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button 
+              className="absolute top-4 right-4 bg-black/60 hover:bg-black/85 text-white/80 hover:text-white rounded-full p-2 transition-colors border border-white/10"
+              onClick={() => setActiveImgUrl(null)}
+              title="Close Preview"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 export default function RichTextEditor({ value, onChange, placeholder, readOnly = false }) {

@@ -18,8 +18,24 @@ export default function RAGChatWidget() {
   const [expandedSources, setExpandedSources] = useState(new Set());
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [activeSessionId, setActiveSessionId] = useState(null);
+  const [showProbe, setShowProbe] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem('rag-probe-dismissed');
+    if (!dismissed) {
+      const timer = setTimeout(() => {
+        setShowProbe(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const dismissProbe = () => {
+    setShowProbe(false);
+    localStorage.setItem('rag-probe-dismissed', 'true');
+  };
 
   const toggleSource = (sourceId) => {
     setExpandedSources(prev => {
@@ -73,6 +89,10 @@ export default function RAGChatWidget() {
   const sendMessage = async (e) => {
     e?.preventDefault();
     if (!input.trim() || loading) return;
+
+    if (showProbe) {
+      dismissProbe();
+    }
 
     const userText = input.trim();
     setInput('');
@@ -437,6 +457,33 @@ export default function RAGChatWidget() {
       {/* Viewport bottom gradient mask for scroll-disappear effect */}
       <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent dark:from-[#0d1117] dark:via-[#0d1117]/80 pointer-events-none z-30" />
 
+      {/* ── Tooltip Probe ── */}
+      {showProbe && (
+        <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4 animate-fade-in">
+          <div className="relative bg-gradient-to-r from-amber-500/95 to-amber-600/95 dark:from-amber-600 dark:to-amber-700 text-white p-3.5 rounded-xl shadow-xl backdrop-blur-md border border-amber-400/20 dark:border-amber-500/10 flex items-start gap-3">
+            {/* Down arrow pointing at launcher */}
+            <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-amber-600 dark:bg-amber-700 rotate-45 border-r border-b border-amber-400/20 dark:border-amber-500/10" />
+            
+            <span className="text-base shrink-0 mt-0.5 select-none">⚡</span>
+            <div className="flex-1 pr-5">
+              <h4 className="font-semibold text-[11px] uppercase tracking-wider text-amber-100/90 font-serif">AI Instant Search</h4>
+              <p className="text-xs text-white/95 mt-0.5 leading-relaxed font-medium">
+                Skip the manual exploration and get your queries instantaneously!
+              </p>
+            </div>
+            <button 
+              onClick={dismissProbe}
+              className="absolute top-2 right-2 text-white/60 hover:text-white transition-colors p-0.5 rounded-lg hover:bg-white/10"
+              title="Dismiss"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Launcher bar (always visible at bottom) ── */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4">
         <form onSubmit={sendMessage} className="relative">
@@ -449,7 +496,16 @@ export default function RAGChatWidget() {
                        hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all dark:text-slate-100"
             placeholder="Ask the FAQ assistant..."
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => {
+              setInput(e.target.value);
+              if (showProbe) dismissProbe();
+            }}
+            onFocus={() => {
+              if (showProbe) dismissProbe();
+            }}
+            onClick={() => {
+              if (showProbe) dismissProbe();
+            }}
             onKeyDown={handleKeyDown}
             disabled={loading}
           />

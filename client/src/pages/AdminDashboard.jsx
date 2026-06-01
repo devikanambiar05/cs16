@@ -185,12 +185,26 @@ export default function AdminDashboard() {
   async function handleCreatePin(e) {
     e.preventDefault();
     if (!pinTitle.trim()) return;
+
+    if (pinType === 'faq') {
+      if (!pinFaqId || !pinFaqId.trim()) {
+        showToast('FAQ ID is required for pins of type FAQ', 'error');
+        return;
+      }
+      if (!/^[0-9a-fA-F]{24}$/.test(pinFaqId.trim())) {
+        showToast('Please enter a valid 24-character MongoDB ObjectId for the FAQ ID', 'error');
+        return;
+      }
+    }
+
     try {
       if (editingPin) {
         await updatePin(editingPin._id, {
           title: pinTitle,
-          content: pinContent,
-          order: Number(pinOrder)
+          content: pinType !== 'faq' ? pinContent : null,
+          faqId: pinType === 'faq' ? pinFaqId.trim() : null,
+          order: Number(pinOrder),
+          type: pinType
         });
         showToast('Pin updated', 'success');
       } else {
@@ -198,7 +212,7 @@ export default function AdminDashboard() {
           type: pinType,
           title: pinTitle,
           content: pinType !== 'faq' ? pinContent : null,
-          faqId: pinType === 'faq' ? pinFaqId : null,
+          faqId: pinType === 'faq' ? pinFaqId.trim() : null,
           order: Number(pinOrder)
         });
         showToast('Pin created', 'success');
@@ -628,67 +642,93 @@ export default function AdminDashboard() {
 
       {/* Pins */}
       {activeTab === 'Pins' && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Pins</h2>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-850 pb-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 font-serif">Pins Administration</h2>
+              <p className="text-xs text-slate-500 mt-1">Manage announcements, platform overviews, and persistent homepage FAQ spotlights.</p>
+            </div>
             <button
-              onClick={() => setShowPinForm(true)}
-              className="btn-primary text-sm"
+              onClick={() => {
+                closePinForm();
+                setShowPinForm(true);
+              }}
+              className="btn-primary text-sm flex items-center gap-1.5 shadow-sm"
             >
-              + New Pin
+              <span>+</span> New Pin
             </button>
           </div>
 
           {pinsLoading ? (
-            <p className="text-slate-500">Loading...</p>
+            <div className="flex justify-center py-12">
+              <div className="spinner" />
+            </div>
           ) : pins.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-400 text-sm">No pins yet. Create one to get started.</p>
+            <div className="text-center py-16 bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+              <span className="text-3xl">📌</span>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-3 font-medium">No pins active on the platform feed.</p>
+              <p className="text-xs text-slate-400 mt-1">Create an announcement, overview, or FAQ pin to pin content to the top.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pins.map(pin => (
                 <div
                   key={pin._id}
-                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-start justify-between gap-4"
+                  className="card flex flex-col justify-between border border-slate-200/60 dark:border-slate-800/80 bg-white/70 dark:bg-[#1f1e1b]/40 backdrop-blur-sm shadow-sm hover:border-primary-400/50 dark:hover:border-primary-500/40 transition-all duration-300"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`badge ${
+                  <div className="space-y-3 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`badge uppercase tracking-wider text-[9px] px-2.5 py-0.5 font-bold ${
                         pin.type === 'faq' ? 'badge-blue' :
                         pin.type === 'announcement' ? 'badge-yellow' :
                         'badge-green'
                       }`}>
                         {pin.type}
                       </span>
-                      <span className="text-xs text-slate-400">order: {pin.order}</span>
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-555 flex items-center gap-1 uppercase select-none">
+                        Order Index: <span className="text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-850 px-1.5 py-0.5 rounded">{pin.order}</span>
+                      </span>
                     </div>
-                    <p className="font-medium text-slate-900 dark:text-slate-100 truncate">{pin.title}</p>
-                    {pin.type !== 'faq' && pin.content && (
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{pin.content}</p>
-                    )}
-                    {pin.type === 'faq' && pin.faqId && (
-                      <p className="text-xs text-slate-400 mt-1">
-                        FAQ: {pin.faqId.title || pin.faqId._id}
-                      </p>
-                    )}
-                    {pin.pinnedBy && (
-                      <p className="text-xs text-slate-400 mt-1">by {pin.pinnedBy.name || 'admin'}</p>
-                    )}
+
+                    <div>
+                      <p className="font-semibold text-slate-900 dark:text-slate-100 text-base leading-snug font-serif">{pin.title}</p>
+                      {pin.type !== 'faq' && pin.content && (
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed line-clamp-3 whitespace-pre-wrap font-sans">
+                          {pin.content}
+                        </p>
+                      )}
+                      {pin.type === 'faq' && pin.faqId && (
+                        <div className="mt-2.5 p-2.5 rounded-lg bg-primary-50/20 dark:bg-primary-950/5 border border-primary-100/30 dark:border-primary-900/10">
+                          <p className="text-[10px] font-bold text-primary-500 uppercase tracking-wider mb-1">Spotlight FAQ Link</p>
+                          <p className="text-xs font-semibold text-slate-755 dark:text-slate-300 truncate">
+                            {pin.faqId.title || "Untitled FAQ"}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5 truncate">ID: {pin.faqId._id || pin.faqId}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => openEditPin(pin)}
-                      className="text-primary-600 hover:underline text-xs whitespace-nowrap"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeletePin(pin._id)}
-                      className="text-red-500 hover:underline text-xs whitespace-nowrap"
-                    >
-                      Remove
-                    </button>
+
+                  <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 mt-4 pt-3 select-none">
+                    <div className="text-[10px] text-slate-405 flex items-center gap-1.5">
+                      <span>👤 Pinned by</span>
+                      <span className="font-semibold text-slate-600 dark:text-slate-350">{pin.pinnedBy?.name || 'Admin'}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => openEditPin(pin)}
+                        className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-350 text-xs font-bold transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeletePin(pin._id)}
+                        className="text-red-500 hover:text-red-650 text-xs font-bold transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -697,78 +737,90 @@ export default function AdminDashboard() {
 
           {/* Create/Edit Pin Modal */}
           {showPinForm && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
-                <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    {editingPin ? 'Edit Pin' : 'New Pin'}
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-2xl shadow-2xl w-full max-w-md animate-zoom-in">
+                <div className="px-6 py-4.5 border-b border-slate-200 dark:border-slate-800/85 flex items-center justify-between">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 font-serif">
+                    {editingPin ? '✏️ Modify Active Pin' : '📌 Create Spotlight Pin'}
                   </h3>
+                  <button onClick={closePinForm} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-250 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
                 <form onSubmit={handleCreatePin} className="p-6 space-y-4">
-                  {!editingPin && (
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Type</label>
-                      <select
-                        value={pinType}
-                        onChange={e => setPinType(e.target.value)}
-                        className="input w-full"
-                      >
-                        <option value="announcement">Announcement</option>
-                        <option value="overview">Overview</option>
-                        <option value="faq">FAQ</option>
-                      </select>
-                    </div>
-                  )}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Pin Type</label>
+                    <select
+                      value={pinType}
+                      onChange={e => setPinType(e.target.value)}
+                      className="input w-full py-2.5 text-sm"
+                    >
+                      <option value="announcement">Announcement Card</option>
+                      <option value="overview">Platform Overview Text</option>
+                      <option value="faq">Spotlight FAQ Document</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Title</label>
                     <input
                       type="text"
                       value={pinTitle}
                       onChange={e => setPinTitle(e.target.value)}
-                      className="input w-full"
-                      placeholder="Pin title"
+                      className="input w-full py-2.5 text-sm"
+                      placeholder="e.g. Phase 2 Registration Deadline"
                       required
                     />
                   </div>
-                  {pinType !== 'faq' && (
+
+                  {pinType !== 'faq' ? (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Content</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Content Body</label>
                       <textarea
                         value={pinContent}
                         onChange={e => setPinContent(e.target.value)}
-                        className="input w-full"
+                        className="input w-full font-sans py-2 text-sm leading-relaxed"
                         rows={4}
-                        placeholder="Pin content..."
+                        placeholder="Write announcement body or platform description details here..."
+                        required
                       />
                     </div>
-                  )}
-                  {pinType === 'faq' && (
+                  ) : (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">FAQ ID</label>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1 flex items-center justify-between">
+                        <span>FAQ Linked ID</span>
+                        <span className="text-[10px] text-slate-400 normal-case font-normal">(24-char Mongoose ObjectId)</span>
+                      </label>
                       <input
                         type="text"
                         value={pinFaqId}
                         onChange={e => setPinFaqId(e.target.value)}
-                        className="input w-full"
-                        placeholder="MongoDB ObjectId of FAQ"
+                        className="input w-full py-2.5 text-sm font-mono"
+                        placeholder="e.g. 66567634f19b22204c00010c"
+                        required
                       />
                     </div>
                   )}
+
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Order</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Display Order Index</label>
                     <input
                       type="number"
                       value={pinOrder}
                       onChange={e => setPinOrder(e.target.value)}
-                      className="input w-full"
+                      className="input w-full py-2.5 text-sm"
                       placeholder="0"
                       min="0"
                     />
+                    <p className="text-[10px] text-slate-400 mt-1">Lower order numbers appear first. Default is 0.</p>
                   </div>
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={closePinForm} className="btn-secondary">Cancel</button>
-                    <button type="submit" className="btn-primary">
-                      {editingPin ? 'Save' : 'Create'}
+
+                  <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 mt-5">
+                    <button type="button" onClick={closePinForm} className="btn-outline px-4 py-2">Cancel</button>
+                    <button type="submit" className="btn-primary px-5 py-2">
+                      {editingPin ? 'Save Changes' : 'Publish Pin'}
                     </button>
                   </div>
                 </form>
