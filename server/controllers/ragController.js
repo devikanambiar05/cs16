@@ -48,8 +48,9 @@ function bm25Score(queryTokens, docTokens, docLen, avgDL, df, N) {
 
 // ─── Semantic Cache ──────────────────────────────────────────────────────────
 
+const RAG_CACHE_CAP = 150; // light-weight process foot-print to avoid heavy memory consumption
 const semanticCache = new Map(); // maps lowercased query string to { answer: string, sources: Array, faqsFound: number }
-const MAX_CACHE_SIZE = 1000;
+const MAX_CACHE_SIZE = RAG_CACHE_CAP;
 
 // Simple Jaccard similarity between two token arrays
 function jaccardSimilarity(tokensA, tokensB) {
@@ -266,7 +267,7 @@ async function buildRagIndex() {
 
 // ─── Ollama streaming call ───────────────────────────────────────────────────
 
-async function askOllamaStream(question, context, onChunk) {
+async function askOllamaStream(question, context, onChunk, externalSignal) {
   const baseUrl = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
   const model = process.env.OLLAMA_MODEL || 'llama3';
 
@@ -288,6 +289,16 @@ ANSWER (only reference FAQ titles, never say "FAQ 1", "FAQ 2", etc.):`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60000);
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener('abort', () => {
+        controller.abort();
+      });
+    }
+  }
 
   try {
     const response = await fetch(`${baseUrl}/api/generate`, {
@@ -334,6 +345,16 @@ ANSWER (only reference FAQ titles, never say "FAQ 1", "FAQ 2", etc.):`;
 exports.buildRagIndex = buildRagIndex;
 
 exports.ragChat = async (req, res) => {
+  const abortController = new AbortController();
+
+  // Gracefully handle client connection close/abort to terminate LLM streams instantly
+  req.on('close', () => {
+    if (!abortController.signal.aborted) {
+      console.log('[RAG] Client request closed early. Aborting active Ollama generation fetch stream...');
+      abortController.abort();
+    }
+  });
+
   try {
     const { question } = req.body;
 
@@ -507,7 +528,7 @@ exports.ragChat = async (req, res) => {
     await askOllamaStream(q, context, (chunk) => {
       answerText += chunk;
       res.write(JSON.stringify({ token: chunk }) + '\n');
-    });
+    }, abortController.signal);
 
     // Save newly generated LLM answer to Semantic Cache
     if (answerText.trim().length > 0) {

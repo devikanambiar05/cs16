@@ -160,10 +160,28 @@ exports.createQuery = async (req, res) => {
       });
     }
 
-    //Reject if this query is clearly a duplicate of an already-answered question
+    // Reject if this query is clearly a duplicate of an already-answered question
     const { jaccardSimilarity } = require('./searchController');
-    const rawQueries = await Query.find({ status: { $ne: 'closed' }, deletedAt: null })
-      .select('_id title description').lean();
+
+    // Lexical pre-filtering using text search index to restrict candidate pool to at most 30 items
+    let rawQueries = [];
+    try {
+      rawQueries = await Query.find({
+        status: { $ne: 'closed' },
+        deletedAt: null,
+        $text: { $search: title }
+      })
+      .select('_id title description')
+      .limit(30)
+      .lean();
+    } catch (err) {
+      // Safe fallback if index is not ready or text search fails
+      rawQueries = await Query.find({ status: { $ne: 'closed' }, deletedAt: null })
+        .select('_id title description')
+        .limit(100)
+        .lean();
+    }
+
     for (const q of rawQueries) {
       const sim = jaccardSimilarity(title, q.title);
       if (sim >= 0.85) {
@@ -188,9 +206,25 @@ exports.createQuery = async (req, res) => {
       }
     }
 
-    // Reject duplicates against resolved FAQs (title Jaccard ≥ 0.80)
-    const allFaqs = await FAQ.find({ status: 'resolved', deletedAt: null })
-      .select('_id title finalAnswer').lean();
+    // Reject duplicates against resolved FAQs (title Jaccard ≥ 0.80) using lexical pre-filtering
+    let allFaqs = [];
+    try {
+      allFaqs = await FAQ.find({
+        status: 'resolved',
+        deletedAt: null,
+        $text: { $search: title }
+      })
+      .select('_id title finalAnswer')
+      .limit(30)
+      .lean();
+    } catch (err) {
+      // Safe fallback
+      allFaqs = await FAQ.find({ status: 'resolved', deletedAt: null })
+        .select('_id title finalAnswer')
+        .limit(100)
+        .lean();
+    }
+
     for (const faq of allFaqs) {
       const sim = jaccardSimilarity(title, faq.title);
       if (sim >= 0.80) {

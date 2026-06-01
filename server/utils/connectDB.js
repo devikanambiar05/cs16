@@ -5,12 +5,16 @@ module.exports = function connectDB(uri) {
     .then(async () => {
       console.log('MongoDB Connected');
       try {
-        // Ensure Query model indexes are built to prevent "failed to load queries" search crashes
+        // Ensure both Query and FAQ model indexes are built to prevent full-text search crashes
         const Query = require('../models/Query');
-        await Query.ensureIndexes();
-        console.log('Query search text indexes verified');
+        const FAQ = require('../models/FAQ');
+        await Promise.all([
+          Query.ensureIndexes(),
+          FAQ.ensureIndexes()
+        ]);
+        console.log('Query and FAQ full-text search indexes verified');
       } catch (err) {
-        console.warn('Query indexing warning (non-fatal):', err.message);
+        console.warn('Indexing warning (non-fatal):', err.message);
       }
     })
     .catch((err) => {
