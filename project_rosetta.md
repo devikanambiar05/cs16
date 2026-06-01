@@ -197,3 +197,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Stream chunk rendering caused major browser lagging on long text generations.
 * **🛡️ Edge Cases Tested**: Gracefully handling empty vector search matches, prompting the AI to recommend asking a community member instead.
 
+### 🛑 v0.75: Stream Abort controller connection listeners
+* **Release Date**: June 01, 2026 - 13:00
+* **Details**: Save server memory cycles by instantly terminating Ollama runs on tab close.
+* **🎨 Visual Wireframe & Layout**: Active UI loading cancel buttons and instant streaming cancellation animations.
+* **🧠 Team Thinking & Rationale**: Unfinished streaming processes consume precious server resources. Closing a tab must cancel active RAG calls.
+* **💬 Discussions & Decisions**: Timeout polling checks vs direct connection listener triggers. Chose standard HTTP request `close` event listeners.
+* **⚠️ Errors & Roadblocks Faced**: Unhandled exception triggers when attempting to close stream resources that had already completed.
+* **🛡️ Edge Cases Tested**: Users repeatedly opening, starting, and closing streaming chats in rapid succession.
+
