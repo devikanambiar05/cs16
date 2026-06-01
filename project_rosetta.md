@@ -206,3 +206,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Unhandled exception triggers when attempting to close stream resources that had already completed.
 * **🛡️ Edge Cases Tested**: Users repeatedly opening, starting, and closing streaming chats in rapid succession.
 
+### 🔒 v0.8: Memory cache caps & relaxed global API limits
+* **Release Date**: June 01, 2026 - 17:00
+* **Details**: Full RC release clamping RAG cache sizes and relaxing rate limits (1000reqs).
+* **🎨 Visual Wireframe & Layout**: High-frequency API diagnostic logs showing cache limits and request statistics.
+* **🧠 Team Thinking & Rationale**: Active polling endpoints can trigger false rate limit blocks. Cache caps prevent server out-of-memory crashes.
+* **💬 Discussions & Decisions**: Chose 200 requests/15-min limits vs a relaxed 1000 limit with dynamic environment variable support.
+* **⚠️ Errors & Roadblocks Faced**: Automated client notifications polling triggered rapid rate limit blocks across active tabs.
+* **🛡️ Edge Cases Tested**: Simulating high load from hundreds of parallel browser instances.
+
