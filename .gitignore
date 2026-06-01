@@ -6,4 +6,6 @@ dist/
 .cache/
 
 issues.md
-server/data/
+server/data/
+RAG_INFERENCE_EXPERIMENTS.md
+team-wiki-pages

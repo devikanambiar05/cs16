@@ -1105,18 +1105,18 @@ function QueryCard({
                     e.stopPropagation();
                     onFacingToggle(query._id);
                   }}
-                  disabled={!currentUser || isOwnedByCurrentUser || currentUser.role === 'admin'}
+                  disabled={!currentUser || isOwnedByCurrentUser || currentUser?.role === 'admin'}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-200 ${
                     query.facingUsers?.includes(currentUser?._id || currentUser?.id)
                       ? 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:bg-amber-600/20 dark:text-amber-400 dark:border-amber-550/30'
-                      : (isOwnedByCurrentUser || currentUser.role === 'admin')
+                      : (isOwnedByCurrentUser || currentUser?.role === 'admin')
                       ? 'bg-slate-100 dark:bg-[#191816] border-slate-200/50 dark:border-slate-800/50 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
                       : 'bg-slate-50 border-slate-205 text-slate-650 hover:bg-slate-100 hover:border-slate-350 dark:bg-[#191816] dark:border-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-800'
                   }`}
                   title={
                     !currentUser 
                       ? "Sign in to signal you face this issue"
-                      : currentUser.role === 'admin'
+                      : currentUser?.role === 'admin'
                       ? "Admins cannot signal 'facing' on queries"
                       : isOwnedByCurrentUser
                       ? "You cannot signal 'facing' on your own query"
