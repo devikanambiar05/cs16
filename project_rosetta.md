@@ -1,130 +1,124 @@
 # 📖 Project Rosetta - Master Development Ledger
 
-Welcome to the **Project Rosetta** master ledger. This document chronicles the version-by-version evolutionary releases of the **Grantha** platform, leading up to our **v1.0 MVP** launch. Each milestone records our core feature integrations, architectural advancements, and structural shifts.
+Welcome to the **Project Rosetta** master ledger. This document chronicles the version-by-version evolutionary releases of the **Grantha** platform, leading up to our **v0.9 MVP Candidate** launch today. Each milestone records our core feature integrations, architectural advancements, and structural shifts.
 
 ---
 
 ## 🧭 Release Timeline Summary
 
-| Version | Release Date | Stage | Primary Focus |
+| Version | Release Date & Time | Stage | Primary Focus |
 | :---: | :--- | :--- | :--- |
-| **`v0.1`** | May 02, 2026 | Pre-Alpha | Monorepo Setup & Server Bootstrapping |
-| **`v0.2`** | May 05, 2026 | Pre-Alpha | Database Modeling & Seeding Engines |
-| **`v0.3`** | May 08, 2026 | Alpha | Secure Sessioning & Multi-Role Auth |
-| **`v0.4`** | May 12, 2026 | Alpha | Collaborative Q&A Forum & Claims System |
-| **`v0.5`** | May 16, 2026 | Beta | FAQ Vetting & Admin Moderation Queues |
-| **`v0.6`** | May 20, 2026 | Beta | Reputation Levels & Gamified Badging |
-| **`v0.7`** | May 24, 2026 | Release Candidate | Conversational RAG AI Chatbot Assistant |
-| **`v0.8`** | May 27, 2026 | Release Candidate | Resource Safety, Abort Signals, & Limits |
-| **`v0.9`** | May 30, 2026 | MVP Candidate | UI/UX Refinements & Click-to-View Previews |
-| **`v1.0`** | June 02, 2026 | MVP Launch | GitHub Actions Workflows & Admin Dashboards |
+| **`v0.01`**| May 28, 2026 - 09:00 | Pre-Alpha | Scaffold initial monorepo structure |
+| **`v0.05`**| May 28, 2026 - 15:00 | Pre-Alpha | Express API connection & local Vite link |
+| **`v0.1`** | May 28, 2026 - 20:00 | Pre-Alpha | Monorepo Setup & Base Bootstrap Release |
+| **`v0.11`**| May 29, 2026 - 09:00 | Pre-Alpha | Initial Mongoose DB schemas design |
+| **`v0.12`**| May 29, 2026 - 12:00 | Pre-Alpha | Raw FAQ text seeding script parsing |
+| **`v0.13`**| May 29, 2026 - 15:00 | Pre-Alpha | Concurrent database text indexes checks |
+| **`v0.2`** | May 29, 2026 - 18:00 | Pre-Alpha | Knowledge Base Schema & Seed Verified |
+| **`v0.22`**| May 29, 2026 - 21:00 | Alpha | JWT stateless tokens authentication |
+| **`v0.28`**| May 30, 2026 - 09:00 | Alpha | Admin tier authorization middleware checks |
+| **`v0.3`** | May 30, 2026 - 12:00 | Alpha | Secure Sessioning & Multi-Role Auth |
+| **`v0.35`**| May 30, 2026 - 16:00 | Alpha | Community board lists open queries routes |
+| **`v0.4`** | May 30, 2026 - 20:00 | Alpha | Q&A Forum, RichText Editor, & Claim Locks |
+| **`v0.45`**| May 31, 2026 - 09:00 | Beta | Vetting triggers & convert answer flow |
+| **`v0.5`** | May 31, 2026 - 12:00 | Beta | FAQ Vetting & Admin Moderation Queues |
+| **`v0.55`**| May 31, 2026 - 15:00 | Beta | Reputation calculators & level tier metrics |
+| **`v0.6`** | May 31, 2026 - 18:00 | Beta | Reputation Levels & Gamified Badges |
+| **`v0.612`**|May 31, 2026 - 21:00 | Beta | Granular profiling of reputation milestones |
+| **`v0.7`** | June 01, 2026 - 09:00 | Release Candidate | Conversational RAG AI Chatbot Assistant |
+| **`v0.75`**| June 01, 2026 - 13:00 | Release Candidate | Stream Abort controller connection listeners |
+| **`v0.8`** | June 01, 2026 - 17:00 | Release Candidate | Memory cache caps & relaxed global API limits |
+| **`v0.85`**| June 02, 2026 - 09:00 | MVP Candidate | UI/UX Refinements, Visual highlights, & click previews |
+| **`v0.9`** | June 02, 2026 - 12:00 | MVP Candidate | MVP Candidate Launch - auto-assign workflows & Admin dashboard |
 
 ---
 
 ## 📦 Version History logs
 
-### 🎓 v0.1: Foundations & Monorepo Bootstrap
-* **Release Date**: May 02, 2026
-* **Objective**: Scaffold the standard codebase structure and initialize the Node.js server and Vite React client shells.
-* **Key Achievements**:
-  * Scaffolds the dual-directory structure (`/client` and `/server`).
-  * Structured root `package.json` scripting for seamless parallel local dev startups (`npm run dev`).
-  * Verified baseline Express.js server router connections and health checks on port `5000`.
-  * Scaffolded initial Tailwind base layers and default landing routes on the React frontend.
+### 🎓 v0.01: Scaffold initial monorepo structure
+* **Release Date**: May 28, 2026 - 09:00
+* **Details**: Scaffold baseline file-trees and initialize repository packages.
 
----
+### 🔌 v0.05: Express API connection & local Vite link
+* **Release Date**: May 28, 2026 - 15:00
+* **Details**: Establish local REST networking endpoints between node server and client.
 
-### 🗄️ v0.2: Database Modeling & Seeding Engines
-* **Release Date**: May 05, 2026
-* **Objective**: Design the Mongo schemas and build a robust parsing engine to populate the database with original student FAQs.
-* **Key Achievements**:
-  * Designed schemas for `User.js`, `FAQ.js`, `Query.js`, and `Pin.js` using Mongoose.
-  * Engineered `parseFaqTxt.js` to parse raw text FAQs containing tags, categories, questions, and final answers.
-  * Added automated database full-text search indexes (`title` and `description` text indexes) inside Mongoose models to allow lexical pre-filtering.
+### 📦 v0.1: Monorepo Setup & Base Bootstrap Release
+* **Release Date**: May 28, 2026 - 20:00
+* **Details**: Baseline pre-alpha release verifying clean monorepo builds.
 
----
+### 📐 v0.11: Initial Mongoose DB schemas design
+* **Release Date**: May 29, 2026 - 09:00
+* **Details**: Design schemas for active models (`User`, `FAQ`, `Query`, `Pin`).
+
+### 📂 v0.12: Raw FAQ text seeding script parsing
+* **Release Date**: May 29, 2026 - 12:00
+* **Details**: Build parser to migrate raw unstructured text documents to Mongo.
+
+### 🔍 v0.13: Concurrent database text indexes checks
+* **Release Date**: May 29, 2026 - 15:00
+* **Details**: Sync full-text search indexes on Mongo initialization to prevent searches crash.
+
+### 🗄️ v0.2: Knowledge Base Schema & Seed Verified
+* **Release Date**: May 29, 2026 - 18:00
+* **Details**: Full pre-alpha release verifying complete DB seeding and search indexes.
+
+### 🔐 v0.22: JWT stateless tokens authentication
+* **Release Date**: May 29, 2026 - 21:00
+* **Details**: Implement stateless JSON Web Token cookies exchange.
+
+### 🛡️ v0.28: Admin tier authorization middleware checks
+* **Release Date**: May 30, 2026 - 09:00
+* **Details**: Guard REST routes against unauthorized role manipulations.
 
 ### 🔑 v0.3: Secure Sessioning & Multi-Role Auth
-* **Release Date**: May 08, 2026
-* **Objective**: Build a secure account system supporting stateless sessions and role authorization.
-* **Key Achievements**:
-  * Integrated JSON Web Tokens (JWT) for secure, stateless user session verification.
-  * Implemented password salting and hashing using `bcryptjs`.
-  * Outfitted routers with `protect` and `adminOnly` middlewares.
-  * Standardized three authorization tiers: **Guests** (read-only FAQs), **Members** (raise queries/bookmark), and **Admins** (moderate/pin content).
+* **Release Date**: May 30, 2026 - 12:00
+* **Details**: Full Alpha release enabling Guest, Member, and Admin sessioning.
 
----
+### 📋 v0.35: Community board lists open queries routes
+* **Release Date**: May 30, 2026 - 16:00
+* **Details**: Construct backend endpoints to retrieve open peer questions feed.
 
-### 🤝 v0.4: Collaborative Q&A Forum & Claims System
-* **Release Date**: May 12, 2026
-* **Objective**: Introduce community Q&A features to allow peer-driven knowledge gathering.
-* **Key Achievements**:
-  * Built the main **Community Board** displaying open student questions.
-  * Engineered a secure, atomic **Claim-to-Answer** locking mechanism (`claimQuery` and `releaseQuery`) to prevent redundant work by responders.
-  * Integrated a custom Markdown rich-text editor (`RichTextEditor.jsx`) supporting bold, italic, and upload-capable image embedding.
+### 🤝 v0.4: Q&A Forum, RichText Editor, & Claim Locks
+* **Release Date**: May 30, 2026 - 20:00
+* **Details**: Full Alpha release with RichText editor image uploads and Claim locks.
 
----
+### 🧪 v0.45: Vetting triggers & convert answer flow
+* **Release Date**: May 31, 2026 - 09:00
+* **Details**: Link accepted community answers to pending FAQ Request conversions.
 
 ### 🛡️ v0.5: FAQ Vetting & Admin Moderation Queues
-* **Release Date**: May 16, 2026
-* **Objective**: Close the loop between community-sourced answers and official verified FAQs.
-* **Key Achievements**:
-  * Enabled admins to accept answers, automatically closing the original query and converting the solution into a pending FAQ Request.
-  * Designed the Admin Moderation Queue dashboard tab to approve or reject pending FAQ additions.
-  * Added soft-deletion fields (`deletedAt`) to FAQ schemas, permitting admins to hide documents without destroying audit trails.
+* **Release Date**: May 31, 2026 - 12:00
+* **Details**: Full Beta release implementing admin vetting queue and soft-deletes.
 
----
+### 📊 v0.55: Reputation calculators & level tier metrics
+* **Release Date**: May 31, 2026 - 15:00
+* **Details**: Formulate reputation tiers and gamified milestones.
 
-### 🏆 v0.6: Reputation Levels & Gamified Badging
-* **Release Date**: May 20, 2026
-* **Objective**: Design and build a progressive volunteering system to incentivize high-quality responder contributions.
-* **Key Achievements**:
-  * Implemented central gamification reputation formulas:
-    * **Lvl 1: Volunteer** 🎓 (Base tier)
-    * **Lvl 2: Expert Responder** 🛡️ (100+ rep & 3+ accepted answers)
-    * **Lvl 3: Elite Scholar** 🧠 (300+ rep & 10+ accepted answers)
-    * **Lvl 4: Grantha Master** 🌳 (800+ rep & 25+ accepted answers)
-  * Integrated five earned achievement badges: **Fast Responder** ⚡, **First Citizen** 🥇, **Peer Mentor** 🤝, **SLA Champion** 🏆, and **Popular Voice** 🔥.
-  * Created a dedicated "Achievements Shelf" inside the user Profile Page with progress bars and dynamic tooltip descriptions.
+### 🏆 v0.6: Reputation Levels & Gamified Badges
+* **Release Date**: May 31, 2026 - 18:00
+* **Details**: Full Beta release implementing progressive Levels 1-4 and Profile achievement shelves.
 
----
+### 🌳 v0.612: Granular profiling of reputation milestones
+* **Release Date**: May 31, 2026 - 21:00
+* **Details**: Elite verification detailing progressive badge limits (Highly granular).
 
 ### 💬 v0.7: Conversational RAG AI Chatbot Assistant
-* **Release Date**: May 24, 2026
-* **Objective**: Incorporate an intelligent LLM assistant to let users self-serve query answers instantly.
-* **Key Achievements**:
-  * Built a hybrid semantic retrieval search controller (`ragController.js`) utilizing local `Ollama` language generation.
-  * Designed a floating, draggable conversation panel and launcher bar (`RAGChatWidget.jsx`) pinned at the viewport bottom.
-  * Configured in-place expandable reference cards showing the exact source FAQs used to formulate the AI's response.
+* **Release Date**: June 01, 2026 - 09:00
+* **Details**: Full RC release integrating floating Ollama LLM conversation streams.
 
----
+### 🛑 v0.75: Stream Abort controller connection listeners
+* **Release Date**: June 01, 2026 - 13:00
+* **Details**: Save server memory cycles by instantly terminating Ollama runs on tab close.
 
-### 🔒 v0.8: Resource Safety, Abort Signals, & Limits
-* **Release Date**: May 27, 2026
-* **Objective**: Guard the platform against resource depletion, memory leaks, and excessive request polling.
-* **Key Achievements**:
-  * Implemented client `close` event listeners to dispatch `AbortController.abort()` to Ollama, instantly freeing GPU/CPU cycles if the chat is closed.
-  * Capped semantic RAG caching to a lightweight 150-entry threshold to safeguard Node process memory.
-  * Relaxed global API rate limits (`RATE_LIMIT_MAX=1000` per 15 minutes) and optimized notifications background polling intervals to prevent false rate-limit blockages.
+### 🔒 v0.8: Memory cache caps & relaxed global API limits
+* **Release Date**: June 01, 2026 - 17:00
+* **Details**: Full RC release clamping RAG cache sizes and relaxing rate limits (1000reqs).
 
----
+### 🎨 v0.85: UI/UX Refinements, Visual highlights, & click previews
+* **Release Date**: June 02, 2026 - 09:00
+* **Details**: visual query card highlights, volunteer analytics success tooltips, and click-to-view markdown image modal zooms.
 
-### 🎨 v0.9: UI/UX Refinements & Click-to-View Previews
-* **Release Date**: May 30, 2026
-* **Objective**: Refine frontend user flows, resolve rendering bugs, and introduce click-to-zoom images.
-* **Key Achievements**:
-  * Added visual query pulse animation highlights that scroll new queries into center view for 2 seconds.
-  * Designed an automatic **"Analytics Unlocked"** success tooltip popover floating under the profile menu upon onboarding.
-  * Bound image clicks inside the `<MarkdownContent />` renderer to launch a blurred backdrop modal overlay (`animate-zoom-in`), keeping descriptions clean.
-  * Decoupled Category bevel selections from Pinned FAQs so pinned FAQs remain sticky at the top of the feed across all filters.
-
----
-
-### 🚀 v1.0: GitHub Actions Workflows & Admin Dashboards
-* **Release Date**: June 02, 2026
-* **Objective**: Launch the MVP with automated issue workflows, robust admin panels, and Project Rosetta tracking.
-* **Key Achievements**:
-  * Created `.github/workflows/auto-assign.yml` to support automated issue creator assignment and comment-based self-assignment triggers (`/assign` / `.take`).
-  * Redesigned the Admin Pins dashboard tab into high-fidelity Obsidian Bronze card grids.
-  * Enabled full editing of pin fields (Type, FAQ ID, Title, Content, Order) and built client-side hexadecimal regex checks to prevent Mongoose ObjectId crashes.
-  * Completed the **Project Rosetta Changelog Ledger** to act as the primary evolutionary system document.
+### 🚀 v0.9: MVP Candidate Launch - auto-assign workflows & Admin dashboard
+* **Release Date**: June 02, 2026 - 12:00
+* **Details**: Complete MVP Candidate launch introducing auto-assign Actions workflow and premium Obsidian Pins dashboard with Hex ObjectId regex validations.
