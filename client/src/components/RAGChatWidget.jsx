@@ -259,9 +259,9 @@ export default function RAGChatWidget() {
       {/* ── Dialog Overlay ── */}
       {dialogOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop */}
+          {/* Backdrop (no blur) */}
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/30"
             onClick={closeDialog}
           />
 
