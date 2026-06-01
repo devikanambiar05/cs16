@@ -1,6 +1,6 @@
 
 <div align="center">
-  <img src="./client/src/assets/Grantha-Repo-Logo.png" alt="Grantha Logo" width="100%" />
+  <img src="./client/src/assets/grantha.png" alt="Granth Logo" width="100%" />
     A Crowd-Sourced FAQ & Knowledge Base
     <br><br>
 </div>
@@ -24,9 +24,9 @@
 
 ## 📖 Introduction
 
-**Grantha** is a crowd-sourced MERN stack FAQ management and community learning platform. Designed with sleek visuals, dark mode compatibility, and high interactivity, Grantha allows community members to search for FAQs, raise peer-to-peer queries, upvote answers, and unlock gamified reputation scores. 
+**Granth** is a crowd-sourced MERN stack FAQ management and community learning platform. Designed with sleek visuals, dark mode compatibility, and high interactivity, Granth allows community members to search for FAQs, raise peer-to-peer queries, upvote answers, and unlock gamified reputation scores. 
 
-Grantha also features a state-of-the-art **RAG (Retrieval-Augmented Generation) Chat Widget** that queries the local database and streams semantic FAQ answers directly to users in real-time, accompanied by a custom fading bottom mask for smooth scrolling physics.
+Granth also features a state-of-the-art **RAG (Retrieval-Augmented Generation) Chat Widget** that queries the local database and streams semantic FAQ answers directly to users in real-time, accompanied by a custom fading bottom mask for smooth scrolling physics.
 
 ---
 
@@ -72,9 +72,9 @@ Create a `.env` configuration file in the `server` folder:
 ```bash
 cp server/.env.example server/.env
 ```
-Ensure your configuration points to the Grantha local database:
+Ensure your configuration points to the Granth local database:
 ```env
-MONGO_URI=mongodb://localhost:27017/Grantha
+MONGO_URI=mongodb://localhost:27017/Granth
 JWT_SECRET=your-secret-key-goes-here
 PORT=5000
 RESET_DB=false
@@ -93,7 +93,7 @@ Launch the client and server processes concurrently inside Vite's dev sandbox:
 ```bash
 npm run dev
 ```
-Grantha is now running at `http://localhost:5173` (Client) and `http://localhost:5000` (Server)!
+Granth is now running at `http://localhost:5173` (Client) and `http://localhost:5000` (Server)!
 
 ---
 
@@ -124,4 +124,4 @@ cs16/
 ---
 
 ## 🛡️ License
-Grantha is licensed under the [MIT License](LICENSE). Built with ❤️ by Grantha.
+Granth is licensed under the [MIT License](LICENSE). Built with ❤️ by Vicharanashala.
