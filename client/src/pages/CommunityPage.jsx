@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { getVolunteerLevel, getUserBadges } from '../utils/gamificationHelper';
 import { 
   getQueries, 
@@ -251,8 +251,33 @@ function getConfidenceInfo(score) {
 function CommunityPage() {
   const { user, updateUser } = useAuth();
   const toast = useToast();
+  const location = useLocation();
 
   const [queries, setQueries] = useState([]);
+  const [highlightedQueryId, setHighlightedQueryId] = useState(null);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const highlightId = queryParams.get('highlight');
+    if (highlightId) {
+      setHighlightedQueryId(highlightId);
+      setExpandedQuery(highlightId);
+
+      // Smooth scroll to card
+      setTimeout(() => {
+        const element = document.getElementById(`query-card-${highlightId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+
+      // Dismiss highlight after 2 seconds
+      const timer = setTimeout(() => {
+        setHighlightedQueryId(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.search]);
   const [expandedQuery, setExpandedQuery] = useState(null);
   const [answerContent, setAnswerContent] = useState({});
   const [editingQueryId, setEditingQueryId] = useState(null);
@@ -350,9 +375,9 @@ function CommunityPage() {
     }
   };
 
-  const handleClaimQuery = async (queryId) => {
+  const handleClaimQuery = async (queryId, bypassVolunteerCheck = false) => {
     if (!user) { toast.warning('Please sign in to claim a query'); return; }
-    if (!user.isVolunteer) {
+    if (!user.isVolunteer && !bypassVolunteerCheck) {
       setPendingAction({ type: 'claim', queryId });
       setShowVolunteerModal(true);
       return;
@@ -396,11 +421,11 @@ function CommunityPage() {
     }
   };
 
-  const handleSubmitAnswer = async (queryId) => {
+  const handleSubmitAnswer = async (queryId, bypassVolunteerCheck = false) => {
     const content = answerContent[queryId];
     if (!content?.trim()) { toast.warning('Please write an answer before submitting.'); return; }
     if (!user) { toast.warning('Please sign in to answer.'); return; }
-    if (!user.isVolunteer) {
+    if (!user.isVolunteer && !bypassVolunteerCheck) {
       setPendingAction({ type: 'answer', queryId });
       setShowVolunteerModal(true);
       return;
@@ -514,9 +539,9 @@ function CommunityPage() {
     }
   };
 
-  const handleTakeQuestion = async () => {
+  const handleTakeQuestion = async (bypassVolunteerCheck = false) => {
     if (!user) { toast.warning('Please sign in to take a question'); return; }
-    if (!user.isVolunteer) {
+    if (!user.isVolunteer && !bypassVolunteerCheck) {
       setPendingAction({ type: 'take' });
       setShowVolunteerModal(true);
       return;
@@ -761,6 +786,7 @@ function CommunityPage() {
                     submitting={submitting}
                     currentUser={user}
                     onFacingToggle={handleFacingToggle}
+                    isHighlighted={highlightedQueryId === query._id}
                   />
                 ))}
               </div>
@@ -998,11 +1024,11 @@ function CommunityPage() {
                       const action = pendingAction;
                       setPendingAction(null);
                       if (action.type === 'claim') {
-                        handleClaimQuery(action.queryId);
+                        handleClaimQuery(action.queryId, true);
                       } else if (action.type === 'take') {
-                        handleTakeQuestion();
+                        handleTakeQuestion(true);
                       } else if (action.type === 'answer') {
-                        handleSubmitAnswer(action.queryId);
+                        handleSubmitAnswer(action.queryId, true);
                       }
                     }
                   } catch (err) {
@@ -1033,7 +1059,8 @@ function QueryCard({
   onClaimQuery, onUnclaimQuery, onStartEdit,
   isEditing, editForm, onEditFormChange, onSaveEdit, onCancelEdit,
   similarQueries,
-  submitting, currentUser, onFacingToggle
+  submitting, currentUser, onFacingToggle,
+  isHighlighted
 }) {
   const assignedToId = query.assignedTo ? (query.assignedTo._id || query.assignedTo) : null;
   const isAssignedToCurrentUser = currentUser && assignedToId && assignedToId === (currentUser._id || currentUser.id);
@@ -1046,7 +1073,13 @@ function QueryCard({
   return (
     <div 
       id={`query-card-${query._id}`} 
-      className={`bg-white dark:bg-[#22211e] rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-[0_1px_3px_0_rgb(0_0_0/0.06)] hover:shadow-[0_4px_12px_0_rgb(0_0_0/0.08)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 ${isClosed ? 'opacity-70' : ''}`}
+      className={`bg-white dark:bg-[#22211e] rounded-xl border p-5 shadow-[0_1px_3px_0_rgb(0_0_0/0.06)] hover:shadow-[0_4px_12px_0_rgb(0_0_0/0.08)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 ${
+        isClosed ? 'opacity-70' : ''
+      } ${
+        isHighlighted 
+          ? 'ring-2 ring-primary-500/80 border-primary-500/80 bg-primary-50/10 dark:bg-primary-950/20 scale-[1.01]' 
+          : 'border-slate-200 dark:border-slate-800'
+      }`}
     >
       {/* Header — always visible */}
       <div className="flex items-start gap-4 cursor-pointer" onClick={onToggle}>

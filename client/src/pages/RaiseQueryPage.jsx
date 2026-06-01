@@ -154,13 +154,13 @@ function RaiseQueryPage() {
 
     try {
       setSubmitting(true);
-      await createQuery({
+      const res = await createQuery({
         title: form.title.trim(),
         description: form.description.trim(),
         tags,
         taggedUsers
       });
-      navigate('/community');
+      navigate(`/community?highlight=${res.data.query._id}`);
     } catch (err) {
       const data = err.response?.data;
       if (data?.duplicateFaqId) {

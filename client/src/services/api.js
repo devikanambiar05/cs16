@@ -58,9 +58,9 @@ export const resetPassword = (token, password) => api.post('/api/auth/reset-pass
 export const resendVerification = () => api.post('/api/auth/resend-verification', {});
 
 // Users
-export const getCurrentUser = () => api.get('/api/users/me');
-export const updateProfile = (data) => api.patch('/api/users/me', data);
-export const fetchUserProfile = () => api.get('/api/users/me');
+export const getCurrentUser = () => api.get('/api/auth/me');
+export const updateProfile = (data) => api.patch('/api/users/profile', data);
+export const fetchUserProfile = () => api.get('/api/auth/me');
 export const getUserById = (id) => api.get(`/api/users/${id}`);
 export const fetchUserStats = (id) => api.get(`/api/users/${id}/stats`);
 export const getLeaderboard = (params) => api.get('/api/users/leaderboard', params);
