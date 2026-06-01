@@ -3,7 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { saveChatSession } from '../services/api';
 
 const LOADING_PHASES = [
-  "Anveshana (अन्वेषण) — Searching Granth knowledge base...",
+  "Anveshana (अन्वेषण) — Searching Grantha knowledge base...",
   "Manana (मनन) — Reflecting on the context...",
   "Chintana (चिन्तन) — Formulating a response..."
 ];

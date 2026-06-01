@@ -90,7 +90,7 @@ export default function Layout() {
               <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white text-sm font-bold">G</span>
               </div>
-              <span className="font-semibold text-slate-900 text-base hidden sm:block">Granth</span>
+              <span className="font-semibold text-slate-900 text-base hidden sm:block">Grantha</span>
             </Link>
 
             {/* Desktop nav */}
@@ -313,7 +313,7 @@ export default function Layout() {
               <div className="w-5 h-5 bg-primary-600 rounded flex items-center justify-center">
                 <span className="text-white text-xs font-bold">G</span>
               </div>
-              <span>Granth</span>
+              <span>Grantha</span>
             </div>
             <div className="flex items-center gap-4">
               <Link to="/" className="hover:text-primary-600 transition-colors">FAQs</Link>

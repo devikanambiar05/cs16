@@ -8,7 +8,7 @@
 
 ## Repository & Team
 
-- **Repo:** https://github.com/vicharanashala/cs16
+- **Repo:** https://github.com/grantha/cs16
 - **Live at:** `C:\Users\vaibh\Downloads\opensourcefaq\cs16`
 - **Owner:** Vee (Vaibhav)
 - **Email:** admin@faqapp.com (admin account)

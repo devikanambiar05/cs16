@@ -4,7 +4,7 @@ const Query = require('./models/Query');
 const User = require('./models/User');
 
 async function clean() {
-  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Granth');
+  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Grantha');
   console.log('Connected to MongoDB');
 
   // Find the test users

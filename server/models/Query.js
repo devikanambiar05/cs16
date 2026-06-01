@@ -122,5 +122,6 @@ querySchema.index({ assignedTo: 1 });
 querySchema.index({ createdBy: 1 });
 querySchema.index({ tags: 1 });
 querySchema.index({ expiresAt: 1, status: 1 }); // For SLA cron
+querySchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 module.exports = mongoose.model('Query', querySchema);

@@ -9,7 +9,7 @@ const parseFAQtxt = require('./parseFaqTxt');
 
 async function seed(force = false) {
   try {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Granth');
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Grantha');
     console.log('Connected to MongoDB');
 
     // Guard: require RESET_DB=true to proceed with destructive seed
@@ -185,7 +185,7 @@ async function seed(force = false) {
     // Insert default community board pins
     const announcementPin = await Pin.create({
       type: 'announcement',
-      title: 'Granth 2026 Summership is Live!',
+      title: 'Grantha 2026 Summership is Live!',
       content: 'Welcome all interns! Please make sure to check ViBe LMS daily for course announcements and progress score updates.',
       pinnedBy: admin._id,
       order: 0
@@ -194,7 +194,7 @@ async function seed(force = false) {
     const overviewPin = await Pin.create({
       type: 'overview',
       title: 'Overview',
-      content: 'Granth is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!',
+      content: 'Grantha is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!',
       pinnedBy: admin._id,
       order: 1
     });
@@ -248,7 +248,7 @@ async function seed(force = false) {
     });
 
     const answer3 = await Answer.create({
-      content: "The final project repository is hosted on the organization's GitHub under `vicharanashala/cs16`. You don't need to fork it directly; instead, create a private repository following the instructions in the project description and add the reviewers as collaborators.",
+      content: "The final project repository is hosted on the organization's GitHub under `grantha/cs16`. You don't need to fork it directly; instead, create a private repository following the instructions in the project description and add the reviewers as collaborators.",
       queryId: query3._id,
       userId: pooja._id,
       upvotes: 12,

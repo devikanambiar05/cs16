@@ -106,7 +106,7 @@ function LoginPage() {
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-1">
-            {isLogin ? 'Welcome Back' : 'Join Granth'}
+            {isLogin ? 'Welcome Back' : 'Join Grantha'}
           </h1>
           <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
             {isLogin

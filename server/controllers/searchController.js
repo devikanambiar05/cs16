@@ -225,8 +225,8 @@ exports.searchSimilar = async (req, res) => {
     }
 
     const scopeKeywords = [
-      'granth', 'vicharanashala', 'vins', 'vise', 'summership', 'iit ropar', 'internship',
-      'noc', 'offer letter', 'certificate', 'rosetta', 'vibe', 'yaksha', 'samagama',
+      'grantha', 'vins', 'vise', 'summership', 'iit ropar', 'internship',
+      'noc', 'offer letter', 'certificate', 'rosetta', 'vibe', 'yaksha',
       'phase', 'bronze', 'silver', 'gold', 'platinum', 'badge', 'mentor', 'team formation',
       'team', 'group', 'partner', 'form a team', 'quiz', 'live session', 'coursework', 'proctor', 'proctoring',
       'leave', 'attendance', 'stipend', 'laptop', 'linux', 'ssh', 'project', 'work',

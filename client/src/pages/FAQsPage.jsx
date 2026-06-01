@@ -59,6 +59,7 @@ function FAQsPage() {
   const [searchTotal, setSearchTotal] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
   const [allFAQs, setAllFAQs] = useState([]);
+  const [pinnedFAQs, setPinnedFAQs] = useState([]);
   const [overview, setOverview] = useState(null);
   const [categoryContributors, setCategoryContributors] = useState([]);
   const [categoryContributorsLoading, setCategoryContributorsLoading] = useState(false);
@@ -67,8 +68,18 @@ function FAQsPage() {
   useEffect(() => {
     loadCategories();
     loadAllFAQs();
+    loadPinnedFAQs();
     loadOverview();
   }, []);
+
+  const loadPinnedFAQs = async () => {
+    try {
+      const res = await getFAQs({ pinned: 'true', limit: 100 });
+      setPinnedFAQs(res.data?.faqs || []);
+    } catch (err) {
+      console.error('Failed to load pinned FAQs:', err);
+    }
+  };
 
   const loadOverview = async () => {
     try {
@@ -130,6 +141,7 @@ function FAQsPage() {
           tag: allowed.tag,
           name: allowed.name,
           _id: matched?._id || allowed.tag,
+          id: matched?._id || allowed.tag,
           count: matched?.count || 0
         };
       }).filter(c => c.count > 0);
@@ -203,6 +215,7 @@ function FAQsPage() {
         f._id === faqId ? { ...f, upvotes: res.data.upvotes } : f
       );
       setCategoryFAQs(updateFAQ);
+      setPinnedFAQs(updateFAQ);
       if (searchResults) setSearchResults(updateFAQ(searchResults));
       if (allFAQs) setAllFAQs(updateFAQ(allFAQs));
     } catch (err) {
@@ -220,13 +233,14 @@ function FAQsPage() {
       setCategoryFAQs(updateFAQ);
       if (searchResults) setSearchResults(updateFAQ(searchResults));
       if (allFAQs) setAllFAQs(updateFAQ(allFAQs));
+      loadPinnedFAQs();
     } catch (err) {
       // silently fail
     }
   };
 
   const selectCategory = (cat) => {
-    if (selectedCategory?.id === cat.id) {
+    if (selectedCategory?.tag === cat.tag) {
       setSelectedCategory(null);
       setCategoryFAQs([]);
     } else {
@@ -255,12 +269,7 @@ function FAQsPage() {
           {categories.map(cat => (
             <button
               key={cat._id || cat.tag}
-              onClick={() => {
-                setSelectedCategory(cat);
-                setSearchResults(null);
-                setSearchQuery('');
-                loadCategoryFAQs(cat.tag, 1);
-              }}
+              onClick={() => selectCategory(cat)}
               className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
                 selectedCategory?.tag === cat.tag
                   ? 'bg-primary-600 text-white'
@@ -288,7 +297,7 @@ function FAQsPage() {
             </div>
             
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap mt-1">
-              {overview?.content || 'Granth is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
+              {overview?.content || 'Grantha is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
               {' '}
               <Link to="/wiki" className="text-primary-600 dark:text-primary-400 hover:underline font-semibold select-none">
                 [Wiki]
@@ -318,18 +327,42 @@ function FAQsPage() {
             <>
               <CommunityBoard />
 
+              {/* Pinned FAQs isolated section under Announcements */}
+              {pinnedFAQs.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-3 select-none">
+                    <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center text-amber-600 dark:text-amber-400">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="17" x2="12" y2="22"></line>
+                        <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.9A3 3 0 0 1 15.56 9.3V5a2 2 0 0 0-2-2h-3.12a2 2 0 0 0-2 2v4.3a3 3 0 0 1-.67 1.8l-2.33 2.9a2 2 0 0 0-.44 1.24Z"></path>
+                      </svg>
+                    </div>
+                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                      Pinned FAQs
+                    </h2>
+                  </div>
+                  <div className="space-y-3 bg-amber-50/20 dark:bg-amber-950/5 border border-amber-200/40 dark:border-amber-900/10 p-4 rounded-2xl">
+                    {pinnedFAQs.map(faq => (
+                      <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* No category selected — show all FAQs */}
               {!selectedCategory && (
                 <section>
                   {loading ? (
                     <div className="flex justify-center py-10"><div className="spinner" /></div>
-                  ) : allFAQs.length === 0 ? (
-                    <p className="text-slate-400 text-sm py-8 text-center">No FAQs yet. Be the first to add one!</p>
                   ) : (
                     <div className="space-y-3">
-                      {allFAQs.map(faq => (
+                      {/* Unpinned FAQs */}
+                      {allFAQs.filter(faq => !faq.pinned).map(faq => (
                         <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
                       ))}
+                      {allFAQs.filter(faq => !faq.pinned).length === 0 && (
+                        <p className="text-slate-400 text-sm py-8 text-center">No FAQs yet. Be the first to add one!</p>
+                      )}
                     </div>
                   )}
                 </section>
@@ -349,13 +382,15 @@ function FAQsPage() {
                   </div>
                   {loading ? (
                     <div className="flex justify-center py-10"><div className="spinner" /></div>
-                  ) : categoryFAQs.length === 0 ? (
-                    <p className="text-slate-400 text-sm py-8 text-center">No FAQs in this topic yet.</p>
                   ) : (
                     <div className="space-y-3">
-                      {categoryFAQs.map(faq => (
+                      {/* Unpinned category FAQs */}
+                      {categoryFAQs.filter(faq => !faq.pinned).map(faq => (
                         <FAQItem key={faq._id} faq={faq} onUpvote={handleUpvote} onPin={handlePin} user={user} />
                       ))}
+                      {categoryFAQs.filter(faq => !faq.pinned).length === 0 && (
+                        <p className="text-slate-400 text-sm py-8 text-center">No FAQs in this topic yet.</p>
+                      )}
                     </div>
                   )}
                   {faqTotal > PAGE_SIZE && (
@@ -428,10 +463,10 @@ function FAQsPage() {
             <div className="space-y-0.5">
               {recentCategories.map(cat => (
                 <button
-                  key={cat.id}
+                  key={cat.id || cat._id || cat.tag}
                   onClick={() => selectCategory(cat)}
                   className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-all ${
-                    selectedCategory?.id === cat.id
+                    selectedCategory?.tag === cat.tag
                       ? 'bg-primary-100 text-primary-700 font-semibold'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`}
@@ -439,7 +474,7 @@ function FAQsPage() {
                   <span className="flex items-center justify-between gap-1">
                     <span className="truncate">{cat.name}</span>
                     <span className={`text-xs shrink-0 ${
-                      selectedCategory?.id === cat.id ? 'text-primary-500' : 'text-slate-400'
+                      selectedCategory?.tag === cat.tag ? 'text-primary-500' : 'text-slate-400'
                     }`}>
                       {cat.count}
                     </span>
@@ -569,41 +604,51 @@ function FAQItem({ faq, onUpvote, onPin, user, compact = false }) {
             
             {/* Upvotes */}
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => onUpvote(faq._id)}
-                disabled={!user}
-                className="hover:text-primary-600 transition-colors disabled:cursor-not-allowed"
-                title={user ? 'Upvote' : 'Sign in to upvote'}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                </svg>
-              </button>
+              {user?.role === 'admin' ? (
+                <div className="text-slate-400 flex items-center gap-1 select-none" title="Admins cannot upvote FAQs">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
+                </div>
+              ) : (
+                <button
+                  onClick={() => onUpvote(faq._id)}
+                  disabled={!user}
+                  className="hover:text-primary-600 transition-colors disabled:cursor-not-allowed"
+                  title={user ? 'Upvote' : 'Sign in to upvote'}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+              )}
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{faq.upvotes}</span>
             </div>
 
             {/* Bookmark */}
-            <button
-              onClick={handleBookmarkToggle}
-              className={`hover:text-primary-600 transition-colors ${
-                isBookmarked ? 'text-primary-600' : 'text-slate-350 dark:text-slate-500'
-              }`}
-              title={user ? (isBookmarked ? 'Remove bookmark' : 'Bookmark FAQ') : 'Sign in to bookmark'}
-            >
-              <svg
-                className="w-4 h-4"
-                fill={isBookmarked ? 'currentColor' : 'none'}
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth="2"
+            {user?.role !== 'admin' && (
+              <button
+                onClick={handleBookmarkToggle}
+                className={`hover:text-primary-600 transition-colors ${
+                  isBookmarked ? 'text-primary-600' : 'text-slate-350 dark:text-slate-500'
+                }`}
+                title={user ? (isBookmarked ? 'Remove bookmark' : 'Bookmark FAQ') : 'Sign in to bookmark'}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="w-4 h-4"
+                  fill={isBookmarked ? 'currentColor' : 'none'}
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"
+                  />
+                </svg>
+              </button>
+            )}
 
             {/* Share */}
             <button
@@ -632,8 +677,9 @@ function FAQItem({ faq, onUpvote, onPin, user, compact = false }) {
                 className={`hover:text-amber-500 transition-colors ${faq.pinned ? 'text-amber-500' : ''}`}
                 title={faq.pinned ? 'Unpin FAQ' : 'Pin FAQ'}
               >
-                <svg className="w-4 h-4" fill={faq.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                <svg className="w-4 h-4" fill={faq.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="17" x2="12" y2="22"></line>
+                  <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.9A3 3 0 0 1 15.56 9.3V5a2 2 0 0 0-2-2h-3.12a2 2 0 0 0-2 2v4.3a3 3 0 0 1-.67 1.8l-2.33 2.9a2 2 0 0 0-.44 1.24Z"></path>
                 </svg>
               </button>
             )}

@@ -592,21 +592,23 @@ function CommunityPage() {
               Join forces with other developers to resolve active queries. Take ownership, contribute accurate answers, and build your community reputation under our 24-hour SLA framework.
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <button 
-              onClick={handleTakeQuestion} 
-              disabled={loading} 
-              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <TargetIcon className="w-4 h-4 inline-block text-white" /> Take a Question
-            </button>
-            <Link 
-              to="/ask" 
-              className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 text-center"
-            >
-              Raise a Query
-            </Link>
-          </div>
+          {user?.role !== 'admin' && (
+            <div className="flex items-center gap-3 shrink-0">
+              <button 
+                onClick={handleTakeQuestion} 
+                disabled={loading} 
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+              >
+                <TargetIcon className="w-4 h-4 inline-block text-white" /> Take a Question
+              </button>
+              <Link 
+                to="/ask" 
+                className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 text-center"
+              >
+                Raise a Query
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
@@ -701,9 +703,11 @@ function CommunityPage() {
               <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xs mx-auto mb-4">
                 We couldn't find any queries matching your active filters or search criteria.
               </p>
-              <Link to="/ask" className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold inline-block">
-                Raise a Query
-              </Link>
+              {user?.role !== 'admin' && (
+                <Link to="/ask" className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold inline-block">
+                  Raise a Query
+                </Link>
+              )}
             </div>
           ) : (
             <>
@@ -920,7 +924,7 @@ function CommunityPage() {
                 <div>
                   <h4 className="font-bold text-xs md:text-sm mb-1">24-Hour SLA Policy</h4>
                   <p className="text-[11px] leading-relaxed text-amber-900/80 dark:text-amber-450/80">
-                    To keep Granth highly reliable and responsive, volunteers commit to our strict Service Level Agreement:
+                    To keep Grantha highly reliable and responsive, volunteers commit to our strict Service Level Agreement:
                   </p>
                 </div>
               </div>
@@ -1038,7 +1042,7 @@ function QueryCard({
   const isAssignedToCurrentUser = currentUser && assignedToId && assignedToId === (currentUser._id || currentUser.id);
   const isOwnedByCurrentUser = currentUser && query.createdBy && (query.createdBy._id || query.createdBy) === (currentUser._id || currentUser.id);
   const isClosed = query.status === 'closed';
-  const canClaim = !isClosed && !assignedToId && currentUser && !isOwnedByCurrentUser;
+  const canClaim = !isClosed && !assignedToId && currentUser && currentUser.role !== 'admin' && !isOwnedByCurrentUser;
   const canRelease = !isClosed && isAssignedToCurrentUser;
   const isEditSubmitting = submitting === 'edit-' + query._id;
 
@@ -1101,17 +1105,19 @@ function QueryCard({
                     e.stopPropagation();
                     onFacingToggle(query._id);
                   }}
-                  disabled={!currentUser || isOwnedByCurrentUser}
+                  disabled={!currentUser || isOwnedByCurrentUser || currentUser.role === 'admin'}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-200 ${
                     query.facingUsers?.includes(currentUser?._id || currentUser?.id)
                       ? 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:bg-amber-600/20 dark:text-amber-400 dark:border-amber-550/30'
-                      : isOwnedByCurrentUser
+                      : (isOwnedByCurrentUser || currentUser.role === 'admin')
                       ? 'bg-slate-100 dark:bg-[#191816] border-slate-200/50 dark:border-slate-800/50 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
                       : 'bg-slate-50 border-slate-205 text-slate-650 hover:bg-slate-100 hover:border-slate-350 dark:bg-[#191816] dark:border-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-800'
                   }`}
                   title={
                     !currentUser 
                       ? "Sign in to signal you face this issue"
+                      : currentUser.role === 'admin'
+                      ? "Admins cannot signal 'facing' on queries"
                       : isOwnedByCurrentUser
                       ? "You cannot signal 'facing' on your own query"
                       : "I'm facing this issue as well"
@@ -1316,12 +1322,19 @@ function QueryCard({
                               </div>
                               
                               <div className="flex items-center gap-3">
-                                <button 
-                                  onClick={() => onUpvoteAnswer(answer._id)} 
-                                  className="text-xs bg-slate-50 dark:bg-[#191816] hover:bg-primary-50 dark:hover:bg-primary-950/20 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 px-2 py-1 rounded-lg transition-all duration-150 flex items-center gap-1 font-semibold"
-                                >
-                                  <ChevronUpIcon /> {answer.upvotes || 0}
-                                </button>
+                                {currentUser?.role === 'admin' ? (
+                                  <div className="text-xs bg-slate-50 dark:bg-[#191816] border border-slate-200 dark:border-slate-800 text-slate-450 px-2 py-1 rounded-lg flex items-center gap-1 font-semibold select-none" title="Admins cannot upvote answers">
+                                    <ChevronUpIcon /> {answer.upvotes || 0}
+                                  </div>
+                                ) : (
+                                  <button 
+                                    onClick={() => onUpvoteAnswer(answer._id)} 
+                                    className="text-xs bg-slate-50 dark:bg-[#191816] hover:bg-primary-50 dark:hover:bg-primary-950/20 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 px-2 py-1 rounded-lg transition-all duration-150 flex items-center gap-1 font-semibold"
+                                    title={currentUser ? 'Upvote answer' : 'Sign in to upvote'}
+                                  >
+                                    <ChevronUpIcon /> {answer.upvotes || 0}
+                                  </button>
+                                )}
                                 
                                 {!answer.isVetted && currentUser && (currentUser.role === 'admin' || currentUser.reputation >= 100) && (
                                   <button 
@@ -1365,7 +1378,7 @@ function QueryCard({
               )}
 
               {/* Answer input */}
-              {!isClosed && query.status !== 'answered' && (!currentUser || (currentUser && !isOwnedByCurrentUser)) && (
+              {!isClosed && query.status !== 'answered' && (!currentUser || (currentUser && !isOwnedByCurrentUser && currentUser.role !== 'admin')) && (
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                     <EditIcon /> Your Answer

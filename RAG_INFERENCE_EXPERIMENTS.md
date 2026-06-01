@@ -1,4 +1,4 @@
-# Granth RAG Inference Acceleration Experiments
+# Grantha RAG Inference Acceleration Experiments
 
 This document logs our experimental techniques to accelerate MERN-stack FAQ RAG query inference times from seconds/minutes to **instantaneous (< 10ms)**.
 
@@ -10,12 +10,12 @@ This document logs our experimental techniques to accelerate MERN-stack FAQ RAG 
 
 ---
 
-## Neurosymbolic RAG: Why Granth is Already Neurosymbolic
+## Neurosymbolic RAG: Why Grantha is Already Neurosymbolic
 A **Neurosymbolic AI** system combines:
 * **Symbolic AI (Rules, Logic, Math)**: Uses discrete, structured representations (tokenizers, stopword sets, frequency models, exact match keywords, scoring algorithms like BM25).
 * **Neural AI (Deep Learning, LLMs)**: Uses continuous vector spaces (neural embeddings, Llama3 generative models, semantic validation).
 
-In Granth, our current architecture is already a neurosymbolic pipeline:
+In Grantha, our current architecture is already a neurosymbolic pipeline:
 1. **Symbolic Phase**: The query is tokenized, stopwords are discarded, and an in-memory **BM25 TF-IDF ranker** selects the top-5 documents mathematically.
 2. **Neural Phase**: The BM25 context is passed to **Ollama Llama3** to synthesize a cohesive natural language response.
 3. **Symbolic Fallback**: If the neural generator (Ollama) is offline, the pipeline short-circuits to the top BM25 match and streams it back.
@@ -46,7 +46,7 @@ graph TD
 ```
 
 ### Experiment 1: High-Confidence Short-Circuit Routing (Pure Symbolic Shortcut)
-* **The Concept**: Since Granth contains human-curated and resolved FAQs, if a query yields a very high BM25 match score against an existing FAQ title/content (e.g., score > `2.5`), we bypass Llama3 generation entirely. We return that resolved FAQ's `finalAnswer` instantly.
+* **The Concept**: Since Grantha contains human-curated and resolved FAQs, if a query yields a very high BM25 match score against an existing FAQ title/content (e.g., score > `2.5`), we bypass Llama3 generation entirely. We return that resolved FAQ's `finalAnswer` instantly.
 * **Expected Latency**: **< 5ms**
 * **Advantage**: Bypasses neural synthesis when a perfect answer is already in the database.
 

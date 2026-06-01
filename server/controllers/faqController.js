@@ -5,9 +5,13 @@ const Pin = require('../models/Pin');
 // Get all FAQs with search, filter, pagination
 exports.getFAQs = async (req, res) => {
   try {
-    const { q, tag, status = 'resolved', sort = 'recent', page = 1, limit = 20 } = req.query;
+    const { q, tag, status = 'resolved', sort = 'recent', page = 1, limit = 20, pinned } = req.query;
 
     const query = { status: 'resolved', deletedAt: null };
+    
+    if (pinned === 'true') {
+      query.pinned = true;
+    }
     
     // Regex-based substring search for high compatibility and partial matching
     if (q) {

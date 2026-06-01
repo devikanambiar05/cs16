@@ -9,7 +9,7 @@ Thank you for your interest in contributing! This document covers how to set up,
 ### 1. Fork and Clone
 
 ```bash
-git clone https://github.com/vicharanashala/cs16.git
+git clone https://github.com/grantha/cs16.git
 cd cs16
 ```
 

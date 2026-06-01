@@ -3,7 +3,7 @@ require('dotenv').config();
 const FAQ = require('./models/FAQ');
 
 async function check() {
-  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Granth');
+  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Grantha');
   console.log('Connected to MongoDB');
 
   const faq = await FAQ.findOne({ tags: '3.8' });

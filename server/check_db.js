@@ -5,7 +5,7 @@ const client = new MongoClient(uri);
 
 async function main() {
   await client.connect();
-  const db = client.db('Granth');
+  const db = client.db('Grantha');
   const collections = await db.listCollections().toArray();
   console.log('Collections:', collections.map(c => c.name).join(', '));
   

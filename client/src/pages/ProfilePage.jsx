@@ -257,7 +257,7 @@ export default function ProfilePage() {
                         <span className="text-3xl mb-3 block">❤️</span>
                         <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-300">No liked FAQs yet</h3>
                         <p className="text-xs text-slate-450 mt-1 max-w-sm mx-auto">
-                          Show your appreciation! Upvote helpful FAQs across Granth, and they will be listed here.
+                          Show your appreciation! Upvote helpful FAQs across Grantha, and they will be listed here.
                         </p>
                         <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline mt-4">
                           Explore FAQs →

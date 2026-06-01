@@ -150,7 +150,7 @@ const notifyAdminsOfEscalatedQuery = async (query) => {
                 Manage Queries Feed →
               </a>
               <p style="margin-top: 24px; font-size: 12px; color: #9ca3af;">
-                You are receiving this admin email notification as an administrator of Granth.
+                You are receiving this admin email notification as an administrator of Grantha.
               </p>
             </div>
           </div>`

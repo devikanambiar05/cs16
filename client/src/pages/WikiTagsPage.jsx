@@ -185,7 +185,7 @@ export default function WikiTagsPage() {
           </Link>
         </div>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed max-w-2xl font-light">
-          A high-density index of the Granth collaborative FAQ database, grouped alphabetically by concept tag and cross-referenced with all resolving student questions.
+          A high-density index of the Grantha collaborative FAQ database, grouped alphabetically by concept tag and cross-referenced with all resolving student questions.
         </p>
       </div>
 

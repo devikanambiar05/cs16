@@ -1,7 +1,7 @@
 /**
  * Fast-Check Property Tests
  *
- * Uses the same real MongoDB setup as api.test.js (localhost:27017/samagama).
+ * Uses the same real MongoDB setup as api.test.js (localhost:27017/grantha).
  * Run with: npm test
  *
  * These test model-level invariants and correctness properties

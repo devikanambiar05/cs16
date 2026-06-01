@@ -9,10 +9,10 @@ async function main() {
   console.log('All databases:');
   dbs.databases.forEach(db => console.log(' -', db.name, 'size:', db.sizeOnDisk));
   
-  // Check Granth
-  const samDb = client.db('Granth');
+  // Check Grantha
+  const samDb = client.db('Grantha');
   const faqsCount = await samDb.collection('faqs').countDocuments({});
-  console.log('\nGranth.faqs count:', faqsCount);
+  console.log('\nGrantha.faqs count:', faqsCount);
   
   // Check researchPapers 
   const rpDb = client.db('researchPapers');

@@ -4,11 +4,11 @@ async function main() {
   const uri = 'mongodb://localhost:27017';
   const client = new MongoClient(uri);
   await client.connect();
-  const samDb = client.db('Granth');
+  const samDb = client.db('Grantha');
   const faqsCount = await samDb.collection('faqs').countDocuments({});
-  console.log('Granth.faqs count:', faqsCount);
+  console.log('Grantha.faqs count:', faqsCount);
   const resolvedCount = await samDb.collection('faqs').countDocuments({ status: 'resolved' });
-  console.log('Granth.faqs resolved count:', resolvedCount);
+  console.log('Grantha.faqs resolved count:', resolvedCount);
   
   const dbs = await client.db().admin().listDatabases();
   dbs.databases.forEach(db => {

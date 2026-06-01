@@ -469,7 +469,7 @@ exports.ragChat = async (req, res) => {
       let responseText = '';
       if (scored.length > 0) {
         const topFaq = scored[0];
-        responseText = `I searched Granth resolved FAQs and found a highly relevant match for your query:\n\n**${topFaq.title}**\n${topFaq.content}\n\n`;
+        responseText = `I searched Grantha resolved FAQs and found a highly relevant match for your query:\n\n**${topFaq.title}**\n${topFaq.content}\n\n`;
         if (scored.length > 1) {
           responseText += `You can also check out these related topics:\n`;
           scored.slice(1, 3).forEach(f => {
@@ -477,7 +477,7 @@ exports.ragChat = async (req, res) => {
           });
         }
       } else {
-        responseText = `I searched Granth FAQs but couldn't find a direct match. You can raise a new query in the community and a peer or mentor will answer it soon!`;
+        responseText = `I searched Grantha FAQs but couldn't find a direct match. You can raise a new query in the community and a peer or mentor will answer it soon!`;
       }
 
       // ───────────────────────────────────────────────────────────────────────

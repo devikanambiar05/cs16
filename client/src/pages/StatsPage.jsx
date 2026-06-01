@@ -78,7 +78,7 @@ export default function StatsPage() {
               Volunteer Analytics Dashboard
             </h1>
             <p className="text-slate-650 dark:text-slate-400 max-w-xl text-sm leading-relaxed">
-              Track SLA compliance matrices, active community claims, and your personal gamified performance benchmarks as a registered Granth responder.
+              Track SLA compliance matrices, active community claims, and your personal gamified performance benchmarks as a registered Grantha responder.
             </p>
           </div>
           <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl px-4 py-2.5 text-xs font-semibold flex items-center gap-1.5 shrink-0 self-start md:self-center">
@@ -139,7 +139,7 @@ export default function StatsPage() {
                 <span className="w-6 h-6 rounded-full bg-primary-100 text-primary-750 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
                 <div>
                   <h4 className="font-semibold text-slate-850 dark:text-slate-200 mb-0.5">Anti-Collusion Protocols</h4>
-                  <p className="text-xs text-slate-500">Granth implements strict anti-collusion limits. Users are capped at a maximum of 2 upvotes for the same contributor within any 24-hour window to protect leaderboard integrity.</p>
+                  <p className="text-xs text-slate-500">Grantha implements strict anti-collusion limits. Users are capped at a maximum of 2 upvotes for the same contributor within any 24-hour window to protect leaderboard integrity.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">

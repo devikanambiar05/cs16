@@ -22,7 +22,7 @@ async function runSlaCron() {
   let actionCount = 0;
 
   try {
-    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/samagama');
+    await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/grantha');
     const now = new Date();
 
     // ── 1. Claimed queries past SLA with no accepted answer ──────────────────

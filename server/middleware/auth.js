@@ -21,7 +21,7 @@ const protect = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'samagama-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'grantha-secret-key');
 
     // Get user from token
     const user = await User.findById(decoded.userId);
@@ -52,7 +52,7 @@ const optionalAuth = async (req, res, next) => {
     }
 
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'samagama-secret-key');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'grantha-secret-key');
       const user = await User.findById(decoded.userId);
       if (user && user.status === 'active') {
         req.user = user;
