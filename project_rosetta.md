@@ -188,3 +188,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Hover tooltips clipped out of screen boundaries on tablet viewports.
 * **🛡️ Edge Cases Tested**: Verifying calculations at the exact threshold boundary (e.g. exactly 300 reputation points).
 
+### 💬 v0.7: Conversational RAG AI Chatbot Assistant
+* **Release Date**: June 01, 2026 - 09:00
+* **Details**: Full RC release integrating floating Ollama LLM conversation streams.
+* **🎨 Visual Wireframe & Layout**: A beautiful, floating bottom chat assistant widget with sandy glassmorphic styles.
+* **🧠 Team Thinking & Rationale**: Provide instant conversational answers based exclusively on our verified FAQ knowledge base.
+* **💬 Discussions & Decisions**: Cloud AI APIs vs local LLM inference engines. Selected a local `Ollama` instance paired with a semantic cache to eliminate running costs.
+* **⚠️ Errors & Roadblocks Faced**: Stream chunk rendering caused major browser lagging on long text generations.
+* **🛡️ Edge Cases Tested**: Gracefully handling empty vector search matches, prompting the AI to recommend asking a community member instead.
+
