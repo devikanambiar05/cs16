@@ -498,6 +498,7 @@ export default function RAGChatWidget() {
             value={input}
             onChange={e => {
               setInput(e.target.value);
+              if (e.target.value.trim()) setDialogOpen(true);
               if (showProbe) dismissProbe();
             }}
             onFocus={() => {
