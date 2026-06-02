@@ -71,7 +71,11 @@ export default function LeaderboardPage() {
       ) : filteredUsers.length === 0 ? (
         isFiltering ? (
           <div className="text-center py-16 text-slate-400">
-            <div className="text-4xl mb-3">🔍</div>
+            <div className="flex justify-center mb-3">
+              <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
             <p className="text-base font-medium text-slate-600">No results for "{searchQuery}"</p>
             <p className="text-sm mt-1 text-slate-400">Try a different name</p>
             <button onClick={() => setSearchQuery('')} className="mt-4 text-sm text-primary-600 hover:underline">
@@ -80,7 +84,11 @@ export default function LeaderboardPage() {
           </div>
         ) : (
           <div className="text-center py-16 text-slate-400">
-            <div className="text-5xl mb-3">🏆</div>
+            <div className="flex justify-center mb-3">
+              <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+              </svg>
+            </div>
             <p className="text-lg font-medium text-slate-600">No users yet</p>
             <p className="text-sm mt-1">Be the first to earn reputation!</p>
             <Link to="/community" className="btn-primary mt-4 inline-block">Browse Community</Link>
@@ -123,8 +131,14 @@ export default function LeaderboardPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                      <span>❓ {u.questionsAsked || 0} asked</span>
-                      <span>💬 {u.answersGiven || 0} answered</span>
+                      <span className="flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {u.questionsAsked || 0} asked
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        {u.answersGiven || 0} answered
+                      </span>
                     </div>
                   </div>
 
@@ -141,12 +155,24 @@ export default function LeaderboardPage() {
       )}
 
       <div className="mt-8 bg-slate-50 rounded-xl p-4 text-sm text-slate-600">
-        <p className="font-medium text-slate-800 mb-1">How to earn reputation:</p>
-        <ul className="space-y-1">
-          <li>💡 Submit an answer that gets accepted — <strong>+10</strong></li>
-          <li>📋 Your answer gets converted to a public FAQ — <strong>+10</strong></li>
-          <li>👍 Your answer gets upvoted — <strong>+5</strong></li>
-          <li>👍 Your question gets upvoted — <strong>+2</strong></li>
+        <p className="font-medium text-slate-800 mb-2">How to earn reputation:</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Submit an answer that gets accepted — <strong>+10</strong>
+          </li>
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+            Your answer gets converted to a public FAQ — <strong>+10</strong>
+          </li>
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+            Your answer gets upvoted — <strong>+5</strong>
+          </li>
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+            Your question gets upvoted — <strong>+2</strong>
+          </li>
         </ul>
       </div>
     </div>
