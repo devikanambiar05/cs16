@@ -72,7 +72,10 @@ exports.createAnswer = async (req, res) => {
 
 exports.getAnswers = async (req, res) => {
   try {
-    const answers = await Answer.find({ queryId: req.params.queryId })
+    const answers = await Answer.find({
+  queryId: req.params.queryId,
+  deletedAt: null
+})
       .populate('userId', 'name reputation tags')
       .sort({ upvotes: -1, createdAt: 1 });
     res.json({ answers });
