@@ -31,6 +31,7 @@ import {
   closeQuery,
   getUsers,
   updateUserBan,
+  bulkUserAction,
   getFAQRequests,
   resolveFAQRequest,
   rejectFAQRequest,
@@ -60,6 +61,9 @@ export default function AdminDashboard() {
   const [userPage, setUserPage] = useState(1);
   const [loadingUser, setLoadingUser] = useState(false);
   const [userStatus, setUserStatus] = useState({});
+  // ── Bulk selection state ──────────────────────────────────────────────────
+  const [selectedUserIds, setSelectedUserIds] = useState(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [faqRequests, setFaqRequests] = useState([]);
   const [faqPage, setFaqPage] = useState(1);
   const [faqLoading, setFaqLoading] = useState(false);
@@ -319,6 +323,40 @@ export default function AdminDashboard() {
     }
   }
 
+  // ── Bulk selection helpers ─────────────────────────────────────────────────
+  function toggleSelectUser(userId) {
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      next.has(userId) ? next.delete(userId) : next.add(userId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedUserIds.size === users.length) {
+      setSelectedUserIds(new Set());
+    } else {
+      setSelectedUserIds(new Set(users.map(u => u._id)));
+    }
+  }
+
+  async function handleBulkAction(action) {
+    if (selectedUserIds.size === 0) return;
+    const label = action === 'ban' ? 'Ban' : action === 'unban' ? 'Unban' : 'Promote to Admin';
+    if (!window.confirm(`${label} ${selectedUserIds.size} selected user(s)?`)) return;
+    setBulkLoading(true);
+    try {
+      const res = await bulkUserAction([...selectedUserIds], action);
+      showToast(res.data.message, 'success');
+      setSelectedUserIds(new Set());
+      loadUsers();
+    } catch (err) {
+      showToast(`Failed to ${action} selected users`, 'error');
+    } finally {
+      setBulkLoading(false);
+    }
+  }
+
   async function handleTogglePin(faqId, currentlyPinned) {
     try {
       await pinFaq(faqId);
@@ -448,10 +486,59 @@ export default function AdminDashboard() {
       {activeTab === 'Users' && (
         <div>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Users</h2>
+
+          {/* ── Sticky Bulk Toolbar ── */}
+          {selectedUserIds.size > 0 && (
+            <div className="sticky top-0 z-10 flex items-center gap-3 bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-xl px-4 py-3 mb-4 shadow-sm">
+              <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">
+                {selectedUserIds.size} user{selectedUserIds.size !== 1 ? 's' : ''} selected
+              </span>
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  onClick={() => handleBulkAction('ban')}
+                  disabled={bulkLoading}
+                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
+                >
+                  🚫 Ban Selected
+                </button>
+                <button
+                  onClick={() => handleBulkAction('unban')}
+                  disabled={bulkLoading}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
+                >
+                  ✅ Unban Selected
+                </button>
+                <button
+                  onClick={() => handleBulkAction('promote')}
+                  disabled={bulkLoading}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
+                >
+                  ⭐ Promote to Admin
+                </button>
+                <button
+                  onClick={() => setSelectedUserIds(new Set())}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b border-slate-200 dark:border-slate-700">
+                  {/* Select-all checkbox */}
+                  <th className="pb-3 pr-3 w-8">
+                    <input
+                      type="checkbox"
+                      checked={users.length > 0 && selectedUserIds.size === users.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 dark:border-slate-600 accent-primary-600 cursor-pointer"
+                      title="Select all"
+                    />
+                  </th>
                   <th className="pb-3 text-slate-500 font-medium">Name</th>
                   <th className="pb-3 text-slate-500 font-medium">Email</th>
                   <th className="pb-3 text-slate-500 font-medium">Role</th>
@@ -462,7 +549,21 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u._id} className="border-b border-slate-100 dark:border-slate-800">
+                  <tr
+                    key={u._id}
+                    className={`border-b border-slate-100 dark:border-slate-800 transition-colors ${
+                      selectedUserIds.has(u._id) ? 'bg-primary-50/50 dark:bg-primary-950/20' : ''
+                    }`}
+                  >
+                    {/* Per-row checkbox */}
+                    <td className="py-3 pr-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.has(u._id)}
+                        onChange={() => toggleSelectUser(u._id)}
+                        className="rounded border-slate-300 dark:border-slate-600 accent-primary-600 cursor-pointer"
+                      />
+                    </td>
                     <td className="py-3 text-slate-800 dark:text-slate-200">{u.name}</td>
                     <td className="py-3 text-slate-600 dark:text-slate-400">{u.email}</td>
                     <td className="py-3">
@@ -480,7 +581,7 @@ export default function AdminDashboard() {
                         disabled={userStatus[u._id] === 'loading'}
                         className="text-xs text-red-600 hover:underline disabled:opacity-40"
                       >
-                        {u.isBanned ? 'Unban' : 'Ban'}
+                        {u.status === 'banned' ? 'Unban' : 'Ban'}
                       </button>
                     </td>
                   </tr>
