@@ -364,6 +364,7 @@ export default function AdminDashboard() {
   });
 
   return (
+    <div className="theme-admin-station min-h-screen bg-[#141311]">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       {/* Tabs */}
       <div className="border-b border-slate-200 dark:border-slate-700">
@@ -859,6 +860,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
