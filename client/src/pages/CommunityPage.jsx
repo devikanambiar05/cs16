@@ -680,7 +680,7 @@ function CommunityPage() {
               <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-[#191816] p-1 rounded-xl">
                 {[
                   { id: 'all', label: 'All Queries' },
-                  ...(user ? [{ id: 'my-claims', label: 'My Claims' }] : []),
+                  ...(user && user.role !== 'admin' ? [{ id: 'my-claims', label: 'My Claims' }] : []),
                   { id: 'unclaimed-sla', label: 'Unclaimed SLA' },
                   { id: 'closed', label: 'Closed' }
                 ].map(tab => (
