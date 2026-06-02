@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { saveChatSession } from '../services/api';
+// 1. Framer motion import kiya
+import { motion, useDragControls } from 'framer-motion';
 
 const LOADING_PHASES = [
   "Anveshana (अन्वेषण) — Searching Grantha knowledge base...",
@@ -21,6 +23,9 @@ export default function RAGChatWidget() {
   const [showProbe, setShowProbe] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  
+  // Custom drag controls handles panel specific drags
+  const dragControls = useDragControls();
 
   useEffect(() => {
     const dismissed = localStorage.getItem('rag-probe-dismissed');
@@ -99,10 +104,8 @@ export default function RAGChatWidget() {
     setError('');
     setDialogOpen(true);
 
-    // Keep track of previous messages before we add the new one
     const priorMessages = messages.map(m => ({ role: m.role, text: m.text }));
 
-    // Add user message immediately
     const assistantMsgId = Date.now();
     setMessages(prev => [
       ...prev,
@@ -133,7 +136,6 @@ export default function RAGChatWidget() {
       let metaParsed = false;
       let answerText = '';
 
-      // Stream tokens as they arrive
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -146,7 +148,6 @@ export default function RAGChatWidget() {
           if (!line.trim()) continue;
           try {
             if (!metaParsed) {
-              // The first line contains the sources/metadata JSON
               const meta = JSON.parse(line.trim());
               setMessages(prev => prev.map(m =>
                 m.id === assistantMsgId + 1
@@ -155,7 +156,6 @@ export default function RAGChatWidget() {
               ));
               metaParsed = true;
             } else {
-              // Subsequent lines are token, done or error chunks
               const chunk = JSON.parse(line.trim());
               if (chunk.token) {
                 answerText += chunk.token;
@@ -176,17 +176,10 @@ export default function RAGChatWidget() {
             }
           } catch (e) {
             console.error('Error parsing stream chunk:', e);
-            if (line.includes('"error"')) {
-              try {
-                const chunk = JSON.parse(line.trim());
-                throw new Error(chunk.error);
-              } catch {}
-            }
           }
         }
       }
 
-      // Process any remaining text in buffer after the stream ends
       if (buffer.trim()) {
         const line = buffer.trim();
         try {
@@ -222,7 +215,6 @@ export default function RAGChatWidget() {
         }
       }
 
-      // Sync session to backend if authenticated!
       const token = localStorage.getItem('token');
       if (token && answerText.trim()) {
         const finalMessages = [
@@ -245,7 +237,6 @@ export default function RAGChatWidget() {
       }
     } catch (err) {
       setError(err.message || 'Failed to get answer. Please try again.');
-      // Remove the streaming assistant message on error
       setMessages(prev => prev.filter(m => m.id !== assistantMsgId + 1));
     } finally {
       setLoading(false);
@@ -276,39 +267,56 @@ export default function RAGChatWidget() {
 
   return (
     <>
-      {/* ── Dialog Overlay ── */}
+      {/* ── Dialog Overlay & Panel ── */}
       {dialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Backdrop (no blur) */}
+        <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-none">
+          {/* Backdrop (no blur, standard layout tracking clicks safely) */}
           <div
-            className="absolute inset-0 bg-black/30"
+            className="absolute inset-0 bg-black/20 pointer-events-auto"
             onClick={closeDialog}
           />
 
-          {/* Dialog panel */}
-          <div className="relative w-full max-w-lg mx-4 mb-2 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden"
-            style={{ maxHeight: '70vh' }}>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          {/* Upgraded Drag Container Layer for Dialog Panel 
+            We make the panel floating instead of pinned at the absolute bottom
+          */}
+          <motion.div 
+            drag
+            dragControls={dragControls}
+            dragListener={false} // Only drags via the top drag handle bar
+            dragMomentum={false}
+            dragElastic={0.05}
+            dragConstraints={{ left: -window.innerWidth/3, right: window.innerWidth/3, top: -window.innerHeight/2, bottom: 50 }}
+            className="relative w-full max-w-lg mx-4 mb-24 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden pointer-events-auto z-50"
+            style={{ maxHeight: '65vh' }}
+          >
+            {/* DRAG HANDLE BAR - Drags the whole chat window 
+            */}
+            <div 
+              onPointerDown={(e) => dragControls.start(e)}
+              className="flex items-center justify-between px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 shrink-0 cursor-get active:cursor-grabbing select-none"
+            >
               <div className="flex items-center gap-2">
-                <span className="text-lg">💬</span>
-                <h2 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">FAQ Assistant</h2>
+                {/* Drag Handle Icon Indicator */}
+                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <h2 className="font-semibold text-slate-700 dark:text-slate-200 text-xs uppercase tracking-wider">FAQ Assistant</h2>
                 {messages.filter(m => m.role === 'assistant').length > 0 && (
-                  <span className="text-xs text-slate-400 ml-1">
-                    ({messages.filter(m => m.role === 'assistant').length} response{messages.filter(m => m.role === 'assistant').length !== 1 ? 's' : ''})
+                  <span className="text-[11px] text-slate-400">
+                    ({messages.filter(m => m.role === 'assistant').length})
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pointer-events-auto">
                 <button
                   onClick={clearChat}
-                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   Clear
                 </button>
                 <button
                   onClick={closeDialog}
-                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -317,8 +325,8 @@ export default function RAGChatWidget() {
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+            {/* Messages Body Container */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-[150px]">
               {messages.length === 0 && !loading && (
                 <div className="text-center py-8 text-slate-400 text-sm">
                   <p className="mb-1">👋 Ask me anything about the FAQ knowledge base.</p>
@@ -340,7 +348,7 @@ export default function RAGChatWidget() {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
                           </span>
-                          <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400 animate-pulse transition-all duration-300">
+                          <span className="text-[12px] font-medium text-slate-500 dark:text-slate-400 animate-pulse">
                             {LOADING_PHASES[phaseIndex]}
                           </span>
                         </div>
@@ -356,7 +364,7 @@ export default function RAGChatWidget() {
 
                     {msg.role === 'assistant' && !msg.streaming && msg.sources?.length > 0 && (
                       <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50">
-                        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Sources (Click to expand in-place):</p>
+                        <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Sources:</p>
                         <div className="space-y-1.5">
                           {msg.sources.slice(0, 3).map(s => {
                             const isExpanded = expandedSources.has(s._id);
@@ -365,13 +373,13 @@ export default function RAGChatWidget() {
                                 <button
                                   type="button"
                                   onClick={() => toggleSource(s._id)}
-                                  className="w-full flex items-center justify-between text-left px-3 py-2 text-[11px] font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 hover:bg-slate-200/40 dark:hover:bg-slate-800/40 transition-all gap-2"
+                                  className="w-full flex items-center justify-between text-left px-3 py-2 text-[11px] font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100 transition-all gap-2"
                                 >
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <span className="text-primary-500 shrink-0">•</span>
                                     <span className="truncate">{s.title}</span>
                                   </div>
-                                  <span className="shrink-0 text-slate-400 dark:text-slate-500 transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+                                  <span className="shrink-0 text-slate-400 dark:text-slate-500" style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                                     </svg>
@@ -387,7 +395,7 @@ export default function RAGChatWidget() {
                                       <Link
                                         to={`/wiki?highlight=${s._id}`}
                                         onClick={closeDialog}
-                                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors uppercase tracking-wider"
+                                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                                       >
                                         Open in Wiki
                                         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,14 +426,12 @@ export default function RAGChatWidget() {
               <div ref={bottomRef} />
             </div>
 
-            {/* Input */}
-            <div className="shrink-0 px-5 py-4 bg-white dark:bg-slate-900">
+            {/* Input Form Box inside Dialog */}
+            <div className="shrink-0 px-5 py-4 bg-white dark:bg-slate-900 border-t dark:border-slate-800">
               <form onSubmit={sendMessage} className="relative">
                 <textarea
                   ref={inputRef}
-                  className="w-full pl-4 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl resize-none
-                             focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500
-                             placeholder-slate-400 dark:placeholder-slate-500 bg-slate-50 dark:bg-slate-800/40 dark:text-slate-100"
+                  className="w-full pl-4 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 placeholder-slate-400 dark:placeholder-slate-500 bg-slate-50 dark:bg-slate-800/40 dark:text-slate-100"
                   placeholder="Ask about the FAQs..."
                   value={input}
                   onChange={e => setInput(e.target.value)}
@@ -442,7 +448,6 @@ export default function RAGChatWidget() {
                   type="submit"
                   disabled={!input.trim() || loading}
                   className="absolute right-3.5 bottom-3 p-1.5 rounded-xl text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-all"
-                  title="Send"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -450,20 +455,18 @@ export default function RAGChatWidget() {
                 </button>
               </form>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
-      {/* Viewport bottom gradient mask for scroll-disappear effect */}
+      {/* Viewport bottom gradient mask */}
       <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent dark:from-[#0d1117] dark:via-[#0d1117]/80 pointer-events-none z-30" />
 
       {/* ── Tooltip Probe ── */}
       {showProbe && (
-        <div className="fixed bottom-[80px] left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4 animate-fade-in">
+        <div className="fixed bottom-[85px] left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4 animate-fade-in">
           <div className="relative bg-gradient-to-r from-amber-500/95 to-amber-600/95 dark:from-amber-600 dark:to-amber-700 text-white p-3.5 rounded-xl shadow-xl backdrop-blur-md border border-amber-400/20 dark:border-amber-500/10 flex items-start gap-3">
-            {/* Down arrow pointing at launcher */}
-            <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-amber-600 dark:bg-amber-700 rotate-45 border-r border-b border-amber-400/20 dark:border-amber-500/10" />
-            
+            <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-amber-600 dark:bg-amber-700 rotate-45" />
             <span className="text-base shrink-0 mt-0.5 select-none">⚡</span>
             <div className="flex-1 pr-5">
               <h4 className="font-semibold text-[11px] uppercase tracking-wider text-amber-100/90 font-serif">AI Instant Search</h4>
@@ -473,8 +476,7 @@ export default function RAGChatWidget() {
             </div>
             <button 
               onClick={dismissProbe}
-              className="absolute top-2 right-2 text-white/60 hover:text-white transition-colors p-0.5 rounded-lg hover:bg-white/10"
-              title="Dismiss"
+              className="absolute top-2 right-2 text-white/60 hover:text-white p-0.5 rounded-lg hover:bg-white/10"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -484,17 +486,30 @@ export default function RAGChatWidget() {
         </div>
       )}
 
-      {/* ── Launcher bar (always visible at bottom) ── */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4">
-        <form onSubmit={sendMessage} className="relative">
+      {/* ── Launcher Bar (Now fully Draggable across screen) ── */}
+      <motion.div 
+        drag
+        dragMomentum={false}
+        dragElastic={0.1}
+        dragConstraints={{ left: -window.innerWidth/2.5, right: window.innerWidth/2.5, top: -window.innerHeight + 120, bottom: 0 }}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4 cursor-grab active:cursor-grabbing"
+      >
+        <form onSubmit={sendMessage} className="relative" onClick={(e) => e.stopPropagation()}>
+          {/* Drag Handle Indicator inside input */}
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 text-slate-300 dark:text-slate-600 select-none pointer-events-none">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </div>
+
           <input
             type="text"
-            className="w-full pl-5 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl
+            className="w-full pl-10 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl
                        focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500
                        placeholder-slate-400 dark:placeholder-slate-500 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md
                        shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-                       hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all dark:text-slate-100"
-            placeholder="Ask the FAQ assistant..."
+                       hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all dark:text-slate-100 cursor-text"
+            placeholder="Ask the FAQ assistant... (Drag me anywhere)"
             value={input}
             onChange={e => {
               setInput(e.target.value);
@@ -503,12 +518,11 @@ export default function RAGChatWidget() {
             onFocus={() => {
               if (showProbe) dismissProbe();
             }}
-            onClick={() => {
-              if (showProbe) dismissProbe();
-            }}
+            onButton={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
             disabled={loading}
           />
+          
           {loading ? (
             <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
               <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" />
@@ -519,8 +533,7 @@ export default function RAGChatWidget() {
             <button
               type="submit"
               disabled={!input.trim() || loading}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-all"
-              title="Send"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-all pointer-events-auto"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -528,7 +541,7 @@ export default function RAGChatWidget() {
             </button>
           )}
         </form>
-      </div>
+      </motion.div>
     </>
   );
 }
