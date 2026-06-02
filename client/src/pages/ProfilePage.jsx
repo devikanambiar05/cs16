@@ -94,8 +94,10 @@ export default function ProfilePage() {
           <div className="card bg-white/70 dark:bg-slate-900/60 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.01)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.25)] backdrop-blur-md">
             {/* Avatar & Basic Info */}
             <div className="flex flex-col items-center text-center pb-6 border-b border-slate-150 dark:border-slate-800/50">
-              <div className="w-20 h-20 bg-primary-100 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 rounded-full text-3xl font-serif flex items-center justify-center shadow-inner mb-4 select-none">
-                {user.name?.charAt(0).toUpperCase()}
+             <div
+                className={`w-20 h-20 ${getAvatarColor(user.name)} text-white rounded-full text-3xl font-serif flex items-center justify-center shadow-inner mb-4 select-none`}
+              >
+                {getInitials(user.name)} 
               </div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 font-serif">{user.name}</h2>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{user.email}</p>
