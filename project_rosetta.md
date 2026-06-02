@@ -224,3 +224,10 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Clipped image aspects stretched visual grids when large attachments were rendered inline.
 * **🛡️ Edge Cases Tested**: Click events on images nested within dynamic AI chat bubbles.
 
+### 🚀 v0.9: MVP Candidate Launch - auto-assign workflows & Admin dashboard
+* **Release Date**: June 02, 2026 - 12:00
+* **Details**: Complete MVP Candidate launch introducing auto-assign Actions workflow and premium Obsidian Pins dashboard with Hex ObjectId regex validations.
+* **🎨 Visual Wireframe & Layout**: Sleek, Obsidian Bronze theme Admin Dashboard displaying pins grids with dynamic edit/create dialogs.
+* **💬 Discussions & Decisions**: Manual tracking vs automated workflows. Integrated a GitHub Action to auto-assign issues and comments.
+* **⚠️ Errors & Roadblocks Faced**: Server crashed when validating shorter/malformed Hex strings in MongoDB ObjectId inputs.
+* **🛡️ Edge Cases Tested**: Invalid object patterns, re-ordering active pins, and concurrent issue self-assignments.
