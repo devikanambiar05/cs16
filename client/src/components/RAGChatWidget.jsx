@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { saveChatSession } from '../services/api';
-// 1. Framer motion import kiya
 import { motion, useDragControls } from 'framer-motion';
 
 const LOADING_PHASES = [
@@ -21,18 +20,34 @@ export default function RAGChatWidget() {
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [showProbe, setShowProbe] = useState(false);
+
   const bottomRef = useRef(null);
-  const inputRef = useRef(null);
-  
-  // Custom drag controls handles panel specific drags
+  const dialogTextareaRef = useRef(null);
+  const launcherRef = useRef(null);
+  // Single full-viewport ref used as dragConstraints for both elements
+  const viewportRef = useRef(null);
+
   const dragControls = useDragControls();
+
+  // Auto-resize dialog textarea whenever input changes
+  useEffect(() => {
+    const el = dialogTextareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+  }, [input]);
+
+  // Focus dialog textarea when dialog opens
+  useEffect(() => {
+    if (dialogOpen) {
+      setTimeout(() => dialogTextareaRef.current?.focus(), 50);
+    }
+  }, [dialogOpen]);
 
   useEffect(() => {
     const dismissed = localStorage.getItem('rag-probe-dismissed');
     if (!dismissed) {
-      const timer = setTimeout(() => {
-        setShowProbe(true);
-      }, 1500);
+      const timer = setTimeout(() => setShowProbe(true), 1500);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -45,11 +60,7 @@ export default function RAGChatWidget() {
   const toggleSource = (sourceId) => {
     setExpandedSources(prev => {
       const next = new Set(prev);
-      if (next.has(sourceId)) {
-        next.delete(sourceId);
-      } else {
-        next.add(sourceId);
-      }
+      next.has(sourceId) ? next.delete(sourceId) : next.add(sourceId);
       return next;
     });
   };
@@ -68,7 +79,6 @@ export default function RAGChatWidget() {
       })));
       setDialogOpen(true);
     };
-
     window.addEventListener('resume-rag-chat', handleResume);
     return () => window.removeEventListener('resume-rag-chat', handleResume);
   }, []);
@@ -94,10 +104,7 @@ export default function RAGChatWidget() {
   const sendMessage = async (e) => {
     e?.preventDefault();
     if (!input.trim() || loading) return;
-
-    if (showProbe) {
-      dismissProbe();
-    }
+    if (showProbe) dismissProbe();
 
     const userText = input.trim();
     setInput('');
@@ -105,8 +112,8 @@ export default function RAGChatWidget() {
     setDialogOpen(true);
 
     const priorMessages = messages.map(m => ({ role: m.role, text: m.text }));
-
     const assistantMsgId = Date.now();
+
     setMessages(prev => [
       ...prev,
       { id: assistantMsgId, role: 'user', text: userText },
@@ -160,9 +167,7 @@ export default function RAGChatWidget() {
               if (chunk.token) {
                 answerText += chunk.token;
                 setMessages(prev => prev.map(m =>
-                  m.id === assistantMsgId + 1
-                    ? { ...m, text: m.text + chunk.token }
-                    : m
+                  m.id === assistantMsgId + 1 ? { ...m, text: m.text + chunk.token } : m
                 ));
               }
               if (chunk.done) {
@@ -170,9 +175,7 @@ export default function RAGChatWidget() {
                   m.id === assistantMsgId + 1 ? { ...m, streaming: false } : m
                 ));
               }
-              if (chunk.error) {
-                throw new Error(chunk.error);
-              }
+              if (chunk.error) throw new Error(chunk.error);
             }
           } catch (e) {
             console.error('Error parsing stream chunk:', e);
@@ -181,24 +184,20 @@ export default function RAGChatWidget() {
       }
 
       if (buffer.trim()) {
-        const line = buffer.trim();
         try {
           if (!metaParsed) {
-            const meta = JSON.parse(line);
+            const meta = JSON.parse(buffer.trim());
             setMessages(prev => prev.map(m =>
               m.id === assistantMsgId + 1
                 ? { ...m, sources: meta.sources || [], faqsFound: meta.faqsFound || 0 }
                 : m
             ));
-            metaParsed = true;
           } else {
-            const chunk = JSON.parse(line);
+            const chunk = JSON.parse(buffer.trim());
             if (chunk.token) {
               answerText += chunk.token;
               setMessages(prev => prev.map(m =>
-                m.id === assistantMsgId + 1
-                  ? { ...m, text: m.text + chunk.token }
-                  : m
+                m.id === assistantMsgId + 1 ? { ...m, text: m.text + chunk.token } : m
               ));
             }
             if (chunk.done) {
@@ -206,9 +205,7 @@ export default function RAGChatWidget() {
                 m.id === assistantMsgId + 1 ? { ...m, streaming: false } : m
               ));
             }
-            if (chunk.error) {
-              throw new Error(chunk.error);
-            }
+            if (chunk.error) throw new Error(chunk.error);
           }
         } catch (e) {
           console.error('Error parsing trailing stream chunk:', e);
@@ -222,17 +219,11 @@ export default function RAGChatWidget() {
           { role: 'user', text: userText },
           { role: 'assistant', text: answerText }
         ];
-
         try {
-          const syncRes = await saveChatSession({
-            sessionId: activeSessionId,
-            messages: finalMessages
-          });
-          if (syncRes.data?.session?._id) {
-            setActiveSessionId(syncRes.data.session._id);
-          }
+          const syncRes = await saveChatSession({ sessionId: activeSessionId, messages: finalMessages });
+          if (syncRes.data?.session?._id) setActiveSessionId(syncRes.data.session._id);
         } catch (syncErr) {
-          console.warn('Failed to sync chat session to backend:', syncErr.message);
+          console.warn('Failed to sync chat session:', syncErr.message);
         }
       }
     } catch (err) {
@@ -248,6 +239,11 @@ export default function RAGChatWidget() {
       e.preventDefault();
       sendMessage(e);
     }
+  };
+
+  const openDialog = () => {
+    setDialogOpen(true);
+    if (showProbe) dismissProbe();
   };
 
   const closeDialog = () => {
@@ -267,36 +263,38 @@ export default function RAGChatWidget() {
 
   return (
     <>
-      {/* ── Dialog Overlay & Panel ── */}
+      {/* Full-viewport invisible div used as dragConstraints anchor for both elements */}
+      <div ref={viewportRef} className="fixed inset-0 z-0 pointer-events-none" />
+
+      {/* ── Dialog ── */}
       {dialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center pointer-events-none">
-          {/* Backdrop (no blur, standard layout tracking clicks safely) */}
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/20 pointer-events-auto"
             onClick={closeDialog}
           />
 
-          {/* Upgraded Drag Container Layer for Dialog Panel 
-            We make the panel floating instead of pinned at the absolute bottom
-          */}
-          <motion.div 
+          {/* Draggable dialog panel */}
+          <motion.div
             drag
             dragControls={dragControls}
-            dragListener={false} // Only drags via the top drag handle bar
+            dragListener={false}
             dragMomentum={false}
-            dragElastic={0.05}
-            dragConstraints={{ left: -window.innerWidth/3, right: window.innerWidth/3, top: -window.innerHeight/2, bottom: 50 }}
-            className="relative w-full max-w-lg mx-4 mb-24 rounded-2xl bg-white dark:bg-slate-900 border dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden pointer-events-auto z-50"
-            style={{ maxHeight: '65vh' }}
+            dragElastic={0}
+            dragConstraints={viewportRef}
+            className="absolute bottom-24 left-0 right-0 mx-auto w-[min(calc(100vw-2rem),32rem)] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
+            style={{ maxHeight: 'min(65vh, 560px)' }}
           >
-            {/* DRAG HANDLE BAR - Drags the whole chat window 
-            */}
-            <div 
-              onPointerDown={(e) => dragControls.start(e)}
+            {/* Drag handle bar */}
+            <div
+              onPointerDown={(e) => {
+                e.preventDefault();
+                dragControls.start(e, { snapToCursor: false });
+              }}
               className="flex items-center justify-between px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 shrink-0 cursor-grab active:cursor-grabbing select-none"
             >
               <div className="flex items-center gap-2">
-                {/* Drag Handle Icon Indicator */}
                 <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -307,7 +305,7 @@ export default function RAGChatWidget() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 pointer-events-auto">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={clearChat}
                   className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -325,7 +323,7 @@ export default function RAGChatWidget() {
               </div>
             </div>
 
-            {/* Messages Body Container */}
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-[150px]">
               {messages.length === 0 && !loading && (
                 <div className="text-center py-8 text-slate-400 text-sm">
@@ -385,7 +383,6 @@ export default function RAGChatWidget() {
                                     </svg>
                                   </span>
                                 </button>
-                                
                                 {isExpanded && (
                                   <div className="px-3 pb-3 pt-1 border-t border-slate-200/35 dark:border-slate-800/50 bg-white dark:bg-slate-950/40">
                                     <p className="text-[12px] leading-relaxed text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-sans">
@@ -422,27 +419,22 @@ export default function RAGChatWidget() {
                   </div>
                 </div>
               )}
-
               <div ref={bottomRef} />
             </div>
 
-            {/* Input Form Box inside Dialog */}
+            {/* Dialog input — auto-expanding textarea */}
             <div className="shrink-0 px-5 py-4 bg-white dark:bg-slate-900 border-t dark:border-slate-800">
               <form onSubmit={sendMessage} className="relative">
                 <textarea
-                  ref={inputRef}
-                  className="w-full pl-4 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 placeholder-slate-400 dark:placeholder-slate-500 bg-slate-50 dark:bg-slate-800/40 dark:text-slate-100"
+                  ref={dialogTextareaRef}
+                  className="w-full pl-4 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 placeholder-slate-400 dark:placeholder-slate-500 bg-slate-50 dark:bg-slate-800/40 dark:text-slate-100 overflow-y-auto"
                   placeholder="Ask about the FAQs..."
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={loading}
                   rows={1}
-                  style={{ minHeight: '46px', maxHeight: '120px' }}
-                  onInput={e => {
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                  }}
+                  style={{ minHeight: '46px', maxHeight: '150px' }}
                 />
                 <button
                   type="submit"
@@ -474,7 +466,7 @@ export default function RAGChatWidget() {
                 Skip the manual exploration and get your queries instantaneously!
               </p>
             </div>
-            <button 
+            <button
               onClick={dismissProbe}
               className="absolute top-2 right-2 text-white/60 hover:text-white p-0.5 rounded-lg hover:bg-white/10"
             >
@@ -486,16 +478,18 @@ export default function RAGChatWidget() {
         </div>
       )}
 
-      {/* ── Launcher Bar (Now fully Draggable across screen) ── */}
-      <motion.div 
-        drag
-        dragMomentum={false}
-        dragElastic={0.1}
-        dragConstraints={{ left: -window.innerWidth/2.5, right: window.innerWidth/2.5, top: -window.innerHeight + 120, bottom: 0 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4 cursor-grab active:cursor-grabbing"
-      >
-        <form onSubmit={sendMessage} className="relative" onClick={(e) => e.stopPropagation()}>
-          {/* Drag Handle Indicator inside input */}
+      {/* ── Launcher Bar — hidden when dialog is open ── */}
+      {!dialogOpen && (
+        <motion.div
+          ref={launcherRef}
+          drag
+          dragMomentum={false}
+          dragElastic={0}
+          dragConstraints={viewportRef}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4 cursor-grab active:cursor-grabbing"
+        >
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          {/* Drag handle icon */}
           <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 text-slate-300 dark:text-slate-600 select-none pointer-events-none">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
@@ -509,21 +503,23 @@ export default function RAGChatWidget() {
                        placeholder-slate-400 dark:placeholder-slate-500 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md
                        shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
                        hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all dark:text-slate-100 cursor-text"
-            placeholder="Ask the FAQ assistant... (Drag me anywhere)"
+            placeholder="Ask the FAQ assistant..."
             value={input}
             onChange={e => {
               setInput(e.target.value);
-              if (e.target.value.trim()) setDialogOpen(true);
               if (showProbe) dismissProbe();
             }}
             onFocus={() => {
-              if (showProbe) dismissProbe();
+              openDialog();
+            }}
+            onClick={() => {
+              openDialog();
             }}
             onPointerDown={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
             disabled={loading}
           />
-          
+
           {loading ? (
             <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
               <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" />
@@ -532,9 +528,10 @@ export default function RAGChatWidget() {
             </div>
           ) : (
             <button
-              type="submit"
+              type="button"
               disabled={!input.trim() || loading}
               onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); sendMessage(e); }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-all pointer-events-auto"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -542,8 +539,9 @@ export default function RAGChatWidget() {
               </svg>
             </button>
           )}
-        </form>
+        </div>
       </motion.div>
+      )}
     </>
   );
 }
