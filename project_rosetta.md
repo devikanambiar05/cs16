@@ -215,3 +215,12 @@ Welcome to the **Project Rosetta** master ledger. This document chronicles the v
 * **⚠️ Errors & Roadblocks Faced**: Automated client notifications polling triggered rapid rate limit blocks across active tabs.
 * **🛡️ Edge Cases Tested**: Simulating high load from hundreds of parallel browser instances.
 
+### 🎨 v0.85: UI/UX Refinements, Visual highlights, & click previews
+* **Release Date**: June 02, 2026 - 09:00
+* **Details**: visual query card highlights, volunteer analytics success tooltips, and click-to-view markdown image modal zooms.
+* **🎨 Visual Wireframe & Layout**: Golden highlight pulse overlays and full-screen blurred backdrop modal image zooms.
+* **🧠 Team Thinking & Rationale**: Aesthetic polish is vital. High-fidelity visual feedback and micro-interactions elevate the user experience.
+* **💬 Discussions & Decisions**: Decided whether to load heavy modal libraries vs building a pure CSS/React image overlay. We built a custom overlay to maintain speed.
+* **⚠️ Errors & Roadblocks Faced**: Clipped image aspects stretched visual grids when large attachments were rendered inline.
+* **🛡️ Edge Cases Tested**: Click events on images nested within dynamic AI chat bubbles.
+
