@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { saveChatSession } from '../services/api';
 
@@ -69,6 +69,27 @@ export default function RAGChatWidget() {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, dialogOpen]);
+
+  const focusDialogInputAtEnd = () => {
+    const el = inputRef.current;
+    if (!el) return;
+
+    el.focus({ preventScroll: true });
+    const end = el.value.length;
+    el.setSelectionRange(end, end);
+  };
+
+  useLayoutEffect(() => {
+    if (dialogOpen) {
+      focusDialogInputAtEnd();
+    }
+  }, [dialogOpen]);
+
+  useLayoutEffect(() => {
+    if (dialogOpen && document.activeElement === inputRef.current) {
+      focusDialogInputAtEnd();
+    }
+  }, [input, dialogOpen]);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -261,7 +282,7 @@ export default function RAGChatWidget() {
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/30"
             onClick={closeDialog}
           />
 
@@ -449,7 +470,13 @@ export default function RAGChatWidget() {
                        hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all dark:text-slate-100"
             placeholder="Ask the FAQ assistant..."
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => {
+              const value = e.target.value;
+              setInput(value);
+              if (value.trim()) {
+                setDialogOpen(true);
+              }
+            }}
             onKeyDown={handleKeyDown}
             disabled={loading}
           />
