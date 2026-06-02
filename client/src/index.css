@@ -65,10 +65,13 @@
 /* Applied via .theme-admin-station wrapper on AdminDashboard root node          */
 /* Scoped so it only affects /admin and never bleeds into user-facing pages       */
 .theme-admin-station {
-  --bg-surface:  #141311 !important;
-  --bg-elevated: #1c1a17 !important;
-  --border:      #332f27 !important;
-  --accent:      #dca54c !important; /* gold accent */
+  --bg-surface:  #141311;
+  --bg-elevated: #1c1a17;
+  --border:      #332f27;
+  --accent:      #dca54c; /* gold accent */
+
+  background-color: var(--bg-surface);
+  color: #f0ece4;
 }
 
 /* Surface & background overrides inside admin wrapper */
@@ -78,7 +81,7 @@
 }
 .theme-admin-station .bg-slate-100,
 .theme-admin-station .bg-slate-800 {
-  background-color: #252320 !important;
+  background-color: color-mix(in srgb, var(--bg-elevated) 70%, #000) !important;
 }
 
 /* Border overrides */
@@ -109,21 +112,16 @@
   color: var(--accent) !important;
 }
 
-/* Tab hover */
-.theme-admin-station button:hover .border-slate-300 {
-  border-color: var(--accent) !important;
-}
-
 /* Table row hover */
 .theme-admin-station tbody tr:hover {
-  background-color: #1f1d1a !important;
+  background-color: var(--bg-elevated) !important;
 }
 
 /* Inputs inside admin */
 .theme-admin-station input,
 .theme-admin-station select,
 .theme-admin-station textarea {
-  background-color: #1c1a17 !important;
+  background-color: var(--bg-elevated) !important;
   border-color: var(--border) !important;
   color: #f0ece4 !important;
 }
@@ -143,7 +141,7 @@
   background-color: #e8b96a !important;
 }
 
-/* Subtle gold left-border on active tab indicator */
+/* Active tab gold indicator */
 .theme-admin-station nav button[class*="border-primary"] {
   border-bottom-color: var(--accent) !important;
   color: var(--accent) !important;
