@@ -135,9 +135,14 @@ const ClipboardIcon = ({ className = "w-4 h-4 inline-block text-primary-650 mr-1
   </svg>
 );
 
-const ChevronUpIcon = ({ className = "w-3.5 h-3.5 inline-block mr-1 align-middle" }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+const ThumbsUpIcon = ({ filled = false, className = "w-3.5 h-3.5 inline-block mr-1 align-middle" }) => filled ? (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/>
+  </svg>
+) : (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
   </svg>
 );
 
@@ -1369,16 +1374,25 @@ function QueryCard({
                               <div className="flex items-center gap-3">
                                 {currentUser?.role === 'admin' ? (
                                   <div className="text-xs bg-slate-50 dark:bg-[#191816] border border-slate-200 dark:border-slate-800 text-slate-450 px-2 py-1 rounded-lg flex items-center gap-1 font-semibold select-none" title="Admins cannot upvote answers">
-                                    <ChevronUpIcon /> {answer.upvotes || 0}
+                                    <ThumbsUpIcon filled={false} /> {answer.upvotes || 0}
                                   </div>
                                 ) : (
-                                  <button 
-                                    onClick={() => onUpvoteAnswer(answer._id)} 
-                                    className="text-xs bg-slate-50 dark:bg-[#191816] hover:bg-primary-50 dark:hover:bg-primary-950/20 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-600 px-2 py-1 rounded-lg transition-all duration-150 flex items-center gap-1 font-semibold"
-                                    title={currentUser ? 'Upvote answer' : 'Sign in to upvote'}
-                                  >
-                                    <ChevronUpIcon /> {answer.upvotes || 0}
-                                  </button>
+                                  (() => {
+                                    const hasUpvoted = currentUser && (answer.upvotedBy || []).some(id => id?.toString() === currentUser._id?.toString() || id === currentUser._id);
+                                    return (
+                                      <button
+                                        onClick={() => onUpvoteAnswer(answer._id)}
+                                        className={`text-xs px-2 py-1 rounded-lg border transition-all duration-150 flex items-center gap-1 font-semibold ${
+                                          hasUpvoted
+                                            ? 'bg-primary-50 dark:bg-primary-950/30 border-primary-300 dark:border-primary-800 text-primary-600 dark:text-primary-400'
+                                            : 'bg-slate-50 dark:bg-[#191816] border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-primary-50 dark:hover:bg-primary-950/20 hover:border-primary-200 hover:text-primary-600'
+                                        }`}
+                                        title={currentUser ? (hasUpvoted ? 'Remove upvote' : 'Upvote answer') : 'Sign in to upvote'}
+                                      >
+                                        <ThumbsUpIcon filled={hasUpvoted} /> {answer.upvotes || 0}
+                                      </button>
+                                    );
+                                  })()
                                 )}
                                 
                                 {!answer.isVetted && currentUser && (currentUser.role === 'admin' || currentUser.reputation >= 100) && (
