@@ -373,7 +373,8 @@ function CommunityPage() {
 
   const handleClaimQuery = async (queryId, bypassVolunteerCheck = false) => {
     if (!user) { toast.warning('Please sign in to claim a query'); return; }
-    if (!user.isVolunteer && !bypassVolunteerCheck) {
+    // Admins bypass the volunteer gate — they can always claim
+    if (!user.isVolunteer && !bypassVolunteerCheck && user.role !== 'admin') {
       setPendingAction({ type: 'claim', queryId });
       setShowVolunteerModal(true);
       return;
@@ -421,7 +422,8 @@ function CommunityPage() {
     const content = answerContent[queryId];
     if (!content?.trim()) { toast.warning('Please write an answer before submitting.'); return; }
     if (!user) { toast.warning('Please sign in to answer.'); return; }
-    if (!user.isVolunteer && !bypassVolunteerCheck) {
+    // Admins bypass the volunteer gate — they can always answer
+    if (!user.isVolunteer && !bypassVolunteerCheck && user.role !== 'admin') {
       setPendingAction({ type: 'answer', queryId });
       setShowVolunteerModal(true);
       return;
@@ -1435,28 +1437,59 @@ function QueryCard({
                 </div>
               )}
 
-              {/* Answer input */}
-              {!isClosed && query.status !== 'answered' && (!currentUser || (currentUser && !isOwnedByCurrentUser && currentUser.role !== 'admin')) && (
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <EditIcon /> Your Answer
-                  </p>
-                  <RichTextEditor 
-                    value={answerContent} 
-                    onChange={onAnswerChange} 
-                    placeholder="Write a step-by-step resolution, using Markdown formats..." 
-                  />
-                  <div className="flex justify-end mt-3">
-                    <button 
-                      onClick={onSubmitAnswer} 
-                      disabled={submitting === query._id || !answerContent?.trim()}
-                      className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
-                    >
-                      {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Answer input
+                  - Admin: can answer any open/claimed/answered query (not their own, not already answered by them)
+                  - Regular user: can answer only if unclaimed or they are the claim holder, and status != 'answered'
+              */}
+              {(() => {
+                const isAdmin = currentUser?.role === 'admin';
+                const alreadyAnswered = currentUser && query.answers?.some(
+                  a => (a.userId?._id || a.userId) === (currentUser._id || currentUser.id)
+                );
+                const isClaimHolder = isAssignedToCurrentUser;
+                const isUnclaimed = !assignedToId;
+                const canAnswer = !isClosed &&
+                  !alreadyAnswered &&
+                  currentUser &&
+                  !isOwnedByCurrentUser &&
+                  (isAdmin
+                    ? true  // admin can answer regardless of status (open/claimed/answered)
+                    : query.status !== 'answered' && (isClaimHolder || isUnclaimed));
+
+                if (alreadyAnswered && !isClosed) {
+                  return (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <p className="text-xs text-slate-400 dark:text-slate-500 italic text-center py-2">
+                        ✓ You have already submitted an answer to this query.
+                      </p>
+                    </div>
+                  );
+                }
+                if (canAnswer) {
+                  return (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <EditIcon /> Your Answer
+                      </p>
+                      <RichTextEditor
+                        value={answerContent}
+                        onChange={onAnswerChange}
+                        placeholder="Write a step-by-step resolution, using Markdown formats..."
+                      />
+                      <div className="flex justify-end mt-3">
+                        <button
+                          onClick={onSubmitAnswer}
+                          disabled={submitting === query._id || !answerContent?.trim()}
+                          className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
+                        >
+                          {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {isClosed && (
                 <div className="bg-slate-100/70 dark:bg-[#191816] rounded-xl px-4 py-3 text-xs md:text-sm text-slate-500 dark:text-slate-400 text-center font-medium border border-slate-200/50 dark:border-slate-850 flex items-center justify-center gap-1.5 mt-3">
