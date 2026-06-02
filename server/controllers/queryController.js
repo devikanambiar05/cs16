@@ -99,9 +99,12 @@ exports.getQueryById = async (req, res) => {
 
     if (!query) return res.status(404).json({ error: 'Query not found' });
 
-    const answers = await Answer.find({ queryId: query._id })
-      .populate('userId', 'name reputation')
-      .sort({ upvotes: -1, createdAt: 1 });
+    const answers = await Answer.find({
+  queryId: query._id,
+  deletedAt: null
+})
+  .populate('userId', 'name reputation')
+  .sort({ upvotes: -1, createdAt: 1 });
 
     // Attach a confidence score to each answer and sort by it
     // Formula: upvotes + (isAccepted ? 50 : 0) + log10(authorReputation+1)*5
