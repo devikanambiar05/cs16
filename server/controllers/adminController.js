@@ -146,7 +146,7 @@ exports.pinFAQ = async (req, res) => {
 
     res.json({ message: faq.pinned ? 'FAQ pinned' : 'FAQ unpinned', pinned: faq.pinned });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete FAQ' });
+    res.status(500).json({ error: 'Failed to pin FAQ' });
   }
 };
 
@@ -277,7 +277,7 @@ exports.deleteFAQ = async (req, res) => {
     await faq.save();
     res.json({ message: 'FAQ deleted', faq });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete FAQ' });
+    res.status(500).json({ error: 'Failed to pin FAQ' });
   }
 };
 
