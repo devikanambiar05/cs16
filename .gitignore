@@ -9,3 +9,6 @@ issues.md
 server/data/
 RAG_INFERENCE_EXPERIMENTS.md
 team-wiki-pages
+
+# Local MongoDB binaries and memory server database files
+server/.mongodb/
