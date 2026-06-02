@@ -286,43 +286,61 @@ function FAQsPage() {
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex gap-8 lg:gap-10">
-        {/* ── Left Sidebar: Platform Overview ── */}
-        <aside className="w-60 shrink-0 hidden md:block">
-          <div className="sticky top-20 flex flex-col gap-3 select-none px-1">
-            <div className="flex items-center gap-2 pb-2.5 border-b border-slate-200 dark:border-slate-800">
-              <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded flex items-center justify-center font-bold">
-                ℹ️
-              </div>
-              <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                Overview
-              </h2>
-            </div>
-            
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap mt-1">
-              {overview?.content || 'Grantha is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
-            </p>
+      {/* ── Mobile/Tablet Overview Banner (hidden on lg+) ── */}
+      <div className="lg:hidden mb-5 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/30 rounded-xl px-4 py-3 flex gap-3 items-start select-none">
+        <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded flex items-center justify-center font-bold shrink-0 mt-0.5">
+          ℹ️
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-1">Overview</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            {overview?.content || 'Grantha is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] text-slate-400 dark:text-slate-500">
+            <span>📚 Self-serve platform</span>
+            <span>🤝 Collaborative learning</span>
+            <span>💡 Verified student answers</span>
+          </div>
+        </div>
+      </div>
 
-            <div className="mt-1 pt-3 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 dark:text-slate-500 space-y-2 select-none">
+      {/* Main content */}
+      <div className="flex gap-6 xl:gap-10">
+        {/* ── Left Sidebar: Platform Overview ── */}
+        <aside className="w-56 shrink-0 hidden lg:block">
+          <div className="sticky top-20 select-none">
+            <div className="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/30 rounded-xl px-4 py-3 flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <span>📚</span>
-                <span>Self-serve platform</span>
+                <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded flex items-center justify-center font-bold shrink-0">
+                  ℹ️
+                </div>
+                <h2 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+                  Overview
+                </h2>
               </div>
-              <div className="flex items-center gap-2">
-                <span>🤝</span>
-                <span>Collaborative learning</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>💡</span>
-                <span>Verified student answers</span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+                {overview?.content || 'Grantha is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!'}
+              </p>
+              <div className="pt-2 border-t border-emerald-200/50 dark:border-emerald-900/30 text-[10px] text-slate-400 dark:text-slate-500 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span>📚</span>
+                  <span>Self-serve platform</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>🤝</span>
+                  <span>Collaborative learning</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>💡</span>
+                  <span>Verified student answers</span>
+                </div>
               </div>
             </div>
           </div>
         </aside>
 
         {/* ── Left/Center: Community Board + FAQs OR Search Results ── */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           {searchResults === null ? (
             <>
               {!selectedCategory && <CommunityBoard />}
@@ -436,7 +454,7 @@ function FAQsPage() {
         </div>
 
         {/* ── Right: Categories sidebar with search ── */}
-        <aside className="w-56 shrink-0">
+        <aside className="w-52 shrink-0 hidden xl:block">
           <div className="sticky top-6">
             {/* Search inside sidebar */}
             <form onSubmit={e => { e.preventDefault(); handleSearch(null, 1); }} className="mb-4">

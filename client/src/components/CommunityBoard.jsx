@@ -30,17 +30,17 @@ export default function CommunityBoard() {
   return (
     <div className="mb-8">
       {/* Section header */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center">
+      <div className="flex items-center gap-2 mb-3 min-w-0">
+        <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center shrink-0">
           <span className="text-sm">📢</span>
         </div>
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide truncate">
           Latest Announcements
         </h2>
       </div>
 
       {/* Grid of announcements */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         {announcements.map(pin => {
           const cfg = typeConfig.announcement;
           return (
