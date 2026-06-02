@@ -7,6 +7,16 @@ const getHeaders = () => {
 
 const handleResponse = async (res) => {
   if (res.status === 204) return res;
+  if (res.status === 429) {
+    const msg = '⚡ Request limit reached. Please wait a few moments before trying again.';
+    if (typeof window !== 'undefined') {
+      window.__lastRateLimitTime = Date.now();
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: msg, type: 'error' } }));
+    }
+    const error = new Error(msg);
+    error.response = { status: 429, data: { error: msg } };
+    throw error;
+  }
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error(data.error || 'Request failed'), { response: { data } });
   return { data };
