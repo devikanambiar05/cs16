@@ -308,14 +308,14 @@ export default function AdminDashboard() {
   async function handleToggleBan(userId, currentStatus) {
     const isCurrentlyBanned = currentStatus === 'banned';
     const action = isCurrentlyBanned ? 'unban' : 'ban';
-    if (!window.confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} this user?`)) return;
     try {
       setUserStatus(prev => ({ ...prev, [userId]: 'loading' }));
       await updateUserBan(userId, !isCurrentlyBanned);
-      showToast(`User ${action}ned`, 'success');
+      // Optimistically update UI — no page reload needed
       setUsers(prev => prev.map(u =>
         u._id === userId ? { ...u, status: isCurrentlyBanned ? 'active' : 'banned' } : u
       ));
+      showToast(`User ${action}ned successfully`, 'success');
     } catch (err) {
       showToast('Failed to update user', 'error');
     } finally {
@@ -342,14 +342,19 @@ export default function AdminDashboard() {
 
   async function handleBulkAction(action) {
     if (selectedUserIds.size === 0) return;
-    const label = action === 'ban' ? 'Ban' : action === 'unban' ? 'Unban' : 'Promote to Admin';
-    if (!window.confirm(`${label} ${selectedUserIds.size} selected user(s)?`)) return;
     setBulkLoading(true);
     try {
       const res = await bulkUserAction([...selectedUserIds], action);
-      showToast(res.data.message, 'success');
+      // Optimistically update UI for all selected users — no reload needed
+      setUsers(prev => prev.map(u => {
+        if (!selectedUserIds.has(u._id)) return u;
+        if (action === 'ban')     return { ...u, status: 'banned' };
+        if (action === 'unban')   return { ...u, status: 'active' };
+        if (action === 'promote') return { ...u, role: 'admin' };
+        return u;
+      }));
       setSelectedUserIds(new Set());
-      loadUsers();
+      showToast(res.data.message, 'success');
     } catch (err) {
       showToast(`Failed to ${action} selected users`, 'error');
     } finally {
