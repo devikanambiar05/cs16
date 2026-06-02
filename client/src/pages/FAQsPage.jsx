@@ -210,9 +210,14 @@ function FAQsPage() {
     if (!user) return;
     try {
       const res = await upvoteFAQ(faqId);
-      const updateFAQ = (faqs) => faqs.map(f =>
-        f._id === faqId ? { ...f, upvotes: res.data.upvotes } : f
-      );
+      const { upvotes, hasUpvoted } = res.data;
+      const updateFAQ = (faqs) => faqs.map(f => {
+        if (f._id !== faqId) return f;
+        const upvoters = hasUpvoted
+          ? [...(f.upvoters || []), user._id]
+          : (f.upvoters || []).filter(id => id !== user._id && id?.toString() !== user._id?.toString());
+        return { ...f, upvotes, upvoters };
+      });
       setCategoryFAQs(updateFAQ);
       setPinnedFAQs(updateFAQ);
       if (searchResults) setSearchResults(updateFAQ(searchResults));
@@ -600,24 +605,45 @@ function FAQItem({ faq, onUpvote, onPin, user, compact = false }) {
             {/* Upvotes */}
             <div className="flex items-center gap-1">
               {user?.role === 'admin' ? (
-                <div className="text-slate-400 flex items-center gap-1 select-none" title="Admins cannot upvote FAQs">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                <div className="text-slate-300 dark:text-slate-600 flex items-center gap-1 select-none" title="Admins cannot upvote FAQs">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
                   </svg>
                 </div>
               ) : (
-                <button
-                  onClick={() => onUpvote(faq._id)}
-                  disabled={!user}
-                  className="hover:text-primary-600 transition-colors disabled:cursor-not-allowed"
-                  title={user ? 'Upvote' : 'Sign in to upvote'}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                  </svg>
-                </button>
+                (() => {
+                  const hasUpvoted = user && (faq.upvoters || []).some(id => id?.toString() === user._id?.toString() || id === user._id);
+                  return (
+                    <button
+                      onClick={() => onUpvote(faq._id)}
+                      disabled={!user}
+                      className={`transition-all duration-150 disabled:cursor-not-allowed ${
+                        hasUpvoted
+                          ? 'text-primary-600 dark:text-primary-400 scale-110'
+                          : 'text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:scale-110'
+                      }`}
+                      title={user ? (hasUpvoted ? 'Remove upvote' : 'Upvote') : 'Sign in to upvote'}
+                    >
+                      {hasUpvoted ? (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/>
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })()
               )}
-              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{faq.upvotes}</span>
+              <span className={`text-xs font-semibold ${
+                user && (faq.upvoters || []).some(id => id?.toString() === user._id?.toString() || id === user._id)
+                  ? 'text-primary-600 dark:text-primary-400'
+                  : 'text-slate-600 dark:text-slate-400'
+              }`}>{faq.upvotes}</span>
             </div>
 
             {/* Bookmark */}
