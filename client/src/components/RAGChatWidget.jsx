@@ -293,7 +293,7 @@ export default function RAGChatWidget() {
             */}
             <div 
               onPointerDown={(e) => dragControls.start(e)}
-              className="flex items-center justify-between px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 shrink-0 cursor-get active:cursor-grabbing select-none"
+              className="flex items-center justify-between px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 shrink-0 cursor-grab active:cursor-grabbing select-none"
             >
               <div className="flex items-center gap-2">
                 {/* Drag Handle Icon Indicator */}
@@ -519,7 +519,7 @@ export default function RAGChatWidget() {
             onFocus={() => {
               if (showProbe) dismissProbe();
             }}
-            onButton={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             onKeyDown={handleKeyDown}
             disabled={loading}
           />
@@ -534,6 +534,7 @@ export default function RAGChatWidget() {
             <button
               type="submit"
               disabled={!input.trim() || loading}
+              onPointerDown={(e) => e.stopPropagation()}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-all pointer-events-auto"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
