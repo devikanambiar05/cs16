@@ -243,6 +243,9 @@ function UnansweredBadge({ createdAt, answerCount, status }) {
 // Confidence score: surfaces quality answers above raw vote counts.
 // Formula: upvotes + (isAccepted ? 50 : 0) + log10(rep+1)*5
 // Accepted answers get a large boost; established authors rank above newcomers at equal votes.
+const MAX_WORDS = 500;
+const getWordCount = (text) => text?.trim() ? text.trim().split(/\s+/).length : 0;
+
 function getConfidenceInfo(score) {
   const pct = Math.min(100, Math.round((score / 80) * 100));
   if (score >= 60) return { label: 'High', pct, color: 'bg-emerald-500', textColor: 'text-emerald-700 dark:text-emerald-400', barBg: 'bg-emerald-100 dark:bg-emerald-950' };
@@ -428,7 +431,9 @@ function CommunityPage() {
 
   const handleSubmitAnswer = async (queryId, bypassVolunteerCheck = false) => {
     const content = answerContent[queryId];
+    const contentWordCount = getWordCount(content);
     if (!content?.trim()) { toast.warning('Please write an answer before submitting.'); return; }
+    if (contentWordCount > MAX_WORDS) { toast.warning(`Answer cannot exceed ${MAX_WORDS} words.`); return; }
     if (!user) { toast.warning('Please sign in to answer.'); return; }
     if (!user.isVolunteer && !bypassVolunteerCheck) {
       setPendingAction({ type: 'answer', queryId });
@@ -1217,6 +1222,11 @@ function QueryCard({
                   onChange={val => onEditFormChange({ ...editForm, description: val })}
                   placeholder="Edit the description..."
                 />
+                {getWordCount(editForm.description) > MAX_WORDS && (
+                  <p className="text-xs text-red-500 mt-2">
+                    Description exceeds the {MAX_WORDS}-word limit.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Edit Tags</label>
@@ -1225,7 +1235,7 @@ function QueryCard({
               <div className="flex gap-2.5 pt-2">
                 <button 
                   onClick={onSaveEdit} 
-                  disabled={isEditSubmitting}
+                  disabled={isEditSubmitting || getWordCount(editForm.description) > MAX_WORDS}
                   className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-all duration-150 disabled:opacity-50"
                 >
                   {isEditSubmitting ? 'Saving...' : 'Save Changes'}
@@ -1447,10 +1457,15 @@ function QueryCard({
                     onChange={onAnswerChange} 
                     placeholder="Write a step-by-step resolution, using Markdown formats..." 
                   />
+                  {getWordCount(answerContent) > MAX_WORDS && (
+                    <p className="text-xs text-red-500 mt-2">
+                      Answer exceeds the {MAX_WORDS}-word limit.
+                    </p>
+                  )}
                   <div className="flex justify-end mt-3">
                     <button 
                       onClick={onSubmitAnswer} 
-                      disabled={submitting === query._id || !answerContent?.trim()}
+                      disabled={submitting === query._id || !answerContent?.trim() || getWordCount(answerContent) > MAX_WORDS}
                       className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
                     >
                       {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}

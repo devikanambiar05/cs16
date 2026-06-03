@@ -3,6 +3,7 @@ import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { getPins, getNotifications, markNotificationRead, markAllNotificationsRead } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { getAvatarColor, getInitials } from '../utils/avatar';
 
 export default function Layout() {
   const location = useLocation();

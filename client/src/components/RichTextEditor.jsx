@@ -56,6 +56,14 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const MAX_WORDS = 500;
+  const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
+  const progressPct = Math.min(100, Math.round((wordCount / MAX_WORDS) * 100));
+  const isWarning = wordCount >= MAX_WORDS * 0.9;
+  const isOverLimit = wordCount > MAX_WORDS;
+  const barColor = isOverLimit ? 'bg-red-500' : isWarning ? 'bg-amber-400 dark:bg-amber-300' : 'bg-slate-400 dark:bg-slate-500';
+  const textColor = isOverLimit ? 'text-red-500 dark:text-red-400' : isWarning ? 'text-amber-500 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400';
 
   const insertWrap = (before, after = before) => {
     const ta = textareaRef.current;
@@ -85,8 +93,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
     });
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
+  const uploadFile = async (file) => {
     if (!file) return;
     setUploading(true);
     try {
@@ -97,8 +104,35 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
       console.error('Image upload failed:', err);
     } finally {
       setUploading(false);
-      e.target.value = '';
     }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    await uploadFile(file);
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    await uploadFile(file);
   };
 
   const toolbarButtons = [
@@ -113,7 +147,12 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   }
 
   return (
-    <div className="border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-200 focus-within:border-primary-400 transition-all">
+    <div
+      className={`border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-200 transition-all ${dragActive ? 'border-primary-400 ring-2 ring-primary-200/60' : 'border-slate-300 dark:border-slate-600'}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Toolbar */}
       <div className="flex items-center gap-1 px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
         {toolbarButtons.map((btn) => (
@@ -149,6 +188,17 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
         </button>
 
         <div className="flex-1" />
+        <div className="flex items-center gap-2">
+          <div className="relative w-20 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+            <div
+              className={`absolute inset-y-0 left-0 rounded-full ${barColor}`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <span className={`text-[10px] font-medium ${textColor}`}>
+            {wordCount}/{MAX_WORDS}
+          </span>
+        </div>
         <span className="text-xs text-slate-400 dark:text-slate-500">Markdown enabled</span>
       </div>
 
