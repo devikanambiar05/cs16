@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
-import { getBookmarks, toggleBookmark, getLikedFAQs, getChatSessions, getChatSessionDetails } from '../services/api';
+import { getBookmarks, toggleBookmark, getLikedFAQs, getChatSessions, getChatSessionDetails, logoutAllDevices } from '../services/api';
 import { Link } from 'react-router-dom';
 import { getVolunteerLevel, getUserBadges } from '../utils/gamificationHelper';
 
 export default function ProfilePage() {
-  const { user, setBookmarks } = useAuth();
+  const { user, setBookmarks, logout } = useAuth();
   const toast = useToast();
   
   const [savedFaqs, setSavedFaqs] = useState([]);
@@ -15,6 +15,20 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('bookmarks'); // 'bookmarks', 'likes', 'chats'
   const [loading, setLoading] = useState(true);
   const [expandedFaqId, setExpandedFaqId] = useState(null);
+  const [loggingOutAll, setLoggingOutAll] = useState(false);
+
+  const handleLogoutAll = async () => {
+    try {
+      setLoggingOutAll(true);
+      await logoutAllDevices();
+      toast.success('Successfully signed out of all devices');
+      logout();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to sign out of all devices');
+    } finally {
+      setLoggingOutAll(false);
+    }
+  };
 
   useEffect(() => {
     loadProfileData();
@@ -135,6 +149,29 @@ export default function ProfilePage() {
                 <span>Member Since:</span>
                 <span className="font-medium text-slate-700 dark:text-slate-200">{joinDate}</span>
               </div>
+            </div>
+
+            {/* Sign out of all active devices */}
+            <div className="pt-6 mt-6 border-t border-slate-150 dark:border-slate-800/50">
+              <button
+                onClick={handleLogoutAll}
+                disabled={loggingOutAll}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-semibold border border-red-200/50 dark:border-red-900/30 text-red-650 dark:text-red-400 bg-red-50/30 dark:bg-red-950/10 hover:bg-red-50 dark:hover:bg-red-950/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none select-none"
+              >
+                {loggingOutAll ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+                    Signing out...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Sign out of all devices
+                  </>
+                )}
+              </button>
             </div>
           </div>
 

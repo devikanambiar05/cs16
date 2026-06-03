@@ -7,6 +7,12 @@ const getHeaders = () => {
 
 const handleResponse = async (res) => {
   if (res.status === 204) return res;
+  if (res.status === 401) {
+    localStorage.removeItem('token');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth-unauthorized'));
+    }
+  }
   if (res.status === 429) {
     const msg = '⚡ Request limit reached. Please wait a few moments before trying again.';
     if (typeof window !== 'undefined') {
@@ -66,6 +72,7 @@ export const requestPasswordReset = (email) => api.post('/api/auth/forgot-passwo
 export const forgotPassword = (email) => api.post('/api/auth/forgot-password', { email });
 export const resetPassword = (token, password) => api.post('/api/auth/reset-password', { token, password });
 export const resendVerification = () => api.post('/api/auth/resend-verification', {});
+export const logoutAllDevices = () => api.post('/api/auth/logout-all', {});
 
 // Users
 export const getCurrentUser = () => api.get('/api/auth/me');
