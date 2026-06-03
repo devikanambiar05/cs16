@@ -73,6 +73,9 @@ export default function AdminDashboard() {
   const [editingFaq, setEditingFaq] = useState(null);
   const [faqFilter, setFaqFilter] = useState('all');
   const [faqSearch, setFaqSearch] = useState('');
+  const [faqManagePage, setFaqManagePage] = useState(1);      // pagination for Manage FAQs tab
+  const [faqManageTotalPages, setFaqManageTotalPages] = useState(1);
+  const [faqSearchInput, setFaqSearchInput] = useState('');   // debounced input
   const [adminFaqs, setAdminFaqs] = useState([]);
   // Pins tab state
   const [pins, setPins] = useState([]);
@@ -99,6 +102,25 @@ export default function AdminDashboard() {
     if (activeTab === 'Manage FAQs') loadAdminFaqs();
     if (activeTab === 'Pins') loadAdminPins();
   }, [activeTab]);
+
+  // Reload FAQs when filter or page changes
+  useEffect(() => {
+    if (activeTab === 'Manage FAQs') loadAdminFaqs();
+  }, [faqFilter, faqManagePage]);
+
+  // Debounce search input — wait 500ms after typing stops before fetching
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFaqSearch(faqSearchInput);
+      setFaqManagePage(1); // reset to page 1 on new search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [faqSearchInput]);
+
+  // Reload when debounced search term changes
+  useEffect(() => {
+    if (activeTab === 'Manage FAQs') loadAdminFaqs();
+  }, [faqSearch]);
 
   async function loadStats() {
     setLoadingAuditLogs(true);
@@ -171,10 +193,19 @@ export default function AdminDashboard() {
   async function loadAdminFaqs() {
     setFaqLoading(true);
     try {
-      const params = { pageSize: 50 };
+      // Pass page, limit, search, status — NOT pageSize (destructuring mismatch fix)
+      const params = {
+        page:  faqManagePage,
+        limit: PAGE_SIZE,
+      };
       if (faqFilter !== 'all') params.status = faqFilter;
+      if (faqSearch.trim())    params.search = faqSearch.trim();
+
       const res = await getAdminFaqs(params);
       setAdminFaqs(res.data.faqs || res.data || []);
+      if (res.data.pagination) {
+        setFaqManageTotalPages(res.data.pagination.pages || 1);
+      }
     } catch (err) {
       showToast('Failed to load FAQs', 'error');
     } finally {
@@ -661,18 +692,18 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Manage FAQs</h2>
             <div className="flex items-center gap-3">
-              {/* Search */}
+              {/* Search — debounced via faqSearchInput state */}
               <input
                 type="text"
                 placeholder="Search FAQs..."
-                value={faqSearch}
-                onChange={e => setFaqSearch(e.target.value)}
+                value={faqSearchInput}
+                onChange={e => setFaqSearchInput(e.target.value)}
                 className="input py-1.5 text-sm w-48"
               />
-              {/* Filter */}
+              {/* Filter — resets to page 1 */}
               <select
                 value={faqFilter}
-                onChange={e => setFaqFilter(e.target.value)}
+                onChange={e => { setFaqFilter(e.target.value); setFaqManagePage(1); }}
                 className="input py-1.5 text-sm"
               >
                 <option value="all">All FAQs</option>
@@ -680,7 +711,7 @@ export default function AdminDashboard() {
                 <option value="duplicate">Duplicate</option>
               </select>
               {/* Refresh */}
-              <button onClick={loadAdminFaqs} className="btn-secondary text-sm">Refresh</button>
+              <button onClick={() => { setFaqManagePage(1); loadAdminFaqs(); }} className="btn-secondary text-sm">Refresh</button>
             </div>
           </div>
 
@@ -701,7 +732,7 @@ export default function AdminDashboard() {
           {/* Table */}
           {faqLoading ? (
             <p className="text-slate-500">Loading...</p>
-          ) : filteredFaqs.length === 0 ? (
+          ) : adminFaqs.length === 0 ? (
             <p className="text-slate-500 dark:text-slate-400">No FAQs found.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -716,7 +747,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredFaqs.map(faq => (
+                  {adminFaqs.map(faq => (
                     <tr key={faq._id} className={`border-b border-slate-100 dark:border-slate-800 ${faq.deletedAt ? 'opacity-60' : ''}`}>
                       <td className="py-3 text-slate-800 dark:text-slate-200 max-w-xs truncate">{faq.title}</td>
                       <td className="py-3">
@@ -753,6 +784,23 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Pagination controls */}
+          {faqManageTotalPages > 1 && (
+            <div className="flex items-center gap-3 mt-4">
+              <button
+                onClick={() => setFaqManagePage(p => Math.max(1, p - 1))}
+                disabled={faqManagePage === 1}
+                className="btn-secondary text-sm disabled:opacity-40"
+              >Previous</button>
+              <span className="text-sm text-slate-500">Page {faqManagePage} of {faqManageTotalPages}</span>
+              <button
+                onClick={() => setFaqManagePage(p => Math.min(faqManageTotalPages, p + 1))}
+                disabled={faqManagePage === faqManageTotalPages}
+                className="btn-secondary text-sm disabled:opacity-40"
+              >Next</button>
             </div>
           )}
         </div>
