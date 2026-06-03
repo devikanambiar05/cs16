@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getVolunteerLevel, getUserBadges } from '../utils/gamificationHelper';
 import { 
   getQueries, 
@@ -248,6 +248,7 @@ function CommunityPage() {
   const { user, updateUser } = useAuth();
   const toast = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [queries, setQueries] = useState([]);
   const [highlightedQueryId, setHighlightedQueryId] = useState(null);
@@ -372,7 +373,11 @@ function CommunityPage() {
   };
 
   const handleClaimQuery = async (queryId, bypassVolunteerCheck = false) => {
-    if (!user) { toast.warning('Please sign in to claim a query'); return; }
+    if (!user) {
+      toast.warning('Please sign in to claim a query');
+      navigate('/login', { state: { from: location.pathname + location.search } });
+      return;
+    }
     // Admins bypass the volunteer gate — they can always claim
     if (!user.isVolunteer && !bypassVolunteerCheck && user.role !== 'admin') {
       setPendingAction({ type: 'claim', queryId });
@@ -419,9 +424,13 @@ function CommunityPage() {
   };
 
   const handleSubmitAnswer = async (queryId, bypassVolunteerCheck = false) => {
+    if (!user) {
+      toast.warning('Please sign in to answer.');
+      navigate('/login', { state: { from: location.pathname + location.search } });
+      return;
+    }
     const content = answerContent[queryId];
     if (!content?.trim()) { toast.warning('Please write an answer before submitting.'); return; }
-    if (!user) { toast.warning('Please sign in to answer.'); return; }
     // Admins bypass the volunteer gate — they can always answer
     if (!user.isVolunteer && !bypassVolunteerCheck && user.role !== 'admin') {
       setPendingAction({ type: 'answer', queryId });
@@ -538,7 +547,11 @@ function CommunityPage() {
   };
 
   const handleTakeQuestion = async (bypassVolunteerCheck = false) => {
-    if (!user) { toast.warning('Please sign in to take a question'); return; }
+    if (!user) {
+      toast.warning('Please sign in to take a question');
+      navigate('/login', { state: { from: location.pathname + location.search } });
+      return;
+    }
     if (!user.isVolunteer && !bypassVolunteerCheck) {
       setPendingAction({ type: 'take' });
       setShowVolunteerModal(true);
@@ -1067,7 +1080,7 @@ function QueryCard({
   const isAssignedToCurrentUser = currentUser && assignedToId && assignedToId === (currentUser._id || currentUser.id);
   const isOwnedByCurrentUser = currentUser && query.createdBy && (query.createdBy._id || query.createdBy) === (currentUser._id || currentUser.id);
   const isClosed = query.status === 'closed';
-  const canClaim = !isClosed && !assignedToId && currentUser && currentUser.role !== 'admin' && !isOwnedByCurrentUser;
+  const canClaim = !isClosed && !assignedToId && (!currentUser || (currentUser.role !== 'admin' && !isOwnedByCurrentUser));
   const canRelease = !isClosed && isAssignedToCurrentUser;
   const isEditSubmitting = submitting === 'edit-' + query._id;
 
@@ -1450,11 +1463,11 @@ function QueryCard({
                 const isUnclaimed = !assignedToId;
                 const canAnswer = !isClosed &&
                   !alreadyAnswered &&
-                  currentUser &&
-                  !isOwnedByCurrentUser &&
-                  (isAdmin
-                    ? true  // admin can answer regardless of status
-                    : query.status !== 'answered' && (isClaimHolder || isUnclaimed));
+                  (!currentUser
+                    ? query.status !== 'answered' && isUnclaimed
+                    : !isOwnedByCurrentUser && (isAdmin
+                      ? true  // admin can answer regardless of status
+                      : query.status !== 'answered' && (isClaimHolder || isUnclaimed)));
 
                 if (alreadyAnswered && !isClosed) {
                   return (
@@ -1466,6 +1479,21 @@ function QueryCard({
                   );
                 }
                 if (canAnswer) {
+                  if (!currentUser) {
+                    return (
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-center py-4 bg-slate-50/50 dark:bg-[#191816]/30 rounded-xl border border-slate-100 dark:border-slate-800 mt-3">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 font-semibold">
+                          Have a solution? Sign in to contribute an answer.
+                        </p>
+                        <button
+                          onClick={onSubmitAnswer}
+                          className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-semibold transition-all duration-150 shadow-sm"
+                        >
+                          Sign In to Answer
+                        </button>
+                      </div>
+                    );
+                  }
                   return (
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                       <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
