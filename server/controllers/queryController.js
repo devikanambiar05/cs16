@@ -2,6 +2,7 @@ const Query = require('../models/Query');
 const Answer = require('../models/Answer');
 const FAQ = require('../models/FAQ');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 
 // 24-hour SLA window in ms
 const SLA_24HR = 24 * 60 * 60 * 1000;
@@ -511,6 +512,8 @@ exports.closeQuery = async (req, res) => {
       return res.status(403).json({ error: 'Only the query owner or an admin can close this query' });
     }
 
+    const wasSlaBreached = query.expiresAt < new Date() && (query.status === 'open' || query.status === 'claimed');
+
     query.status = 'closed';
     query.answeredAt = new Date();
     query.assignedTo = null;
@@ -522,6 +525,17 @@ exports.closeQuery = async (req, res) => {
       clearRagCache();
     } catch (err) {
       console.warn('Failed to clear RAG cache on query close:', err.message);
+    }
+
+    // Log query close by admin
+    if (isAdmin) {
+      await AuditLog.create({
+        action: wasSlaBreached ? 'resolved SLA breach' : 'soft-deleted',
+        performedBy: req.user._id,
+        targetModel: 'Query',
+        targetId: query._id,
+        targetName: query.title
+      });
     }
 
     const populated = await Query.findById(query._id)

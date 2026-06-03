@@ -18,7 +18,11 @@ const {
   deletePin,
   getAdminFaqs,
   patchFaq,
+<<<<<<< HEAD
+  getAuditLogs
+=======
   bulkUserAction
+>>>>>>> origin/main
 } = require('../controllers/adminController');
 
 // ─── FAQ Management ────────────────────────────────────────────────────────────
@@ -73,5 +77,8 @@ router.delete('/pins/:id', protect, adminOnly, deletePin);
 
 // Moderation queue (pending FAQ requests + SLA-breached queries)
 router.get('/moderation', protect, adminOnly, getModerationQueue);
+
+// Audit Logs
+router.get('/audit-logs', protect, adminOnly, getAuditLogs);
 
 module.exports = router;
