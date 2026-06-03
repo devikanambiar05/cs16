@@ -13,7 +13,7 @@ export function MarkdownContent({ content }) {
   return (
     <>
       <div 
-        className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200"
+        className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-205"
         dangerouslySetInnerHTML={{ __html: html }} 
         onClick={(e) => {
           if (e.target.tagName === 'IMG') {
@@ -42,7 +42,7 @@ export function MarkdownContent({ content }) {
               title="Close Preview"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -141,6 +141,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
     try {
       const res = await uploadImage(file);
       const url = res.data.url;
+      setUploadedFiles(prev => [...prev, { name: file.name, url }]);
       insertAtCursor(`\n![${file.name}](${url})\n`);
     } catch (err) {
       console.error('Image upload failed:', err);
@@ -178,6 +179,37 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
     if (files && files.length > 0) {
       await processImageFile(files[0]);
     }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    performUpload(file);
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Only JPEG, PNG, GIF, and WebP images are allowed.');
+      return;
+    }
+
+    await performUpload(file);
   };
 
   const toolbarButtons = [

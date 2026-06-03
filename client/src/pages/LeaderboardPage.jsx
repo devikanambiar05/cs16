@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { getLeaderboard } from '../services/api';
+import { getLeaderboard, getCategories, getCategoryContributors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { getVolunteerLevel } from '../utils/gamificationHelper';
 
@@ -34,8 +34,8 @@ export default function LeaderboardPage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Leaderboard</h1>
-          <p className="text-slate-600">Top contributors ranked by reputation</p>
+          <h1 className="text-3xl font-serif font-bold text-slate-900 dark:text-slate-100 mb-2">Leaderboard</h1>
+          <p className="text-slate-600 dark:text-slate-400">Top contributors ranked by reputation</p>
         </div>
         
         {/* Toggle Control Buttons Box */}
@@ -165,8 +165,31 @@ export default function LeaderboardPage() {
                     <span className="text-xs text-slate-400 block">rep</span>
                   </div>
                 </div>
-              );
-            })}
+              )}
+            </>
+          )}
+
+          {/* Rules / Info Footer card */}
+          <div className="mt-8 bg-slate-50 dark:bg-slate-900/30 rounded-2xl p-5 text-sm text-slate-600 dark:text-slate-400 border border-slate-200/50 dark:border-slate-850 select-none">
+            <p className="font-semibold text-slate-800 dark:text-slate-300 mb-3">How to earn reputation:</p>
+            <ul className="space-y-2">
+              <li className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Submit an answer that gets accepted — <strong className="text-slate-700 dark:text-slate-300">+10</strong>
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                Your answer gets converted to a public FAQ — <strong className="text-slate-700 dark:text-slate-300">+10</strong>
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-505 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+                Your answer gets upvoted — <strong className="text-slate-700 dark:text-slate-300">+5</strong>
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-505 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+                Your question gets upvoted — <strong className="text-slate-700 dark:text-slate-300">+2</strong>
+              </li>
+            </ul>
           </div>
         </>
       )}
