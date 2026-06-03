@@ -17,6 +17,21 @@ async function bootstrap() {
       const { seedDatabase } = require('./seed');
       await seedDatabase(true);
     }
+
+    // Ensure RAG Assistant bot user is initialized in database
+    const ragBot = await User.findOne({ email: 'ragbot@faqapp.local' });
+    if (!ragBot) {
+      await User.create({
+        name: 'RAG Assistant',
+        email: 'ragbot@faqapp.local',
+        password: 'ragbot_secure_password_random_123',
+        role: 'user',
+        isVolunteer: true,
+        reputation: 9999,
+        isEmailVerified: true
+      });
+      console.log('Created RAG Assistant bot user');
+    }
   } catch (err) {
     console.error('Database connection or seeding failed:', err.message);
     process.exit(1);
@@ -74,6 +89,14 @@ async function bootstrap() {
     .catch(err => {
       console.warn('RAG pre-warm failed (non-fatal):', err.message);
     });
+
+  // Set up inactive query claims release scheduler (running every 4 hours + boot run)
+  const { releaseInactiveClaims } = require('./controllers/queryController');
+  releaseInactiveClaims().catch(err => console.error('Initial claims release check failed:', err.message));
+  const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+  setInterval(() => {
+    releaseInactiveClaims().catch(err => console.error('Claims release check failed:', err.message));
+  }, FOUR_HOURS_MS);
 }
 
 bootstrap().catch(err => {

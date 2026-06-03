@@ -19,6 +19,10 @@ exports.getQueries = async (req, res) => {
     if (tag) query.tags = tag.toLowerCase();
     if (claimed === 'true') query.assignedTo = { $ne: null };
     if (q) query.$text = { $search: q };
+    if (req.query.createdBy) {
+      const mongoose = require('mongoose');
+      query.createdBy = new mongoose.Types.ObjectId(req.query.createdBy);
+    }
     query.deletedAt = null;
 
     let sortOption = { communityScore: -1, createdAt: -1 };
@@ -39,6 +43,8 @@ exports.getQueries = async (req, res) => {
       { $lookup: { from: 'users', localField: 'assignedTo', foreignField: '_id', as: 'assignedToArr' } },
       { $addFields: { assignedTo: { $arrayElemAt: ['$assignedToArr', 0] } } },
       { $project: { assignedToArr: 0 } },
+      // Populate taggedUsers (user name + reputation)
+      { $lookup: { from: 'users', localField: 'taggedUsers', foreignField: '_id', as: 'taggedUsers' } },
       // Populate resolvedFAQ (FAQ title)
       { $lookup: { from: 'faqs', localField: 'resolvedFAQ', foreignField: '_id', as: 'resolvedFAQArr' } },
       { $addFields: { resolvedFAQ: { $arrayElemAt: ['$resolvedFAQArr', 0] } } },
@@ -95,13 +101,17 @@ exports.getQueryById = async (req, res) => {
   try {
     const query = await Query.findById(req.params.id)
       .populate('createdBy', 'name reputation')
-      .populate('assignedTo', 'name reputation');
+      .populate('assignedTo', 'name reputation')
+      .populate('taggedUsers', 'name reputation');
 
     if (!query) return res.status(404).json({ error: 'Query not found' });
 
-    const answers = await Answer.find({ queryId: query._id })
-      .populate('userId', 'name reputation')
-      .sort({ upvotes: -1, createdAt: 1 });
+    const answers = await Answer.find({
+  queryId: query._id,
+  deletedAt: null
+})
+  .populate('userId', 'name reputation')
+  .sort({ upvotes: -1, createdAt: 1 });
 
     // Attach a confidence score to each answer and sort by it
     // Formula: upvotes + (isAccepted ? 50 : 0) + log10(authorReputation+1)*5
@@ -259,6 +269,7 @@ exports.createQuery = async (req, res) => {
     });
 
     await query.populate('createdBy', 'name reputation');
+    await query.populate('taggedUsers', 'name reputation');
 
     // Record this submission timestamp for cooldown tracking
     await User.findByIdAndUpdate(req.user._id, {
@@ -272,6 +283,45 @@ exports.createQuery = async (req, res) => {
     if (taggedUsers && taggedUsers.length > 0) {
       notifyTaggedUsers(query, taggedUsers).catch(err => console.error('Failed to notify tagged users:', err));
     }
+
+    // Trigger RAG auto-answer in the background
+    setImmediate(async () => {
+      try {
+        const { generateRagAnswerText } = require('./ragController');
+        const Answer = require('../models/Answer');
+        const User = require('../models/User');
+
+        let botUser = await User.findOne({ email: 'ragbot@faqapp.local' });
+        if (!botUser) {
+          botUser = await User.create({
+            name: 'RAG Assistant',
+            email: 'ragbot@faqapp.local',
+            password: 'ragbot_secure_password_random_123',
+            role: 'user',
+            isVolunteer: true,
+            reputation: 9999,
+            isEmailVerified: true
+          });
+        }
+
+        const answerText = await generateRagAnswerText(query.title);
+        
+        // Post the answer
+        const newAnswer = await Answer.create({
+          content: answerText,
+          queryId: query._id,
+          userId: botUser._id,
+          isVetted: true
+        });
+
+        // Increment answer count on query
+        await Query.findByIdAndUpdate(query._id, { $inc: { answerCount: 1 } });
+        
+        console.log(`[RAG Auto-Answer] Successfully answered query "${query.title}" with Answer ${newAnswer._id}`);
+      } catch (err) {
+        console.error('[RAG Auto-Answer] Failed to generate background auto-answer:', err);
+      }
+    });
 
     res.status(201).json({ message: 'Query raised successfully', query });
   } catch (error) {
@@ -444,6 +494,14 @@ exports.closeQuery = async (req, res) => {
     query.assignedTo = null;
     await query.save();
 
+    // Clear RAG cache so the newly closed query is instantly indexed
+    try {
+      const { clearRagCache } = require('./ragController');
+      clearRagCache();
+    } catch (err) {
+      console.warn('Failed to clear RAG cache on query close:', err.message);
+    }
+
     const populated = await Query.findById(query._id)
       .populate('createdBy', 'name reputation')
       .populate('assignedTo', 'name reputation');
@@ -463,6 +521,14 @@ exports.deleteQuery = async (req, res) => {
 
     await Answer.deleteMany({ queryId: query._id });
     await query.deleteOne();
+
+    // Clear RAG cache so the deleted query is instantly removed from index
+    try {
+      const { clearRagCache } = require('./ragController');
+      clearRagCache();
+    } catch (err) {
+      console.warn('Failed to clear RAG cache on query delete:', err.message);
+    }
 
     res.json({ message: 'Query deleted' });
   } catch (error) {
@@ -565,5 +631,93 @@ exports.toggleFacing = async (req, res) => {
   } catch (error) {
     console.error('Toggle facing error:', error);
     res.status(500).json({ error: 'Failed to update facing status' });
+  }
+};
+
+exports.releaseInactiveClaims = async () => {
+  console.log(`[Claim Release Scheduler] Checking for inactive query claims...`);
+  try {
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const claimedQueries = await Query.find({
+      status: 'claimed',
+      claimedAt: { $lt: fortyEightHoursAgo }
+    });
+
+    let releasedCount = 0;
+
+    for (const query of claimedQueries) {
+      // Check if any answers have been submitted
+      const hasAnswer = await Answer.exists({ queryId: query._id });
+      if (!hasAnswer) {
+        console.log(`[Claim Release Scheduler] Releasing inactive claim on query: "${query.title}" (assigned to ${query.assignedTo})`);
+        
+        const previousAssignee = query.assignedTo;
+        
+        // Nullify claim
+        query.assignedTo = null;
+        query.claimedAt = null;
+        query.status = 'open';
+        // Restart SLA window
+        query.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        query.skipCount = (query.skipCount || 0) + 1;
+
+        // Direct Admin Escalation if skipped 3 or more times
+        if (query.skipCount >= 3) {
+          const { notifyAdminsOfEscalatedQuery } = require('../services/notificationService');
+          notifyAdminsOfEscalatedQuery(query).catch(err => console.error('Failed to notify admins of skipped query:', err));
+        }
+
+        await query.save();
+
+        // Emit notification signals to the user who lost the claim
+        if (previousAssignee) {
+          const Notification = require('../models/Notification');
+          await Notification.create({
+            recipient: previousAssignee,
+            type: 'claim',
+            title: 'Query Claim Released',
+            message: `Your claim on query "${query.title}" was automatically released due to 48 hours of inactivity.`,
+            link: '/community'
+          }).catch(err => console.error('Failed to create in-app notification for released claim:', err));
+          
+          // Send email notification if user enabled notifications
+          const userDoc = await User.findById(previousAssignee).select('email name emailNotifications');
+          if (userDoc && userDoc.email && userDoc.emailNotifications !== false) {
+            const { sendEmail } = require('../services/emailService');
+            sendEmail({
+              to: userDoc.email,
+              subject: `⚠️ Query claim released: "${query.title}"`,
+              text: `Hi ${userDoc.name},\n\nYour claim on the query "${query.title}" has been automatically released because it was inactive for more than 48 hours with no answers submitted.\n\nOther community members can now claim this query.\n\nView community board → ${process.env.FRONTEND_URL || 'http://localhost:3000'}/community`,
+              html: `
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+                  <div style="background: #ef4444; color: white; padding: 20px 24px; border-radius: 12px 12px 0 0;">
+                    <h2 style="margin: 0; font-size: 18px;">⚠️ Claim Released due to Inactivity</h2>
+                  </div>
+                  <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+                    <p style="margin: 0 0 8px; font-size: 14px; color: #6b7280;">Hi ${userDoc.name},</p>
+                    <p style="margin: 0 0 16px; font-size: 14px; color: #374151;">
+                      Your claim on the query <strong>"${query.title}"</strong> has been automatically released because it was inactive for more than 48 hours with no answers submitted.
+                    </p>
+                    <p style="margin: 0 0 16px; font-size: 14px; color: #374151;">
+                      Other community members can now claim and answer this query.
+                    </p>
+                    <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/community" style="display: inline-block; background: #ef4444; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;">
+                      View Community Board →
+                    </a>
+                  </div>
+                </div>`
+            }).catch(err => console.error('Failed to send claim release email:', err));
+          }
+        }
+
+        releasedCount++;
+      }
+    }
+    
+    console.log(`[Claim Release Scheduler] Finished. Released ${releasedCount} inactive claim(s).`);
+    return releasedCount;
+  } catch (error) {
+    console.error('[Claim Release Scheduler] Error:', error);
+    return 0;
   }
 };

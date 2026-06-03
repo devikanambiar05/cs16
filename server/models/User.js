@@ -70,7 +70,11 @@ const userSchema = new mongoose.Schema({
   bookmarks: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'FAQ'
-  }]
+  }],
+  tokenVersion: {
+    type: Number,
+    default: 0
+  }
 }, {
   timestamps: true,
   toObject: {

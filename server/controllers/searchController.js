@@ -193,8 +193,8 @@ async function scoreFaqsAgainstQuery(queryText, limit = 5) {
   if (scored.length === 0) return [];
 
   const topScore = scored[0].score;
-  const MIN_RELATIVE_SCORE = 0.35;
-  const MIN_ABSOLUTE_SCORE = 0.8;
+  const MIN_RELATIVE_SCORE = 0.50;
+  const MIN_ABSOLUTE_SCORE = 1.5;
 
   return scored
     .filter(f => f.score >= MIN_ABSOLUTE_SCORE && f.score / topScore >= MIN_RELATIVE_SCORE)
