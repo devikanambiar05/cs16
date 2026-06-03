@@ -31,6 +31,7 @@ import {
   closeQuery,
   getUsers,
   updateUserBan,
+  bulkUserAction,
   getFAQRequests,
   resolveFAQRequest,
   rejectFAQRequest,
@@ -59,7 +60,11 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [userPage, setUserPage] = useState(1);
   const [loadingUser, setLoadingUser] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(false);
   const [userStatus, setUserStatus] = useState({});
+  // ── Bulk selection state ──────────────────────────────────────────────────
+  const [selectedUserIds, setSelectedUserIds] = useState(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [faqRequests, setFaqRequests] = useState([]);
   const [faqPage, setFaqPage] = useState(1);
   const [faqLoading, setFaqLoading] = useState(false);
@@ -98,6 +103,7 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   async function loadStats() {
+    setLoadingStats(true);
     try {
       const [analyticsRes, queryRes] = await Promise.all([
         getAnalytics(),
@@ -116,11 +122,13 @@ export default function AdminDashboard() {
         slaBreachedQueries: data.slaBreachedQueries ?? 0,
         popularTags: data.popularTags ?? [],
         topContributors: data.topContributors ?? [],
-        dailyStats: [],
+        dailyStats: data.dailyStats ?? [],
         queryStats: queryRes.data
       });
     } catch (err) {
       showToast('Failed to load stats', 'error');
+    } finally {
+      setLoadingStats(false);
     }
   }
 
@@ -329,18 +337,57 @@ export default function AdminDashboard() {
   async function handleToggleBan(userId, currentStatus) {
     const isCurrentlyBanned = currentStatus === 'banned';
     const action = isCurrentlyBanned ? 'unban' : 'ban';
-    if (!window.confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} this user?`)) return;
     try {
       setUserStatus(prev => ({ ...prev, [userId]: 'loading' }));
       await updateUserBan(userId, !isCurrentlyBanned);
-      showToast(`User ${action}ned`, 'success');
+      // Optimistically update UI — no page reload needed
       setUsers(prev => prev.map(u =>
         u._id === userId ? { ...u, status: isCurrentlyBanned ? 'active' : 'banned' } : u
       ));
+      showToast(`User ${action}ned successfully`, 'success');
     } catch (err) {
       showToast('Failed to update user', 'error');
     } finally {
       setUserStatus(prev => ({ ...prev, [userId]: null }));
+    }
+  }
+
+  // ── Bulk selection helpers ─────────────────────────────────────────────────
+  function toggleSelectUser(userId) {
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      next.has(userId) ? next.delete(userId) : next.add(userId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedUserIds.size === users.length) {
+      setSelectedUserIds(new Set());
+    } else {
+      setSelectedUserIds(new Set(users.map(u => u._id)));
+    }
+  }
+
+  async function handleBulkAction(action) {
+    if (selectedUserIds.size === 0) return;
+    setBulkLoading(true);
+    try {
+      const res = await bulkUserAction([...selectedUserIds], action);
+      // Optimistically update UI for all selected users — no reload needed
+      setUsers(prev => prev.map(u => {
+        if (!selectedUserIds.has(u._id)) return u;
+        if (action === 'ban')     return { ...u, status: 'banned' };
+        if (action === 'unban')   return { ...u, status: 'active' };
+        if (action === 'promote') return { ...u, role: 'admin' };
+        return u;
+      }));
+      setSelectedUserIds(new Set());
+      showToast(res.data.message, 'success');
+    } catch (err) {
+      showToast(`Failed to ${action} selected users`, 'error');
+    } finally {
+      setBulkLoading(false);
     }
   }
 
@@ -410,7 +457,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Overview */}
-      {activeTab === 'Overview' && stats && <OverviewPanel stats={stats} />}
+      {activeTab === 'Overview' && <OverviewPanel stats={stats} loading={loadingStats} />}
 
       {/* Queries */}
       {activeTab === 'Queries' && (
@@ -473,10 +520,59 @@ export default function AdminDashboard() {
       {activeTab === 'Users' && (
         <div>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Users</h2>
+
+          {/* ── Sticky Bulk Toolbar ── */}
+          {selectedUserIds.size > 0 && (
+            <div className="sticky top-0 z-10 flex items-center gap-3 bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-xl px-4 py-3 mb-4 shadow-sm">
+              <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">
+                {selectedUserIds.size} user{selectedUserIds.size !== 1 ? 's' : ''} selected
+              </span>
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  onClick={() => handleBulkAction('ban')}
+                  disabled={bulkLoading}
+                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
+                >
+                  🚫 Ban Selected
+                </button>
+                <button
+                  onClick={() => handleBulkAction('unban')}
+                  disabled={bulkLoading}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
+                >
+                  ✅ Unban Selected
+                </button>
+                <button
+                  onClick={() => handleBulkAction('promote')}
+                  disabled={bulkLoading}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold disabled:opacity-40 transition-colors"
+                >
+                  ⭐ Promote to Admin
+                </button>
+                <button
+                  onClick={() => setSelectedUserIds(new Set())}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b border-slate-200 dark:border-slate-700">
+                  {/* Select-all checkbox */}
+                  <th className="pb-3 pr-3 w-8">
+                    <input
+                      type="checkbox"
+                      checked={users.length > 0 && selectedUserIds.size === users.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 dark:border-slate-600 accent-primary-600 cursor-pointer"
+                      title="Select all"
+                    />
+                  </th>
                   <th className="pb-3 text-slate-500 font-medium">Name</th>
                   <th className="pb-3 text-slate-500 font-medium">Email</th>
                   <th className="pb-3 text-slate-500 font-medium">Role</th>
@@ -487,7 +583,21 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u._id} className="border-b border-slate-100 dark:border-slate-800">
+                  <tr
+                    key={u._id}
+                    className={`border-b border-slate-100 dark:border-slate-800 transition-colors ${
+                      selectedUserIds.has(u._id) ? 'bg-primary-50/50 dark:bg-primary-950/20' : ''
+                    }`}
+                  >
+                    {/* Per-row checkbox */}
+                    <td className="py-3 pr-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.has(u._id)}
+                        onChange={() => toggleSelectUser(u._id)}
+                        className="rounded border-slate-300 dark:border-slate-600 accent-primary-600 cursor-pointer"
+                      />
+                    </td>
                     <td className="py-3 text-slate-800 dark:text-slate-200">{u.name}</td>
                     <td className="py-3 text-slate-600 dark:text-slate-400">{u.email}</td>
                     <td className="py-3">
@@ -505,7 +615,7 @@ export default function AdminDashboard() {
                         disabled={userStatus[u._id] === 'loading'}
                         className="text-xs text-red-600 hover:underline disabled:opacity-40"
                       >
-                        {u.isBanned ? 'Unban' : 'Ban'}
+                        {u.status === 'banned' ? 'Unban' : 'Ban'}
                       </button>
                     </td>
                   </tr>
@@ -936,31 +1046,87 @@ export default function AdminDashboard() {
   );
 }
 
-function OverviewPanel({ stats }) {
+function OverviewPanel({ stats, loading }) {
+  const dailyStats = stats?.dailyStats || [];
   const chartData = {
-    labels: (stats.dailyStats || []).slice(-7).map(s => s.date),
+    labels: dailyStats.slice(-7).map(s => s.date),
     datasets: [{
       label: 'Queries',
-      data: (stats.dailyStats || []).slice(-7).map(s => s.queries),
+      data: dailyStats.slice(-7).map(s => s.queries),
       borderColor: '#6366f1',
-      backgroundColor: 'rgba(99,102,241,0.1)',
+      backgroundColor: 'rgba(99,102,241,0.15)',
       fill: true,
-      tension: 0.4
+      tension: 0.4,
+      pointRadius: 3,
+      pointBackgroundColor: '#6366f1'
     }]
   };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: true }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#64748b' }
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(148,163,184,0.16)' },
+        ticks: { color: '#64748b' }
+      }
+    }
+  };
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {[
-        { label: 'Total Users', value: stats.totalUsers },
-        { label: 'Total FAQs', value: stats.totalFaqs },
-        { label: 'Open Queries', value: stats.queryStats?.open || 0 },
-        { label: 'SLA Breach Rate', value: stats.slaBreachRate ? `${stats.slaBreachRate.toFixed(1)}%` : '0%' },
-      ].map(s => (
-        <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
-          <p className="text-sm text-slate-500 mt-1">{s.label}</p>
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Users', value: stats?.totalUsers ?? 0 },
+          { label: 'Total FAQs', value: stats?.totalFaqs ?? 0 },
+          { label: 'Open Queries', value: stats?.queryStats?.open ?? 0 },
+          { label: 'SLA Breach Rate', value: stats?.slaBreachRate != null ? `${stats.slaBreachRate.toFixed(1)}%` : '0%' },
+        ].map(s => (
+          <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+            <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
+            <p className="text-sm text-slate-500 mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 min-h-[320px]">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Query volume</p>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Last 7 days</h3>
+          </div>
+          <span className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+            {dailyStats.length ? `${dailyStats.length} days tracked` : 'No data'}
+          </span>
         </div>
-      ))}
+
+        {loading ? (
+          <div className="flex h-64 items-center justify-center">
+            <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
+              <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" strokeOpacity="0.2" />
+                <path d="M22 12a10 10 0 0 1-10 10" strokeLinecap="round" />
+              </svg>
+              Loading chart...
+            </div>
+          </div>
+        ) : dailyStats.length === 0 ? (
+          <div className="flex h-64 items-center justify-center text-slate-500 dark:text-slate-400">No query data available yet.</div>
+        ) : (
+          <div className="h-[320px]">
+            <Line data={chartData} options={chartOptions} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -138,6 +138,11 @@ exports.upvoteFAQ = async (req, res) => {
       // Remove upvote (toggle off)
       faq.upvotes -= 1;
       faq.upvoters = faq.upvoters.filter(id => id.toString() !== userId.toString());
+
+      // Decrease author reputation (-2 per upvote)
+      await User.findByIdAndUpdate(faq.createdBy, {
+        $inc: { reputation: -2 }
+      });
     } else {
       // Add upvote
       faq.upvotes += 1;

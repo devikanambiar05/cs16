@@ -146,7 +146,7 @@ exports.pinFAQ = async (req, res) => {
 
     res.json({ message: faq.pinned ? 'FAQ pinned' : 'FAQ unpinned', pinned: faq.pinned });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete FAQ' });
+    res.status(500).json({ error: 'Failed to pin FAQ' });
   }
 };
 
@@ -277,7 +277,7 @@ exports.deleteFAQ = async (req, res) => {
     await faq.save();
     res.json({ message: 'FAQ deleted', faq });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete FAQ' });
+    res.status(500).json({ error: 'Failed to pin FAQ' });
   }
 };
 
@@ -350,6 +350,40 @@ exports.deleteQuery = async (req, res) => {
   }
 };
 
+// ─── Bulk User Actions ────────────────────────────────────────────────────────
+// PATCH /api/admin/users/bulk
+// Body: { userIds: [...], action: 'ban' | 'unban' | 'promote' }
+exports.bulkUserAction = async (req, res) => {
+  try {
+    const { userIds, action } = req.body;
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'userIds must be a non-empty array' });
+    }
+    if (!['ban', 'unban', 'promote'].includes(action)) {
+      return res.status(400).json({ error: 'action must be one of: ban, unban, promote' });
+    }
+
+    let update = {};
+    if (action === 'ban')     update = { status: 'banned' };
+    if (action === 'unban')   update = { status: 'active' };
+    if (action === 'promote') update = { role: 'admin' };
+
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { $set: update }
+    );
+
+    res.json({
+      message: `${action} applied to ${result.modifiedCount} user(s)`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('bulkUserAction error:', error);
+    res.status(500).json({ error: 'Failed to apply bulk action' });
+  }
+};
+
 // ─── Analytics ──────────────────────────────────────────────────────────────────
 
 exports.getAnalytics = async (req, res) => {
@@ -389,6 +423,33 @@ exports.getAnalytics = async (req, res) => {
         .limit(10)
     ]);
 
+    const startDate = new Date(now);
+    startDate.setUTCHours(0, 0, 0, 0);
+    startDate.setUTCDate(startDate.getUTCDate() - 29);
+
+    const dailyQueryCounts = await Query.aggregate([
+      { $match: { createdAt: { $gte: startDate }, deletedAt: null } },
+      { $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: '+00:00' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const countMap = dailyQueryCounts.reduce((acc, item) => {
+      acc[item._id] = item.count;
+      return acc;
+    }, {});
+
+    const dailyStats = [];
+    for (let i = 0; i < 30; i += 1) {
+      const currentDate = new Date(startDate);
+      currentDate.setUTCDate(startDate.getUTCDate() + i);
+      const dateString = currentDate.toISOString().slice(0, 10);
+      dailyStats.push({ date: dateString, queries: countMap[dateString] || 0 });
+    }
+
     // Weekly growth percentages
     const [
       newFAQsLastWeek, newQueriesLastWeek, newAnswersLastWeek,
@@ -425,7 +486,8 @@ exports.getAnalytics = async (req, res) => {
         ? Math.round((slaBreachedQueries / openQueries) * 100)
         : 0,
       popularTags,
-      topContributors
+      topContributors,
+      dailyStats
     });
   } catch (error) {
     console.error('Analytics error:', error);

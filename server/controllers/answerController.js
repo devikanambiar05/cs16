@@ -22,6 +22,10 @@ exports.createAnswer = async (req, res) => {
     const query = await Query.findById(queryId);
     if (!query) return res.status(404).json({ error: 'Query not found' });
     if (query.status === 'closed') return res.status(400).json({ error: 'This query is closed' });
+    // Admins can add answers to 'answered' queries (e.g. to provide a better answer)
+    if (query.status === 'answered' && req.user.role !== 'admin') {
+      return res.status(400).json({ error: 'This query already has an accepted answer' });
+    }
     if (query.answerCount >= 5) return res.status(400).json({ error: 'This query already has 5 answers' });
 
     const author = await User.findById(req.user._id).select('reputation role');
@@ -72,7 +76,10 @@ exports.createAnswer = async (req, res) => {
 
 exports.getAnswers = async (req, res) => {
   try {
-    const answers = await Answer.find({ queryId: req.params.queryId })
+    const answers = await Answer.find({
+  queryId: req.params.queryId,
+  deletedAt: null
+})
       .populate('userId', 'name reputation tags')
       .sort({ upvotes: -1, createdAt: 1 });
     res.json({ answers });
