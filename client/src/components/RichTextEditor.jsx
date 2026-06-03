@@ -56,6 +56,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false); 
 
   const insertWrap = (before, after = before) => {
     const ta = textareaRef.current;
@@ -85,9 +86,14 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
     });
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
+  const processImageFile = async (file) => {
     if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload image files only.');
+      return;
+    }
+
     setUploading(true);
     try {
       const res = await uploadImage(file);
@@ -97,7 +103,37 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
       console.error('Image upload failed:', err);
     } finally {
       setUploading(false);
-      e.target.value = '';
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    await processImageFile(file);
+    e.target.value = ''; 
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!readOnly) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (readOnly) return;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await processImageFile(files[0]);
     }
   };
 
@@ -113,7 +149,16 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   }
 
   return (
-    <div className="border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-200 focus-within:border-primary-400 transition-all">
+    <div 
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-200 focus-within:border-primary-400 transition-all duration-200 ${
+        isDragging 
+          ? 'border-dashed border-primary-500 bg-primary-50/10 dark:bg-primary-950/10' 
+          : 'border-slate-300 dark:border-slate-600'
+      }`}
+    >
       {/* Toolbar */}
       <div className="flex items-center gap-1 px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
         {toolbarButtons.map((btn) => (
@@ -158,9 +203,8 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        rows={5-20}
-        className="w-full px-3 py-2.5 text-sm resize-none focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 leading-relaxed"
-        style={{ minHeight: '120px' }}
+        className="w-full px-3 py-2.5 text-sm resize-y focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 leading-relaxed"
+        style={{ minHeight: '150px' }}
       />
     </div>
   );
