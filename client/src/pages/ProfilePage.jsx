@@ -124,7 +124,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Profile Statistics Grid */}
-            <div className="grid grid-cols-2 gap-4 py-6 border-b border-slate-150 dark:border-slate-800/50 select-none">
+            <div className={`grid ${user.role === 'admin' ? 'grid-cols-2' : 'grid-cols-3'} gap-3 py-6 border-b border-slate-150 dark:border-slate-800/50 select-none`}>
               <div className="text-center p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-950/15 border border-slate-100/50 dark:border-slate-850/50">
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">Reputation</p>
                 <p className="text-xl font-bold text-slate-800 dark:text-slate-200 mt-1 font-serif">🏆 {user.reputation || 0}</p>
@@ -133,6 +133,12 @@ export default function ProfilePage() {
                 <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">Saved Bookmarks</p>
                 <p className="text-xl font-bold text-slate-800 dark:text-slate-200 mt-1 font-serif">🔖 {savedFaqs.length}</p>
               </div>
+              {user.role !== 'admin' && (
+                <div className="text-center p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-950/15 border border-slate-100/50 dark:border-slate-850/50">
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">Global Rank</p>
+                  <p className="text-xl font-bold text-slate-800 dark:text-slate-200 mt-1 font-serif">⚡ #{user.rank || 'N/A'}</p>
+                </div>
+              )}
             </div>
 
             {/* Micro Details List */}

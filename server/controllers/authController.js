@@ -48,6 +48,12 @@ exports.register = async (req, res) => {
 
     const token = generateToken(user._id, user.tokenVersion || 0);
 
+    const rank = await User.countDocuments({
+      status: 'active',
+      role: { $ne: 'admin' },
+      reputation: { $gt: user.reputation || 0 }
+    }) + 1;
+
     res.status(201).json({
       message: 'Registration successful',
       token,
@@ -58,7 +64,8 @@ exports.register = async (req, res) => {
         role: user.role,
         reputation: user.reputation,
         isVerified: user.isVerified,
-        isVolunteer: user.isVolunteer
+        isVolunteer: user.isVolunteer,
+        rank
       }
     });
   } catch (error) {
@@ -95,6 +102,12 @@ exports.login = async (req, res) => {
 
     const token = generateToken(user._id, user.tokenVersion || 0);
 
+    const rank = await User.countDocuments({
+      status: 'active',
+      role: { $ne: 'admin' },
+      reputation: { $gt: user.reputation || 0 }
+    }) + 1;
+
     res.json({
       message: 'Login successful',
       token,
@@ -107,7 +120,8 @@ exports.login = async (req, res) => {
         questionsAsked: user.questionsAsked,
         answersGiven: user.answersGiven,
         isVerified: user.isVerified,
-        isVolunteer: user.isVolunteer
+        isVolunteer: user.isVolunteer,
+        rank
       }
     });
   } catch (error) {
@@ -120,7 +134,15 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    res.json(user);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const rank = await User.countDocuments({
+      status: 'active',
+      role: { $ne: 'admin' },
+      reputation: { $gt: user.reputation || 0 }
+    }) + 1;
+
+    res.json({ ...user.toObject(), rank });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get profile' });
   }
