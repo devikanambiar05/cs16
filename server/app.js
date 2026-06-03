@@ -26,27 +26,27 @@ const app = express();
 const isTest = process.env.NODE_ENV === 'test';
 
 const apiLimiter = isTest ? (req, res, next) => next() : rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.RATE_LIMIT_MAX ? parseInt(process.env.RATE_LIMIT_MAX, 10) : 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests - please try again later.' }
+  windowMs: 15 * 60 * 1000,
+  max: process.env.RATE_LIMIT_MAX ? parseInt(process.env.RATE_LIMIT_MAX, 10) : 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests - please try again later.' }
 });
 
 const authLimiter = isTest ? (req, res, next) => next() : rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many auth attempts - please try again in 15 minutes.' }
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many auth attempts - please try again in 15 minutes.' }
 });
 
 const resetLimiter = isTest ? (req, res, next) => next() : rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many password reset attempts - please try again in an hour.' }
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many password reset attempts - please try again in an hour.' }
 });
 
 // Middleware
@@ -73,7 +73,7 @@ app.use('/api/auth/reset-password', resetLimiter);
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Grantha API is running' });
+  res.json({ status: 'OK', message: 'Grantha API is running' });
 });
 
 // Global error handlers — MUST be registered after all routes
@@ -82,10 +82,10 @@ app.use(errorHandler);
 
 // Only connect + listen if run directly (not imported in tests)
 if (require.main === module) {
-  connectDB().then(() => {
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  });
+  connectDB().then(() => {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  });
 }
 
 module.exports = app;

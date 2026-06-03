@@ -4,11 +4,63 @@ const FAQRequest = require('../models/FAQRequest');
 const Query = require('../models/Query');
 const Answer = require('../models/Answer');
 
-// Get leaderboard
+// Get leaderboard with active weekly vs all-time timeframe logic
 exports.getLeaderboard = async (req, res) => {
   try {
-    const { limit = 20 } = req.query;
+    const { limit = 20, timeframe = 'alltime' } = req.query;
 
+    // ── CASE 1: WEEKLY TIMEFRAME LEADERBOARD ──
+    if (timeframe === 'weekly') {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      // Aggregation logic to compute rankings from contributions made in last 7 days
+      const weeklyLeaderboard = await Answer.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: sevenDaysAgo }
+          }
+        },
+        {
+          $group: {
+            _id: '$createdBy', // Grouping answers by user reference ID
+            weeklyReputation: { $sum: 10 }, // Assuming 10 points per contribution/answer
+            answersGiven: { $sum: 1 }
+          }
+        },
+        { $sort: { weeklyReputation: -1 } },
+        { $limit: parseInt(limit) },
+        {
+          $lookup: {
+            from: 'users', // Matches with MongoDB collection name for Users
+            localField: '_id',
+            foreignField: '_id',
+            as: 'userInfo'
+          }
+        },
+        { $unwind: '$userInfo' },
+        {
+          $match: {
+            'userInfo.status': 'active',
+            'userInfo.role': { $ne: 'admin' }
+          }
+        },
+        {
+          $project: {
+            _id: '$userInfo._id',
+            name: '$userInfo.name',
+            reputation: '$weeklyReputation', // Map to same field name for frontend safety
+            answersGiven: '$answersGiven',
+            questionsAsked: '$userInfo.questionsAsked',
+            role: '$userInfo.role'
+          }
+        }
+      ]);
+
+      return res.json(weeklyLeaderboard);
+    }
+
+    // ── CASE 2: ALL TIME LEADERBOARD (DEFAULT LAYER RE-RETAINED) ──
     const users = await User.find({ status: 'active', role: { $ne: 'admin' } })
       .select('name reputation questionsAsked answersGiven role')
       .sort({ reputation: -1 })
@@ -16,7 +68,8 @@ exports.getLeaderboard = async (req, res) => {
 
     res.json(users);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    console.error('Leaderboard Fetch Crash:', error);
+    res.status(500).json({ error: 'Failed to fetch leaderboard rankings' });
   }
 };
 

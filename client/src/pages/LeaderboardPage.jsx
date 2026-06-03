@@ -8,42 +8,77 @@ export default function LeaderboardPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  // 👇 1. Added timeframe state to track toggle selection ('alltime' or 'weekly')
+  const [timeframe, setTimeframe] = useState('alltime'); 
 
+  // 👇 2. Re-trigger fetch whenever the timeframe tab changes
   useEffect(() => {
-    getLeaderboard({ limit: 20 })
+    setLoading(true);
+    getLeaderboard({ limit: 20, timeframe })
       .then(res => setUsers(res.data))
       .catch(err => console.error('Failed to load leaderboard:', err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [timeframe]);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between mb-8">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Leaderboard</h1>
           <p className="text-slate-600">Top contributors ranked by reputation</p>
         </div>
+        
+        {/* 👇 3. Toggle Control Buttons Box Added */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl select-none w-fit self-start sm:self-center">
+          <button
+            onClick={() => setTimeframe('weekly')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              timeframe === 'weekly'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Weekly Rank
+          </button>
+          <button
+            onClick={() => setTimeframe('alltime')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              timeframe === 'alltime'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            All Time
+          </button>
+        </div>
+
         {!user && (
-          <Link to="/login" className="btn-primary text-sm">
+          <Link to="/login" className="btn-primary text-sm shrink-0">
             Sign in to compete
           </Link>
         )}
       </div>
 
+      {/* Render States */}
       {loading ? (
         <div className="flex justify-center py-16"><div className="spinner" /></div>
       ) : users.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
           <div className="text-5xl mb-3">🏆</div>
-          <p className="text-lg font-medium text-slate-600">No users yet</p>
-          <p className="text-sm mt-1">Be the first to earn reputation!</p>
+          <p className="text-lg font-medium text-slate-600">No active rankings</p>
+          <p className="text-sm mt-1">
+            {timeframe === 'weekly' 
+              ? 'No contributions made yet within the current week.' 
+              : 'Be the first to earn reputation!'}
+          </p>
           <Link to="/community" className="btn-primary mt-4 inline-block">Browse Community</Link>
         </div>
       ) : (
         <div className="space-y-3">
           {users.map((u, i) => (
             <div key={u._id} className="card flex items-center gap-4">
-              {/* Rank */}
+              {/* Rank Badge */}
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
                 i === 0 ? 'bg-amber-100 text-amber-700 border-2 border-amber-300' :
                 i === 1 ? 'bg-slate-100 text-slate-600 border-2 border-slate-300' :
@@ -53,7 +88,7 @@ export default function LeaderboardPage() {
                 {i + 1}
               </div>
 
-              {/* User info */}
+              {/* User Identity Details */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-slate-900 truncate">{u.name}</span>
@@ -72,7 +107,7 @@ export default function LeaderboardPage() {
                 </div>
               </div>
 
-              {/* Reputation */}
+              {/* Score Display Box */}
               <div className="text-right shrink-0">
                 <span className="text-xl font-bold text-primary-600">{u.reputation || 0}</span>
                 <span className="text-xs text-slate-400 block">rep</span>
@@ -82,6 +117,7 @@ export default function LeaderboardPage() {
         </div>
       )}
 
+      {/* Rules Footer Indicator */}
       <div className="mt-8 bg-slate-50 rounded-xl p-4 text-sm text-slate-600">
         <p className="font-medium text-slate-800 mb-1">How to earn reputation:</p>
         <ul className="space-y-1">

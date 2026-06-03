@@ -1,10 +1,21 @@
+# Universal Folder Blocker (Matches any subfolder node_modules)
+**/node_modules/
 node_modules/
+
+# Environment and Secrets
 .env
-*.log
-.DS_Store
+**/.env
+
+# Build outputs
 dist/
+build/
 .cache/
 
+# Logs and OS files
+*.log
+.DS_Store
+
+# Documentation and experiments
 issues.md
 server/data/
 RAG_INFERENCE_EXPERIMENTS.md
