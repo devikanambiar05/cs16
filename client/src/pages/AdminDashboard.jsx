@@ -67,6 +67,10 @@ export default function AdminDashboard() {
   const [faqFilter, setFaqFilter] = useState('all');
   const [faqSearch, setFaqSearch] = useState('');
   const [adminFaqs, setAdminFaqs] = useState([]);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectingFaqRequestId, setRejectingFaqRequestId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectLoading, setRejectLoading] = useState(false);
   // Pins tab state
   const [pins, setPins] = useState([]);
   const [pinsLoading, setPinsLoading] = useState(false);
@@ -291,13 +295,34 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleRejectFAQ(faqReqId) {
+  function openRejectModal(faqReqId) {
+    setRejectingFaqRequestId(faqReqId);
+    setRejectionReason('');
+    setShowRejectModal(true);
+  }
+
+  function closeRejectModal() {
+    setShowRejectModal(false);
+    setRejectingFaqRequestId(null);
+    setRejectionReason('');
+  }
+
+  async function handleConfirmRejectFAQ() {
+    if (!rejectionReason.trim()) {
+      showToast('Please provide a rejection reason', 'error');
+      return;
+    }
+
+    setRejectLoading(true);
     try {
-      await rejectFAQRequest(faqReqId);
+      await rejectFAQRequest(rejectingFaqRequestId, { rejectionReason: rejectionReason.trim() });
       showToast('FAQ request rejected', 'success');
       loadFAQRequests();
+      closeRejectModal();
     } catch (err) {
       showToast('Failed to reject FAQ request', 'error');
+    } finally {
+      setRejectLoading(false);
     }
   }
 
@@ -527,13 +552,61 @@ export default function AdminDashboard() {
                   {req.status === 'pending' && (
                     <div className="flex gap-2">
                       <button onClick={() => handleResolve(req._id)} className="btn-primary text-sm">Approve</button>
-                      <button onClick={() => handleRejectFAQ(req._id)} className="btn-secondary text-sm">Reject</button>
+                      <button onClick={() => openRejectModal(req._id)} className="btn-secondary text-sm">Reject</button>
                     </div>
                   )}
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
+          <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Reject FAQ Request</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Provide a short reason to help the volunteer understand why this request was rejected.</p>
+              </div>
+              <button
+                onClick={closeRejectModal}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label="Close reject modal"
+              >
+                ×
+              </button>
+            </div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2" htmlFor="rejectionReason">
+              Rejection reason
+            </label>
+            <textarea
+              id="rejectionReason"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={5}
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 p-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Example: Duplicate of FAQ #10"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeRejectModal}
+                className="btn-secondary text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejectFAQ}
+                disabled={rejectLoading}
+                className="btn-primary text-sm"
+              >
+                {rejectLoading ? 'Rejecting…' : 'Reject request'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
