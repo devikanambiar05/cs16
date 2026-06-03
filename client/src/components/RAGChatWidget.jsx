@@ -498,6 +498,7 @@ export default function RAGChatWidget() {
             value={input}
             onChange={e => {
               setInput(e.target.value);
+              if (e.target.value.trim()) setDialogOpen(true);
               if (showProbe) dismissProbe();
             }}
             onFocus={() => {
@@ -528,6 +529,19 @@ export default function RAGChatWidget() {
             </button>
           )}
         </form>
+
+        {/* Samagama link — static, sits directly below the RAG chat input */}
+        <p className="text-center mt-2 mb-2 text-xs text-slate-400 dark:text-slate-500">
+          Need more details? Visit{' '}
+          <a
+            href="https://www.samagama.in/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors underline-offset-2 hover:underline"
+          >
+            samagama.in
+          </a>
+        </p>
       </div>
     </>
   );
