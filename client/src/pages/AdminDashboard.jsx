@@ -99,28 +99,25 @@ export default function AdminDashboard() {
     if (activeTab === 'Queries') loadQueries();
     if (activeTab === 'Users') loadUsers();
     if (activeTab === 'FAQ Requests') loadFAQRequests();
-    if (activeTab === 'Manage FAQs') loadAdminFaqs();
     if (activeTab === 'Pins') loadAdminPins();
   }, [activeTab]);
 
-  // Reload FAQs when filter or page changes
+  // ── Manage FAQs: single effect with all dependencies ──────────────────────
+  // Consolidates tab-switch, filter change, page change, and debounced search
+  // into one effect so the current values of ALL state are always in scope.
   useEffect(() => {
-    if (activeTab === 'Manage FAQs') loadAdminFaqs();
-  }, [faqFilter, faqManagePage]);
+    if (activeTab === 'Manage FAQs') loadAdminFaqs(faqManagePage, faqFilter, faqSearch);
+  }, [activeTab, faqManagePage, faqFilter, faqSearch]);
 
-  // Debounce search input — wait 500ms after typing stops before fetching
+  // Debounce search input — wait 500ms after typing stops then update faqSearch
+  // faqSearch change triggers the effect above with the latest page reset to 1
   useEffect(() => {
     const timer = setTimeout(() => {
+      setFaqManagePage(1);   // reset page first
       setFaqSearch(faqSearchInput);
-      setFaqManagePage(1); // reset to page 1 on new search
     }, 500);
     return () => clearTimeout(timer);
   }, [faqSearchInput]);
-
-  // Reload when debounced search term changes
-  useEffect(() => {
-    if (activeTab === 'Manage FAQs') loadAdminFaqs();
-  }, [faqSearch]);
 
   async function loadStats() {
     setLoadingAuditLogs(true);
@@ -190,16 +187,16 @@ export default function AdminDashboard() {
     }
   }
 
-  async function loadAdminFaqs() {
+  // Accept explicit params so callers always pass fresh values — avoids stale closure bug
+  async function loadAdminFaqs(page = faqManagePage, filter = faqFilter, search = faqSearch) {
     setFaqLoading(true);
     try {
-      // Pass page, limit, search, status — NOT pageSize (destructuring mismatch fix)
       const params = {
-        page:  faqManagePage,
+        page,
         limit: PAGE_SIZE,
       };
-      if (faqFilter !== 'all') params.status = faqFilter;
-      if (faqSearch.trim())    params.search = faqSearch.trim();
+      if (filter !== 'all')  params.status = filter;
+      if (search.trim())     params.search = search.trim();
 
       const res = await getAdminFaqs(params);
       setAdminFaqs(res.data.faqs || res.data || []);
@@ -703,7 +700,12 @@ export default function AdminDashboard() {
               {/* Filter — resets to page 1 */}
               <select
                 value={faqFilter}
-                onChange={e => { setFaqFilter(e.target.value); setFaqManagePage(1); }}
+                onChange={e => {
+                  const newFilter = e.target.value;
+                  setFaqFilter(newFilter);
+                  setFaqManagePage(1);
+                  loadAdminFaqs(1, newFilter, faqSearch); // pass fresh values directly
+                }}
                 className="input py-1.5 text-sm"
               >
                 <option value="all">All FAQs</option>
@@ -711,7 +713,7 @@ export default function AdminDashboard() {
                 <option value="duplicate">Duplicate</option>
               </select>
               {/* Refresh */}
-              <button onClick={() => { setFaqManagePage(1); loadAdminFaqs(); }} className="btn-secondary text-sm">Refresh</button>
+              <button onClick={() => loadAdminFaqs(1, faqFilter, faqSearch)} className="btn-secondary text-sm">Refresh</button>
             </div>
           </div>
 
