@@ -1261,7 +1261,7 @@ function QueryCard({
                   Description
                 </p>
                 <div className="text-slate-800 dark:text-slate-200 text-sm prose dark:prose-invert max-w-none leading-relaxed">
-                  <MarkdownContent content={query.description} />
+                  <MarkdownContent content={query.description} taggedUsers={query.taggedUsers} />
                 </div>
               </div>
 

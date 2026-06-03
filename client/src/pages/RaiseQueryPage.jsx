@@ -379,10 +379,19 @@ function RaiseQueryPage() {
                 const isLimitReached = taggedUsers.length >= 2;
                 const isDisabled = !isTagged && isLimitReached;
                 return (
-                  <div key={contrib._id} className="flex flex-col justify-between p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 shadow-sm">
+                  <div 
+                    key={contrib._id} 
+                    className={`flex flex-col justify-between p-3 rounded-xl border shadow-sm transition-all duration-200 ${
+                      isTagged
+                        ? 'bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-350 dark:border-emerald-850 ring-2 ring-emerald-500/5'
+                        : 'bg-white dark:bg-slate-950 border-slate-150 dark:border-slate-800/80'
+                    }`}
+                  >
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-350 truncate">{contrib.name}</p>
-                      <p className="text-[10px] text-primary-600 dark:text-primary-400 font-medium mt-0.5">{contrib.reputation} rep</p>
+                      <p className={`text-xs font-bold truncate ${isTagged ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-350'}`}>
+                        {contrib.name}
+                      </p>
+                      <p className="text-[10px] text-primary-600 dark:text-primary-400 font-semibold mt-0.5">{contrib.reputation} rep</p>
                     </div>
                     <button
                       type="button"

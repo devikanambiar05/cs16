@@ -39,6 +39,8 @@ exports.getQueries = async (req, res) => {
       { $lookup: { from: 'users', localField: 'assignedTo', foreignField: '_id', as: 'assignedToArr' } },
       { $addFields: { assignedTo: { $arrayElemAt: ['$assignedToArr', 0] } } },
       { $project: { assignedToArr: 0 } },
+      // Populate taggedUsers (user name + reputation)
+      { $lookup: { from: 'users', localField: 'taggedUsers', foreignField: '_id', as: 'taggedUsers' } },
       // Populate resolvedFAQ (FAQ title)
       { $lookup: { from: 'faqs', localField: 'resolvedFAQ', foreignField: '_id', as: 'resolvedFAQArr' } },
       { $addFields: { resolvedFAQ: { $arrayElemAt: ['$resolvedFAQArr', 0] } } },
@@ -95,7 +97,8 @@ exports.getQueryById = async (req, res) => {
   try {
     const query = await Query.findById(req.params.id)
       .populate('createdBy', 'name reputation')
-      .populate('assignedTo', 'name reputation');
+      .populate('assignedTo', 'name reputation')
+      .populate('taggedUsers', 'name reputation');
 
     if (!query) return res.status(404).json({ error: 'Query not found' });
 
@@ -262,6 +265,7 @@ exports.createQuery = async (req, res) => {
     });
 
     await query.populate('createdBy', 'name reputation');
+    await query.populate('taggedUsers', 'name reputation');
 
     // Record this submission timestamp for cooldown tracking
     await User.findByIdAndUpdate(req.user._id, {

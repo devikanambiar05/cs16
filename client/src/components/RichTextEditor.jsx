@@ -4,11 +4,23 @@ import { uploadImage } from '../services/api';
 
 marked.setOptions({ breaks: true, gfm: true });
 
-export function MarkdownContent({ content }) {
+export function MarkdownContent({ content, taggedUsers }) {
   const [activeImgUrl, setActiveImgUrl] = useState(null);
 
   if (!content) return null;
-  const html = marked.parse(content);
+
+  let processed = content;
+  if (taggedUsers && Array.isArray(taggedUsers)) {
+    taggedUsers.forEach(u => {
+      if (u && u.name) {
+        const escapedName = u.name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(`@${escapedName}`, 'gi');
+        processed = processed.replace(regex, `<span class="mention bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-lg font-bold border border-emerald-250/20 dark:border-emerald-800/30 select-all">@${u.name}</span>`);
+      }
+    });
+  }
+
+  const html = marked.parse(processed);
 
   return (
     <>

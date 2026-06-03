@@ -63,27 +63,27 @@ export default function LeaderboardPage() {
 
       <div className="grid grid-cols-12 gap-8">
         {/* Left Panel: Category Filter List */}
-        <div className="col-span-12 md:col-span-4 space-y-4">
-          <div className="bg-white dark:bg-[#22211e] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 select-none">
+        <div className="col-span-12 md:col-span-3 space-y-4">
+          <div className="bg-white dark:bg-[#22211e] border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-sm">
+            <h3 className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider mb-2.5 select-none">
               Filter by Category
             </h3>
-            <div className="space-y-1">
+            <div className="space-y-1 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
               <button
                 onClick={() => { setActiveCategory('global'); setSearchQuery(''); }}
-                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-155 flex items-center justify-between ${
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-155 flex items-center justify-between ${
                   activeCategory === 'global'
                     ? 'bg-primary-50 dark:bg-primary-950/20 text-primary-600 dark:text-primary-400 border border-primary-200/40 dark:border-primary-900/10'
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/40 border border-transparent'
                 }`}
               >
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                   </svg>
                   Global Standings
                 </span>
-                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full font-bold">
+                <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full font-bold">
                   {users.length}
                 </span>
               </button>
@@ -92,19 +92,19 @@ export default function LeaderboardPage() {
                 <button
                   key={cat.id}
                   onClick={() => { setActiveCategory(cat.tag); setSearchQuery(''); }}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-155 flex items-center justify-between ${
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-155 flex items-center justify-between ${
                     activeCategory === cat.tag
                       ? 'bg-primary-50 dark:bg-primary-950/20 text-primary-600 dark:text-primary-400 border border-primary-200/40 dark:border-primary-900/10'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900/40 border border-transparent'
                   }`}
                 >
-                  <span className="flex items-center gap-2 truncate">
-                    <svg className="w-4 h-4 shrink-0 text-slate-450" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <span className="flex items-center gap-1.5 truncate">
+                    <svg className="w-3.5 h-3.5 shrink-0 text-slate-450" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <span className="truncate">{cat.name}</span>
                   </span>
-                  <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full font-bold shrink-0">
+                  <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full font-bold shrink-0">
                     {cat.count}
                   </span>
                 </button>
@@ -114,7 +114,7 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Right Panel: Content View */}
-        <div className="col-span-12 md:col-span-8 space-y-4">
+        <div className="col-span-12 md:col-span-9 space-y-4">
           {activeCategory === 'global' ? (
             <>
               {/* Search input */}
@@ -155,13 +155,24 @@ export default function LeaderboardPage() {
                   <div className="text-center py-16 text-slate-400 dark:text-slate-550">No users found.</div>
                 )
               ) : (
-                <div className="space-y-3">
-                  {filteredUsers.map((u) => {
-                    const globalRank = users.findIndex(x => x._id === u._id);
-                    return (
-                      <GlobalLeaderboardRow key={u._id} userObj={u} rank={globalRank} />
-                    );
-                  })}
+                <div className="space-y-4">
+                  {/* Top 3 Global Spotlight Podium (Only when search is empty) */}
+                  {!isFiltering && filteredUsers.length >= 3 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                      <GlobalTopContributorCard userObj={filteredUsers[0]} rank={0} />
+                      <GlobalTopContributorCard userObj={filteredUsers[1]} rank={1} />
+                      <GlobalTopContributorCard userObj={filteredUsers[2]} rank={2} />
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {filteredUsers.slice(isFiltering ? 0 : 3).map((u) => {
+                      const globalRank = users.findIndex(x => x._id === u._id);
+                      return (
+                        <GlobalLeaderboardRow key={u._id} userObj={u} rank={globalRank} />
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </>
@@ -267,6 +278,53 @@ function GlobalLeaderboardRow({ userObj, rank }) {
       <div className="text-right shrink-0">
         <span className="text-xl font-bold text-primary-600 dark:text-primary-400">{userObj.reputation || 0}</span>
         <span className="text-[10px] text-slate-400 dark:text-slate-500 block uppercase tracking-wider font-semibold select-none">rep</span>
+      </div>
+    </div>
+  );
+}
+
+function GlobalTopContributorCard({ userObj, rank }) {
+  const level = getVolunteerLevel(userObj);
+  return (
+    <div className={`relative overflow-hidden bg-white dark:bg-[#22211e] border rounded-2xl p-5 flex flex-col items-center text-center shadow-sm hover:shadow-md hover:border-slate-350 dark:hover:border-slate-700 transition-all duration-300 ${
+      rank === 0 ? 'border-amber-300 dark:border-amber-500/30 ring-2 ring-amber-500/5 sm:-translate-y-1' :
+      rank === 1 ? 'border-slate-300 dark:border-slate-800' :
+      'border-orange-355 dark:border-orange-500/30'
+    }`}>
+      {/* Crown / Trophy element for 1st place */}
+      {rank === 0 && (
+        <div className="absolute top-2.5 right-2.5 text-lg select-none">👑</div>
+      )}
+
+      {/* Rank Badge */}
+      <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-black mb-3 shrink-0 ${
+        rank === 0 ? 'bg-amber-100 text-amber-700 border-2 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30' :
+        rank === 1 ? 'bg-slate-100 text-slate-600 border-2 border-slate-300 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30' :
+        'bg-orange-100 text-orange-700 border-2 border-orange-300 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/30'
+      }`}>
+        {rank === 0 ? '1st' : rank === 1 ? '2nd' : '3rd'}
+      </div>
+
+      <div className="w-full min-w-0">
+        <span className="block font-bold text-slate-850 dark:text-slate-205 truncate text-sm">{userObj.name}</span>
+        {level && (
+          <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${level.badgeClass}`}>
+            {level.icon} Lvl {level.level}
+          </span>
+        )}
+      </div>
+
+      {/* Reputation details */}
+      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 w-full">
+        <span className="text-xl font-extrabold text-primary-600 dark:text-primary-400">{userObj.reputation || 0}</span>
+        <span className="text-[9px] text-slate-400 dark:text-slate-550 block uppercase tracking-wider font-bold select-none">Reputation</span>
+      </div>
+
+      {/* Mini stats */}
+      <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-455 dark:text-slate-500 select-none">
+        <span>{userObj.questionsAsked || 0} asked</span>
+        <span className="text-slate-300 dark:text-slate-750">•</span>
+        <span>{userObj.answersGiven || 0} answered</span>
       </div>
     </div>
   );
