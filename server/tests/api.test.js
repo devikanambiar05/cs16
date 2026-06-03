@@ -29,7 +29,7 @@ beforeAll(async () => {
   const Query = require('../models/Query');
   const Answer = require('../models/Answer');
   await Promise.all([
-    User.deleteMany({ email: { $regex: /test-/ } }),
+    User.deleteMany({}),
     Query.deleteMany({}),
     Answer.deleteMany({})
   ]);
