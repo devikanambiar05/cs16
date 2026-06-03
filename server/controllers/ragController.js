@@ -1,4 +1,6 @@
 const FAQ = require('../models/FAQ');
+const Query = require('../models/Query');
+const Answer = require('../models/Answer');
 
 // ─── Tokenizer (same as searchController — not exported, so copied here) ──────
 
@@ -221,17 +223,44 @@ async function buildRagIndex() {
     finalAnswer: { $type: 'string', $ne: '' }
   }).select('title finalAnswer tags upvotes isValidated').lean();
 
-  if (faqs.length === 0) {
+  // 2. Fetch resolved community queries and their accepted answers
+  const resolvedQueries = await Query.find({
+    status: { $in: ['closed', 'answered'] },
+    deletedAt: null
+  }).select('_id title description tags upvotes').lean();
+
+  const communityFaqs = [];
+  for (const q of resolvedQueries) {
+    const acceptedAns = await Answer.findOne({ queryId: q._id, isAccepted: true, deletedAt: null })
+      .populate('userId', 'name')
+      .lean();
+    if (acceptedAns && acceptedAns.content) {
+      communityFaqs.push({
+        _id: q._id,
+        title: q.title,
+        description: q.description || '',
+        finalAnswer: acceptedAns.content,
+        tags: q.tags,
+        upvotes: q.upvotes || 0,
+        isValidated: true,
+        isCommunity: true
+      });
+    }
+  }
+
+  const allCorpus = [...faqs, ...communityFaqs];
+
+  if (allCorpus.length === 0) {
     ragCache = { faqs: [], df: {}, N: 0 };
     ragCacheAt = Date.now();
     return ragCache;
   }
 
-  // 2. Separate into validated list and unvalidated list for background validation
+  // 3. Separate into validated list and unvalidated list for background validation
   const validatedFaqs = [];
   const pendingValidation = [];
 
-  for (const faq of faqs) {
+  for (const faq of allCorpus) {
     if (faq.isValidated === true) {
       validatedFaqs.push(faq);
     } else if (faq.isValidated === false) {
@@ -244,9 +273,10 @@ async function buildRagIndex() {
     }
   }
 
-  // 3. Fire the background worker in a non-blocking way
-  if (pendingValidation.length > 0) {
-    triggerBackgroundValidation(pendingValidation);
+  // 4. Fire background worker only for non-community FAQs that need verification
+  const pendingFaqsOnly = pendingValidation.filter(item => !item.isCommunity);
+  if (pendingFaqsOnly.length > 0) {
+    triggerBackgroundValidation(pendingFaqsOnly);
   }
 
   if (validatedFaqs.length === 0) {
@@ -258,22 +288,30 @@ async function buildRagIndex() {
   // Document frequency across validated FAQ corpus
   const df = {};
   for (const faq of validatedFaqs) {
-    const text = `${faq.title} ${faq.finalAnswer || ''}`.toLowerCase();
+    const contentText = faq.isCommunity
+      ? `${faq.description || ''}\n\n${faq.finalAnswer || ''}`
+      : faq.finalAnswer || '';
+    const text = `${faq.title} ${contentText}`.toLowerCase();
     for (const term of new Set(tokenize(text))) {
       df[term] = (df[term] || 0) + 1;
     }
   }
 
   ragCache = {
-    faqs: validatedFaqs.map(f => ({
-      _id: f._id,
-      title: f.title,
-      content: f.finalAnswer || '',
-      tags: f.tags,
-      upvotes: f.upvotes,
-      _tokens: tokenize(`${f.title} ${f.finalAnswer || ''}`),
-      _docLen: tokenize(`${f.title} ${f.finalAnswer || ''}`).length
-    })),
+    faqs: validatedFaqs.map(f => {
+      const contentText = f.isCommunity
+        ? `${f.description || ''}\n\n${f.finalAnswer || ''}`
+        : f.finalAnswer || '';
+      return {
+        _id: f._id,
+        title: f.title,
+        content: contentText,
+        tags: f.tags,
+        upvotes: f.upvotes,
+        _tokens: tokenize(`${f.title} ${contentText}`),
+        _docLen: tokenize(`${f.title} ${contentText}`).length
+      };
+    }),
     df,
     N: validatedFaqs.length
   };
@@ -421,7 +459,7 @@ exports.ragChat = async (req, res) => {
 
     const scored = faqs
       .map(faq => ({ ...faq, score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N) }))
-      .filter(f => f.score > 0)
+      .filter(f => f.score >= 1.2)
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
@@ -567,6 +605,73 @@ exports.ragChat = async (req, res) => {
       res.end();
     }
   }
+};
+
+async function generateRagAnswerText(question) {
+  try {
+    const q = question.trim();
+    const { faqs, df, N } = await buildRagIndex();
+    if (faqs.length === 0) {
+      return "I searched the knowledge base but couldn't find any relevant FAQs. A community member will respond shortly!";
+    }
+
+    const qTokens = tokenize(q);
+    const avgDL = faqs.reduce((s, f) => s + f._docLen, 0) / faqs.length;
+
+    const scored = faqs
+      .map(faq => ({ ...faq, score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N) }))
+      .filter(f => f.score >= 1.2)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    if (scored.length === 0) {
+      return "I searched the knowledge base but couldn't find a direct match. A community member will respond shortly!";
+    }
+
+    const topFaq = scored[0];
+    const ollamaOk = await isOllamaAvailable();
+    if (ollamaOk) {
+      const context = scored.map(f => `**${f.title}**\n${f.content}`).join('\n\n');
+      const baseUrl = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
+      const model = process.env.OLLAMA_MODEL || 'llama3';
+      const prompt = `You are a helpful university FAQ assistant. Answer the user's question based ONLY on the provided FAQ context. If the context doesn't contain a sufficient answer, say you couldn't find a clear answer. Be concise (2-4 sentences).
+
+CONTEXT:
+${context}
+
+QUESTION: ${q}
+
+ANSWER:`;
+
+      try {
+        const response = await fetch(`${baseUrl}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, prompt, stream: false })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.response && data.response.trim().length > 10) {
+            return data.response.trim();
+          }
+        }
+      } catch (err) {
+        console.warn('Background Ollama generation failed:', err.message);
+      }
+    }
+
+    return `Based on the FAQ knowledge base:\n\n**${topFaq.title}**\n${topFaq.content}`;
+  } catch (err) {
+    console.error('generateRagAnswerText error:', err);
+    return 'Failed to generate automatic RAG answer.';
+  }
+}
+
+exports.generateRagAnswerText = generateRagAnswerText;
+
+exports.clearRagCache = () => {
+  ragCache = null;
+  ragCacheAt = 0;
 };
 
 // Export internal variables and functions under test environment to enable clean test coverage

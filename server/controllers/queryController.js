@@ -19,6 +19,10 @@ exports.getQueries = async (req, res) => {
     if (tag) query.tags = tag.toLowerCase();
     if (claimed === 'true') query.assignedTo = { $ne: null };
     if (q) query.$text = { $search: q };
+    if (req.query.createdBy) {
+      const mongoose = require('mongoose');
+      query.createdBy = new mongoose.Types.ObjectId(req.query.createdBy);
+    }
     query.deletedAt = null;
 
     let sortOption = { communityScore: -1, createdAt: -1 };
@@ -280,6 +284,45 @@ exports.createQuery = async (req, res) => {
       notifyTaggedUsers(query, taggedUsers).catch(err => console.error('Failed to notify tagged users:', err));
     }
 
+    // Trigger RAG auto-answer in the background
+    setImmediate(async () => {
+      try {
+        const { generateRagAnswerText } = require('./ragController');
+        const Answer = require('../models/Answer');
+        const User = require('../models/User');
+
+        let botUser = await User.findOne({ email: 'ragbot@faqapp.local' });
+        if (!botUser) {
+          botUser = await User.create({
+            name: 'RAG Assistant',
+            email: 'ragbot@faqapp.local',
+            password: 'ragbot_secure_password_random_123',
+            role: 'user',
+            isVolunteer: true,
+            reputation: 9999,
+            isEmailVerified: true
+          });
+        }
+
+        const answerText = await generateRagAnswerText(query.title);
+        
+        // Post the answer
+        const newAnswer = await Answer.create({
+          content: answerText,
+          queryId: query._id,
+          userId: botUser._id,
+          isVetted: true
+        });
+
+        // Increment answer count on query
+        await Query.findByIdAndUpdate(query._id, { $inc: { answerCount: 1 } });
+        
+        console.log(`[RAG Auto-Answer] Successfully answered query "${query.title}" with Answer ${newAnswer._id}`);
+      } catch (err) {
+        console.error('[RAG Auto-Answer] Failed to generate background auto-answer:', err);
+      }
+    });
+
     res.status(201).json({ message: 'Query raised successfully', query });
   } catch (error) {
     console.error('Create query error:', error);
@@ -451,6 +494,14 @@ exports.closeQuery = async (req, res) => {
     query.assignedTo = null;
     await query.save();
 
+    // Clear RAG cache so the newly closed query is instantly indexed
+    try {
+      const { clearRagCache } = require('./ragController');
+      clearRagCache();
+    } catch (err) {
+      console.warn('Failed to clear RAG cache on query close:', err.message);
+    }
+
     const populated = await Query.findById(query._id)
       .populate('createdBy', 'name reputation')
       .populate('assignedTo', 'name reputation');
@@ -470,6 +521,14 @@ exports.deleteQuery = async (req, res) => {
 
     await Answer.deleteMany({ queryId: query._id });
     await query.deleteOne();
+
+    // Clear RAG cache so the deleted query is instantly removed from index
+    try {
+      const { clearRagCache } = require('./ragController');
+      clearRagCache();
+    } catch (err) {
+      console.warn('Failed to clear RAG cache on query delete:', err.message);
+    }
 
     res.json({ message: 'Query deleted' });
   } catch (error) {

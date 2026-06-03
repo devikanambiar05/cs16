@@ -17,6 +17,8 @@ function RaiseQueryPage() {
   const [error, setError] = useState('');
   const [suggestedContributors, setSuggestedContributors] = useState([]);
   const [taggedUsers, setTaggedUsers] = useState([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [submittedQueryId, setSubmittedQueryId] = useState(null);
 
   const [similarFAQs, setSimilarFAQs] = useState([]);
   const [similarQueries, setSimilarQueries] = useState([]);
@@ -38,6 +40,19 @@ function RaiseQueryPage() {
       navigate('/', { replace: true });
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('query_draft');
+      if (saved) {
+        const { title, description, tags: savedTags } = JSON.parse(saved);
+        setForm({ title: title || '', description: description || '' });
+        if (Array.isArray(savedTags)) setTags(savedTags);
+      }
+    } catch (e) {
+      console.error('Failed to load draft:', e);
+    }
+  }, []);
 
   // ── Duplicate search — fires 500ms after title stops changing ──────────────
   useEffect(() => {
@@ -144,6 +159,17 @@ function RaiseQueryPage() {
     }
   };
 
+  const handleSaveDraft = () => {
+    if (!form.title.trim() && !form.description.trim()) {
+      setError('Please add a title or description before saving a draft.');
+      return;
+    }
+    const draft = { title: form.title, description: form.description, tags };
+    localStorage.setItem('query_draft', JSON.stringify(draft));
+    setError('');
+    alert('Query draft saved successfully!');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -168,7 +194,9 @@ function RaiseQueryPage() {
         tags,
         taggedUsers
       });
-      navigate(`/community?highlight=${res.data.query._id}`);
+      localStorage.removeItem('query_draft'); // Clear draft on success
+      setSubmittedQueryId(res.data.query._id);
+      setShowSuccessModal(true);
     } catch (err) {
       const data = err.response?.data;
       if (data?.duplicateFaqId) {
@@ -457,11 +485,52 @@ function RaiseQueryPage() {
           >
             {submitting ? 'Submitting…' : 'Submit Query'}
           </button>
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={submitting || (!form.title.trim() && !form.description.trim())}
+            className="px-5 py-2.5 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 rounded-xl text-sm font-semibold transition-all duration-150"
+          >
+            Save Draft
+          </button>
           <button type="button" onClick={() => navigate(-1)} className="btn-ghost text-slate-500">
             Cancel
           </button>
         </div>
       </form>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center space-y-4 animate-zoom-in">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center text-2xl mx-auto">
+              ✓
+            </div>
+            <h3 className="text-lg font-serif font-bold text-slate-900 dark:text-slate-100">
+              Query Submitted Successfully!
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              Your query has been posted to the community board. The expected response time under our community SLA is <strong>within 24 hours</strong>.
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => navigate(`/track-query?highlight=${submittedQueryId}`)}
+                className="w-full btn-primary py-2.5 text-sm font-semibold"
+              >
+                Track Your Query
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/community?highlight=${submittedQueryId}`)}
+                className="w-full py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-xl transition-all"
+              >
+                Go to Community Board
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -279,7 +279,21 @@ function CommunityPage() {
     }
   }, [location.search]);
   const [expandedQuery, setExpandedQuery] = useState(null);
-  const [answerContent, setAnswerContent] = useState({});
+  const [answerContent, setAnswerContent] = useState(() => {
+    const initial = {};
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('answer_draft_')) {
+          const qId = key.substring('answer_draft_'.length);
+          initial[qId] = localStorage.getItem(key) || '';
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load answer drafts:', e);
+    }
+    return initial;
+  });
   const [editingQueryId, setEditingQueryId] = useState(null);
   const [editForm, setEditForm] = useState({ title: '', description: '', tags: [] });
   const [similarQueries, setSimilarQueries] = useState([]);
@@ -439,6 +453,15 @@ function CommunityPage() {
   };
 
   const DRAFT_STORAGE_KEY = 'community_answer_drafts';
+  const handleSaveAnswerDraft = (queryId) => {
+    const content = answerContent[queryId];
+    if (!content?.trim()) {
+      toast.warning('Please write an answer before saving a draft.');
+      return;
+    }
+    localStorage.setItem(`answer_draft_${queryId}`, content);
+    toast.success('Answer draft saved!');
+  };
 
   const handleSubmitAnswer = async (queryId, bypassVolunteerCheck = false) => {
     if (!user) {
@@ -464,6 +487,8 @@ function CommunityPage() {
       const savedDrafts = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || '{}');
       delete savedDrafts[queryId];
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(savedDrafts));
+      localStorage.removeItem(`answer_draft_${queryId}`); // Clear draft on success
+      setAnswerContent({ ...answerContent, [queryId]: '' });
       toast.success('Answer submitted!');
       const detailsRes = await getQueryById(queryId);
       if (detailsRes.data) {
@@ -815,6 +840,7 @@ function CommunityPage() {
                     }}
                     answerContent={answerContent[query._id] || ''}
                     onAnswerChange={val => setAnswerContent({ ...answerContent, [query._id]: val })}
+                    onSaveAnswerDraft={() => handleSaveAnswerDraft(query._id)}
                     onSubmitAnswer={() => handleSubmitAnswer(query._id)}
                     onSaveAnswerDraft={(queryId) => handleSaveAnswerDraft(queryId)}
                     onUpvoteAnswer={handleUpvoteAnswer}
@@ -1105,6 +1131,7 @@ function CommunityPage() {
 function QueryCard({
   query, isExpanded, onToggle,
   answerContent, onAnswerChange, onSubmitAnswer, onSaveAnswerDraft,
+  answerContent, onAnswerChange, onSaveAnswerDraft, onSubmitAnswer,
   onUpvoteAnswer, onAcceptAnswer, onRequestFAQ, onVetAnswer,
   onClaimQuery, onUnclaimQuery, onStartEdit,
   isEditing, editForm, onEditFormChange, onSaveEdit, onCancelEdit,
@@ -1551,6 +1578,15 @@ function QueryCard({
                         </p>
                       )}
                       <div className="flex justify-end gap-2.5 mt-3">
+                      <div className="flex justify-end gap-2.5 mt-3">
+                        <button
+                          type="button"
+                          onClick={onSaveAnswerDraft}
+                          disabled={!answerContent?.trim()}
+                          className="px-4 py-2.5 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 rounded-xl text-sm font-semibold transition-all duration-150"
+                        >
+                          Save Draft
+                        </button>
                         <button
                           type="button"
                           onClick={() => onSaveAnswerDraft(query._id)}
