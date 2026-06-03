@@ -157,7 +157,7 @@ export const createFAQRequest = (data) => api.post('/api/faq-requests', data);
 export const getFAQRequests = ({ page = 1, pageSize = 20 } = {}) =>
   api.get('/api/faq-requests', { page, pageSize });
 export const resolveFAQRequest = (id, data = {}) => api.post(`/api/faq-requests/${id}/approve`, data);
-export const rejectFAQRequest = (id) => api.post(`/api/faq-requests/${id}/reject`);
+export const rejectFAQRequest = (id, data = {}) => api.post(`/api/faq-requests/${id}/reject`, data);
 
 // Admin: FAQ management
 // getAdminFaqs maps page/pageSize -> page/limit for the controller

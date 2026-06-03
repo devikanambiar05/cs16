@@ -60,6 +60,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [userPage, setUserPage] = useState(1);
   const [loadingUser, setLoadingUser] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(false);
   const [userStatus, setUserStatus] = useState({});
   // ── Bulk selection state ──────────────────────────────────────────────────
   const [selectedUserIds, setSelectedUserIds] = useState(new Set());
@@ -71,6 +72,10 @@ export default function AdminDashboard() {
   const [faqFilter, setFaqFilter] = useState('all');
   const [faqSearch, setFaqSearch] = useState('');
   const [adminFaqs, setAdminFaqs] = useState([]);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectingFaqRequestId, setRejectingFaqRequestId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectLoading, setRejectLoading] = useState(false);
   // Pins tab state
   const [pins, setPins] = useState([]);
   const [pinsLoading, setPinsLoading] = useState(false);
@@ -98,6 +103,7 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   async function loadStats() {
+    setLoadingStats(true);
     try {
       const [analyticsRes, queryRes] = await Promise.all([
         getAnalytics(),
@@ -116,11 +122,13 @@ export default function AdminDashboard() {
         slaBreachedQueries: data.slaBreachedQueries ?? 0,
         popularTags: data.popularTags ?? [],
         topContributors: data.topContributors ?? [],
-        dailyStats: [],
+        dailyStats: data.dailyStats ?? [],
         queryStats: queryRes.data
       });
     } catch (err) {
       showToast('Failed to load stats', 'error');
+    } finally {
+      setLoadingStats(false);
     }
   }
 
@@ -295,13 +303,34 @@ export default function AdminDashboard() {
     }
   }
 
-  async function handleRejectFAQ(faqReqId) {
+  function openRejectModal(faqReqId) {
+    setRejectingFaqRequestId(faqReqId);
+    setRejectionReason('');
+    setShowRejectModal(true);
+  }
+
+  function closeRejectModal() {
+    setShowRejectModal(false);
+    setRejectingFaqRequestId(null);
+    setRejectionReason('');
+  }
+
+  async function handleConfirmRejectFAQ() {
+    if (!rejectionReason.trim()) {
+      showToast('Please provide a rejection reason', 'error');
+      return;
+    }
+
+    setRejectLoading(true);
     try {
-      await rejectFAQRequest(faqReqId);
+      await rejectFAQRequest(rejectingFaqRequestId, { rejectionReason: rejectionReason.trim() });
       showToast('FAQ request rejected', 'success');
       loadFAQRequests();
+      closeRejectModal();
     } catch (err) {
       showToast('Failed to reject FAQ request', 'error');
+    } finally {
+      setRejectLoading(false);
     }
   }
 
@@ -428,7 +457,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Overview */}
-      {activeTab === 'Overview' && stats && <OverviewPanel stats={stats} />}
+      {activeTab === 'Overview' && <OverviewPanel stats={stats} loading={loadingStats} />}
 
       {/* Queries */}
       {activeTab === 'Queries' && (
@@ -633,13 +662,61 @@ export default function AdminDashboard() {
                   {req.status === 'pending' && (
                     <div className="flex gap-2">
                       <button onClick={() => handleResolve(req._id)} className="btn-primary text-sm">Approve</button>
-                      <button onClick={() => handleRejectFAQ(req._id)} className="btn-secondary text-sm">Reject</button>
+                      <button onClick={() => openRejectModal(req._id)} className="btn-secondary text-sm">Reject</button>
                     </div>
                   )}
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
+          <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Reject FAQ Request</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Provide a short reason to help the volunteer understand why this request was rejected.</p>
+              </div>
+              <button
+                onClick={closeRejectModal}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label="Close reject modal"
+              >
+                ×
+              </button>
+            </div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2" htmlFor="rejectionReason">
+              Rejection reason
+            </label>
+            <textarea
+              id="rejectionReason"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows={5}
+              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 p-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Example: Duplicate of FAQ #10"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeRejectModal}
+                className="btn-secondary text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejectFAQ}
+                disabled={rejectLoading}
+                className="btn-primary text-sm"
+              >
+                {rejectLoading ? 'Rejecting…' : 'Reject request'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -969,31 +1046,87 @@ export default function AdminDashboard() {
   );
 }
 
-function OverviewPanel({ stats }) {
+function OverviewPanel({ stats, loading }) {
+  const dailyStats = stats?.dailyStats || [];
   const chartData = {
-    labels: (stats.dailyStats || []).slice(-7).map(s => s.date),
+    labels: dailyStats.slice(-7).map(s => s.date),
     datasets: [{
       label: 'Queries',
-      data: (stats.dailyStats || []).slice(-7).map(s => s.queries),
+      data: dailyStats.slice(-7).map(s => s.queries),
       borderColor: '#6366f1',
-      backgroundColor: 'rgba(99,102,241,0.1)',
+      backgroundColor: 'rgba(99,102,241,0.15)',
       fill: true,
-      tension: 0.4
+      tension: 0.4,
+      pointRadius: 3,
+      pointBackgroundColor: '#6366f1'
     }]
   };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: true }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#64748b' }
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(148,163,184,0.16)' },
+        ticks: { color: '#64748b' }
+      }
+    }
+  };
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {[
-        { label: 'Total Users', value: stats.totalUsers },
-        { label: 'Total FAQs', value: stats.totalFaqs },
-        { label: 'Open Queries', value: stats.queryStats?.open || 0 },
-        { label: 'SLA Breach Rate', value: stats.slaBreachRate ? `${stats.slaBreachRate.toFixed(1)}%` : '0%' },
-      ].map(s => (
-        <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
-          <p className="text-sm text-slate-500 mt-1">{s.label}</p>
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Users', value: stats?.totalUsers ?? 0 },
+          { label: 'Total FAQs', value: stats?.totalFaqs ?? 0 },
+          { label: 'Open Queries', value: stats?.queryStats?.open ?? 0 },
+          { label: 'SLA Breach Rate', value: stats?.slaBreachRate != null ? `${stats.slaBreachRate.toFixed(1)}%` : '0%' },
+        ].map(s => (
+          <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+            <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
+            <p className="text-sm text-slate-500 mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 min-h-[320px]">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Query volume</p>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Last 7 days</h3>
+          </div>
+          <span className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+            {dailyStats.length ? `${dailyStats.length} days tracked` : 'No data'}
+          </span>
         </div>
-      ))}
+
+        {loading ? (
+          <div className="flex h-64 items-center justify-center">
+            <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
+              <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" strokeOpacity="0.2" />
+                <path d="M22 12a10 10 0 0 1-10 10" strokeLinecap="round" />
+              </svg>
+              Loading chart...
+            </div>
+          </div>
+        ) : dailyStats.length === 0 ? (
+          <div className="flex h-64 items-center justify-center text-slate-500 dark:text-slate-400">No query data available yet.</div>
+        ) : (
+          <div className="h-[320px]">
+            <Line data={chartData} options={chartOptions} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

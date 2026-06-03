@@ -64,7 +64,7 @@ export function MarkdownContent({ content, taggedUsers }) {
   );
 }
 
-export default function RichTextEditor({ value, onChange, placeholder, readOnly = false }) {
+export default function RichTextEditor({ value, onChange, placeholder, readOnly = false, draftKey }) {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -81,7 +81,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   const barColor = isOverLimit ? 'bg-red-500' : isWarning ? 'bg-amber-400 dark:bg-amber-300' : 'bg-slate-400 dark:bg-slate-500';
   const textColor = isOverLimit ? 'text-red-500 dark:text-red-400' : isWarning ? 'text-amber-500 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400';
 
-  const storageKey = `editor-draft-${placeholder ? placeholder.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'general'}`;
+  const storageKey = draftKey || `editor-draft-${placeholder ? placeholder.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'general'}`;
 
   useEffect(() => {
     if (readOnly) return;
@@ -191,11 +191,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-<<<<<<< HEAD
       await uploadFile(files[0]);
-=======
-      await processImageFile(files[0]);
->>>>>>> feat#24
     }
   };
 
@@ -304,7 +300,6 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
           style={{ minHeight: '150px' }}
         />
       </div>
-<<<<<<< HEAD
 
       {/* Word Count / Progress and Drop status indicator */}
       <div className="flex items-center justify-between px-1">
@@ -403,8 +398,6 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
           </div>
         </div>
       )}
-=======
->>>>>>> feat#24
     </div>
   );
 }
