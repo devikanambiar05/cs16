@@ -25,7 +25,7 @@ async function bootstrap() {
         name: 'RAG Assistant',
         email: 'ragbot@faqapp.local',
         password: 'ragbot_secure_password_random_123',
-        role: 'responder',
+        role: 'user',
         isVolunteer: true,
         reputation: 9999,
         isEmailVerified: true
