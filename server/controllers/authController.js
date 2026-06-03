@@ -7,8 +7,8 @@ const { sendEmail } = require('../services/emailService');
 const APP_URL = process.env.APP_URL || 'http://localhost:5173';
 
 // Generate JWT token
-const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'grantha-secret-key', {
+const generateToken = (userId, tokenVersion = 0) => {
+  return jwt.sign({ userId, tokenVersion }, process.env.JWT_SECRET || 'grantha-secret-key', {
     expiresIn: '7d'
   });
 };
@@ -46,7 +46,7 @@ exports.register = async (req, res) => {
 
     await user.save();
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.tokenVersion || 0);
 
     res.status(201).json({
       message: 'Registration successful',
@@ -93,7 +93,7 @@ exports.login = async (req, res) => {
       return res.status(403).json({ error: 'Account is banned' });
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user._id, user.tokenVersion || 0);
 
     res.json({
       message: 'Login successful',
@@ -259,5 +259,21 @@ exports.resendVerification = async (req, res) => {
   } catch (error) {
     console.error('Resend verification error:', error);
     res.status(500).json({ error: 'Failed to send verification email' });
+  }
+};
+
+// Sign out of all active devices
+exports.logoutAll = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+    res.json({ message: 'Successfully signed out of all active devices.' });
+  } catch (error) {
+    console.error('Logout all error:', error);
+    res.status(500).json({ error: 'Failed to sign out of all devices' });
   }
 };

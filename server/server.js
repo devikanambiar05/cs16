@@ -74,6 +74,14 @@ async function bootstrap() {
     .catch(err => {
       console.warn('RAG pre-warm failed (non-fatal):', err.message);
     });
+
+  // Set up inactive query claims release scheduler (running every 4 hours + boot run)
+  const { releaseInactiveClaims } = require('./controllers/queryController');
+  releaseInactiveClaims().catch(err => console.error('Initial claims release check failed:', err.message));
+  const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+  setInterval(() => {
+    releaseInactiveClaims().catch(err => console.error('Claims release check failed:', err.message));
+  }, FOUR_HOURS_MS);
 }
 
 bootstrap().catch(err => {

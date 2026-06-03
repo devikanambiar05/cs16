@@ -146,7 +146,7 @@ exports.pinFAQ = async (req, res) => {
 
     res.json({ message: faq.pinned ? 'FAQ pinned' : 'FAQ unpinned', pinned: faq.pinned });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete FAQ' });
+    res.status(500).json({ error: 'Failed to pin FAQ' });
   }
 };
 
@@ -277,7 +277,7 @@ exports.deleteFAQ = async (req, res) => {
     await faq.save();
     res.json({ message: 'FAQ deleted', faq });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete FAQ' });
+    res.status(500).json({ error: 'Failed to pin FAQ' });
   }
 };
 
@@ -347,6 +347,40 @@ exports.deleteQuery = async (req, res) => {
     res.json({ message: 'Query deleted', query });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete query' });
+  }
+};
+
+// ─── Bulk User Actions ────────────────────────────────────────────────────────
+// PATCH /api/admin/users/bulk
+// Body: { userIds: [...], action: 'ban' | 'unban' | 'promote' }
+exports.bulkUserAction = async (req, res) => {
+  try {
+    const { userIds, action } = req.body;
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'userIds must be a non-empty array' });
+    }
+    if (!['ban', 'unban', 'promote'].includes(action)) {
+      return res.status(400).json({ error: 'action must be one of: ban, unban, promote' });
+    }
+
+    let update = {};
+    if (action === 'ban')     update = { status: 'banned' };
+    if (action === 'unban')   update = { status: 'active' };
+    if (action === 'promote') update = { role: 'admin' };
+
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { $set: update }
+    );
+
+    res.json({
+      message: `${action} applied to ${result.modifiedCount} user(s)`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('bulkUserAction error:', error);
+    res.status(500).json({ error: 'Failed to apply bulk action' });
   }
 };
 

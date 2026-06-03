@@ -24,7 +24,7 @@ const uniqueEmail = () => `prop-${Date.now()}-${Math.random().toString(36).slice
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeAll(async () => {
-  process.env.MONGO_URI = 'mongodb://localhost:27017/faqapp_test';
+  process.env.MONGO_URI = 'mongodb://127.0.0.1:27017/faqapp_test';
   app = require('../app');
 
   if (mongoose.connection.readyState !== 1) {
