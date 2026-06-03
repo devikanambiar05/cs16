@@ -8,19 +8,24 @@ export default function LeaderboardPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  // 👇 1. Added timeframe state to track toggle selection ('alltime' or 'weekly')
+  const [timeframe, setTimeframe] = useState('alltime'); 
 
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState('global');
   const [categoryContributors, setCategoryContributors] = useState([]);
   const [loadingCategory, setLoadingCategory] = useState(false);
 
+  // 👇 Re-trigger fetch whenever the timeframe tab changes
   useEffect(() => {
-    getLeaderboard({ limit: 100 })
+    setLoading(true);
+    getLeaderboard({ limit: 100, timeframe })
       .then(res => setUsers(res.data || []))
       .catch(err => console.error('Failed to load leaderboard:', err))
       .finally(() => setLoading(false));
+  }, [timeframe]);
 
+  useEffect(() => {
     getCategories()
       .then(res => setCategories(res.data || []))
       .catch(err => console.error('Failed to load categories:', err));
@@ -49,23 +54,48 @@ export default function LeaderboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between mb-8">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-serif font-bold text-slate-900 dark:text-slate-100 mb-2">Leaderboard</h1>
           <p className="text-slate-600 dark:text-slate-400">Top contributors ranked by reputation</p>
         </div>
+        
+        {/* 👇 3. Toggle Control Buttons Box Added */}
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl select-none w-fit self-start sm:self-center">
+          <button
+            onClick={() => setTimeframe('weekly')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              timeframe === 'weekly'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Weekly Rank
+          </button>
+          <button
+            onClick={() => setTimeframe('alltime')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              timeframe === 'alltime'
+                ? 'bg-white text-primary-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            All Time
+          </button>
+        </div>
+
         {!user && (
-          <Link to="/login" className="btn-primary text-sm shadow-sm hover:shadow-md transition-all">
+          <Link to="/login" className="btn-primary text-sm shadow-sm hover:shadow-md transition-all shrink-0">
             Sign in to compete
           </Link>
         )}
       </div>
 
       <div className="grid grid-cols-12 gap-8">
-        {/* Left Panel: Category Filter List */}
         <div className="col-span-12 md:col-span-3 space-y-4">
           <div className="bg-white dark:bg-[#22211e] border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-sm">
-            <h3 className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider mb-2.5 select-none">
+            <h3 className="text-[10px] font-bold text-slate-455 dark:text-slate-500 uppercase tracking-wider mb-2.5 select-none">
               Filter by Category
             </h3>
             <div className="space-y-1 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
@@ -99,7 +129,7 @@ export default function LeaderboardPage() {
                   }`}
                 >
                   <span className="flex items-center gap-1.5 truncate">
-                    <svg className="w-3.5 h-3.5 shrink-0 text-slate-450" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <svg className="w-3.5 h-3.5 shrink-0 text-slate-455" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <span className="truncate">{cat.name}</span>
@@ -113,11 +143,9 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        {/* Right Panel: Content View */}
         <div className="col-span-12 md:col-span-9 space-y-4">
           {activeCategory === 'global' ? (
             <>
-              {/* Search input */}
               <div className="relative mb-4">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,16 +175,15 @@ export default function LeaderboardPage() {
                 <div className="flex justify-center py-16"><div className="spinner" /></div>
               ) : filteredUsers.length === 0 ? (
                 isFiltering ? (
-                  <div className="text-center py-16 text-slate-450 dark:text-slate-500">
+                  <div className="text-center py-16 text-slate-455 dark:text-slate-500">
                     <p className="text-base font-semibold">No results for "{searchQuery}"</p>
                     <button onClick={() => setSearchQuery('')} className="mt-2 text-sm text-primary-600 hover:underline">Clear search</button>
                   </div>
                 ) : (
-                  <div className="text-center py-16 text-slate-400 dark:text-slate-550">No users found.</div>
+                  <div className="text-center py-16 text-slate-400 dark:text-slate-555">No users found.</div>
                 )
               ) : (
                 <div className="space-y-4">
-                  {/* Top 3 Global Spotlight Podium (Only when search is empty) */}
                   {!isFiltering && filteredUsers.length >= 3 && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                       <GlobalTopContributorCard userObj={filteredUsers[0]} rank={0} />
@@ -177,14 +204,13 @@ export default function LeaderboardPage() {
               )}
             </>
           ) : (
-            /* Category specific contributors */
             <>
               {loadingCategory ? (
                 <div className="flex justify-center py-16"><div className="spinner" /></div>
               ) : categoryContributors.length === 0 ? (
                 <div className="text-center py-16 bg-white dark:bg-[#22211e] border border-slate-200 dark:border-slate-800 rounded-2xl p-8 select-none">
-                  <p className="text-base font-semibold text-slate-650 dark:text-slate-350">No answers recorded for this category yet</p>
-                  <p className="text-xs text-slate-450 mt-1.5">Be the first to claim and answer a query tagged with this category!</p>
+                  <p className="text-base font-semibold text-slate-655 dark:text-slate-350">No answers recorded for this category yet</p>
+                  <p className="text-xs text-slate-455 mt-1.5">Be the first to claim and answer a query tagged with this category!</p>
                   <Link to="/community" className="btn-primary mt-4 inline-block text-xs py-2">Browse Community</Link>
                 </div>
               ) : (
@@ -208,8 +234,7 @@ export default function LeaderboardPage() {
             </>
           )}
 
-          {/* Rules / Info Footer card */}
-          <div className="mt-8 bg-slate-50 dark:bg-slate-900/30 rounded-2xl p-5 text-sm text-slate-600 dark:text-slate-400 border border-slate-200/50 dark:border-slate-850 select-none">
+          <div className="mt-8 bg-slate-550 dark:bg-slate-900/30 rounded-2xl p-5 text-sm text-slate-600 dark:text-slate-400 border border-slate-200/50 dark:border-slate-850 select-none">
             <p className="font-semibold text-slate-800 dark:text-slate-300 mb-3">How to earn reputation:</p>
             <ul className="space-y-2">
               <li className="flex items-center gap-2">
@@ -382,6 +407,86 @@ function CategoryContributorCard({ contributor, rank }) {
         <div className="mt-1 border-t border-slate-100 dark:border-slate-800/80 pt-1.5">
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{contributor.reputation || 0} Total Rep</span>
         </div>
+=======
+      {/* Render States */}
+      {loading ? (
+        <div className="flex justify-center py-16"><div className="spinner" /></div>
+      ) : users.length === 0 ? (
+        <div className="text-center py-16 text-slate-400">
+          <div className="text-5xl mb-3">🏆</div>
+          <p className="text-lg font-medium text-slate-600">No active rankings</p>
+          <p className="text-sm mt-1">
+            {timeframe === 'weekly' 
+              ? 'No contributions made yet within the current week.' 
+              : 'Be the first to earn reputation!'}
+          </p>
+          <Link to="/community" className="btn-primary mt-4 inline-block">Browse Community</Link>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {users.map((u, i) => (
+            <div key={u._id} className="card flex items-center gap-4">
+              {/* Rank Badge */}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                i === 0 ? 'bg-amber-100 text-amber-700 border-2 border-amber-300' :
+                i === 1 ? 'bg-slate-100 text-slate-600 border-2 border-slate-300' :
+                i === 2 ? 'bg-orange-100 text-orange-700 border-2 border-orange-300' :
+                'bg-slate-50 text-slate-400 border border-slate-200'
+              }`}>
+                {i + 1}
+              </div>
+
+              {/* User Identity Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-slate-900 truncate">{u.name}</span>
+                  {getVolunteerLevel(u) && (
+                    <span className={`px-2 py-px rounded-full text-[9px] font-bold border uppercase tracking-wider select-none shrink-0 ${getVolunteerLevel(u).badgeClass}`} title={`${getVolunteerLevel(u).name} (Level ${getVolunteerLevel(u).level})`}>
+                      {getVolunteerLevel(u).icon} Lvl {getVolunteerLevel(u).level}
+                    </span>
+                  )}
+                  {u.role === 'admin' && (
+                    <span className="badge badge-red text-xs shrink-0">Admin</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                  <span>❓ {u.questionsAsked || 0} asked</span>
+                  <span>💬 {u.answersGiven || 0} answered</span>
+                </div>
+              </div>
+
+              {/* Score Display Box */}
+              <div className="text-right shrink-0">
+                <span className="text-xl font-bold text-primary-600">{u.reputation || 0}</span>
+                <span className="text-xs text-slate-400 block">rep</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Rules Footer Indicator */}
+      <div className="mt-8 bg-slate-50 rounded-xl p-4 text-sm text-slate-600">
+        <p className="font-medium text-slate-800 mb-2">How to earn reputation:</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Submit an answer that gets accepted — <strong>+10</strong>
+          </li>
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+            Your answer gets converted to a public FAQ — <strong>+10</strong>
+          </li>
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+            Your answer gets upvoted — <strong>+5</strong>
+          </li>
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+            Your question gets upvoted — <strong>+2</strong>
+          </li>
+        </ul>
+>>>>>>> feat#26
       </div>
     </div>
   );

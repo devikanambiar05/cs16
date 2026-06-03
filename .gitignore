@@ -1,21 +1,16 @@
 node_modules/
+**/node_modules/
 .env
+**/.env
 *.log
 .DS_Store
 dist/
+build/
 .cache/
-
-# Vite dependency cache (auto-generated, not source)
-client/node_modules/
-
-# Uploaded files (runtime artifacts, not source)
 server/uploads/*
 !server/uploads/.gitkeep
-
 issues.md
 server/data/
 RAG_INFERENCE_EXPERIMENTS.md
 team-wiki-pages
-
-# Local MongoDB binaries and memory server database files
 server/.mongodb/
