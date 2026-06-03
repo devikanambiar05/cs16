@@ -304,7 +304,7 @@ exports.createQuery = async (req, res) => {
           });
         }
 
-        const answerText = await generateRagAnswerText(`${query.title} ${query.description}`);
+        const answerText = await generateRagAnswerText(query.title);
         
         // Post the answer
         const newAnswer = await Answer.create({
@@ -494,6 +494,14 @@ exports.closeQuery = async (req, res) => {
     query.assignedTo = null;
     await query.save();
 
+    // Clear RAG cache so the newly closed query is instantly indexed
+    try {
+      const { clearRagCache } = require('./ragController');
+      clearRagCache();
+    } catch (err) {
+      console.warn('Failed to clear RAG cache on query close:', err.message);
+    }
+
     const populated = await Query.findById(query._id)
       .populate('createdBy', 'name reputation')
       .populate('assignedTo', 'name reputation');
@@ -513,6 +521,14 @@ exports.deleteQuery = async (req, res) => {
 
     await Answer.deleteMany({ queryId: query._id });
     await query.deleteOne();
+
+    // Clear RAG cache so the deleted query is instantly removed from index
+    try {
+      const { clearRagCache } = require('./ragController');
+      clearRagCache();
+    } catch (err) {
+      console.warn('Failed to clear RAG cache on query delete:', err.message);
+    }
 
     res.json({ message: 'Query deleted' });
   } catch (error) {
