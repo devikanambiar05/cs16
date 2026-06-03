@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getLeaderboard } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +19,15 @@ export default function LeaderboardPage() {
       .catch(err => console.error('Failed to load leaderboard:', err))
       .finally(() => setLoading(false));
   }, [timeframe]);
+
+  // Real-time client-side filter — preserves original rank numbers
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(u => u.name?.toLowerCase().includes(q));
+  }, [users, searchQuery]);
+
+  const isFiltering = searchQuery.trim().length > 0;
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -119,12 +128,24 @@ export default function LeaderboardPage() {
 
       {/* Rules Footer Indicator */}
       <div className="mt-8 bg-slate-50 rounded-xl p-4 text-sm text-slate-600">
-        <p className="font-medium text-slate-800 mb-1">How to earn reputation:</p>
-        <ul className="space-y-1">
-          <li>💡 Submit an answer that gets accepted — <strong>+10</strong></li>
-          <li>📋 Your answer gets converted to a public FAQ — <strong>+10</strong></li>
-          <li>👍 Your answer gets upvoted — <strong>+5</strong></li>
-          <li>👍 Your question gets upvoted — <strong>+2</strong></li>
+        <p className="font-medium text-slate-800 mb-2">How to earn reputation:</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Submit an answer that gets accepted — <strong>+10</strong>
+          </li>
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+            Your answer gets converted to a public FAQ — <strong>+10</strong>
+          </li>
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+            Your answer gets upvoted — <strong>+5</strong>
+          </li>
+          <li className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+            Your question gets upvoted — <strong>+2</strong>
+          </li>
         </ul>
       </div>
     </div>

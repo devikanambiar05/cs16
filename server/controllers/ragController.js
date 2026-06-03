@@ -49,8 +49,18 @@ function bm25Score(queryTokens, docTokens, docLen, avgDL, df, N) {
 // ─── Semantic Cache ──────────────────────────────────────────────────────────
 
 const RAG_CACHE_CAP = 150; // light-weight process foot-print to avoid heavy memory consumption
-const semanticCache = new Map(); // maps lowercased query string to { answer: string, sources: Array, faqsFound: number }
+const semanticCache = new Map(); // maps lowercased query string to { answer: string, sources: Array, faqsFound: number, timestamp: number }
 const MAX_CACHE_SIZE = RAG_CACHE_CAP;
+const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours TTL
+
+function cleanExpiredCache() {
+  const now = Date.now();
+  for (const [cachedQuery, entry] of semanticCache.entries()) {
+    if (entry.timestamp && now - entry.timestamp > CACHE_TTL_MS) {
+      semanticCache.delete(cachedQuery);
+    }
+  }
+}
 
 // Simple Jaccard similarity between two token arrays
 function jaccardSimilarity(tokensA, tokensB) {
@@ -67,6 +77,8 @@ function jaccardSimilarity(tokensA, tokensB) {
 
 // Find a matching response in cache using fast semantic overlap
 function getSemanticCache(query) {
+  cleanExpiredCache(); // Evict any expired entries periodically on lookup
+  
   const qTokens = tokenize(query);
   if (qTokens.length === 0) return null;
   
@@ -90,13 +102,17 @@ function getSemanticCache(query) {
 }
 
 function setSemanticCache(query, entry) {
+  cleanExpiredCache(); // Clean up before inserting new items
+  
   if (semanticCache.size >= MAX_CACHE_SIZE) {
     // Evict oldest item
     const firstKey = semanticCache.keys().next().value;
     semanticCache.delete(firstKey);
   }
+  entry.timestamp = Date.now(); // Store entry with a timestamp property
   semanticCache.set(query.toLowerCase().trim(), entry);
 }
+
 
 // ─── Ollama availability check ───────────────────────────────────────────────
 
@@ -552,3 +568,13 @@ exports.ragChat = async (req, res) => {
     }
   }
 };
+
+// Export internal variables and functions under test environment to enable clean test coverage
+if (process.env.NODE_ENV === 'test') {
+  exports.semanticCache = semanticCache;
+  exports.getSemanticCache = getSemanticCache;
+  exports.setSemanticCache = setSemanticCache;
+  exports.cleanExpiredCache = cleanExpiredCache;
+  exports.CACHE_TTL_MS = CACHE_TTL_MS;
+}
+
