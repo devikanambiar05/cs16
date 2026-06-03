@@ -390,6 +390,40 @@ exports.deleteQuery = async (req, res) => {
   }
 };
 
+// ─── Bulk User Actions ────────────────────────────────────────────────────────
+// PATCH /api/admin/users/bulk
+// Body: { userIds: [...], action: 'ban' | 'unban' | 'promote' }
+exports.bulkUserAction = async (req, res) => {
+  try {
+    const { userIds, action } = req.body;
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'userIds must be a non-empty array' });
+    }
+    if (!['ban', 'unban', 'promote'].includes(action)) {
+      return res.status(400).json({ error: 'action must be one of: ban, unban, promote' });
+    }
+
+    let update = {};
+    if (action === 'ban')     update = { status: 'banned' };
+    if (action === 'unban')   update = { status: 'active' };
+    if (action === 'promote') update = { role: 'admin' };
+
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { $set: update }
+    );
+
+    res.json({
+      message: `${action} applied to ${result.modifiedCount} user(s)`,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('bulkUserAction error:', error);
+    res.status(500).json({ error: 'Failed to apply bulk action' });
+  }
+};
+
 // ─── Analytics ──────────────────────────────────────────────────────────────────
 
 exports.getAnalytics = async (req, res) => {
