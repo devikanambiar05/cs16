@@ -232,9 +232,12 @@ export default function Layout() {
                   </div>
 
                   <div className="relative group">
-                    <button className="w-8 h-8 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold flex items-center justify-center hover:bg-primary-200 transition-colors">
-                      {user.name?.charAt(0).toUpperCase()}
+                    <button
+                       className={`w-8 h-8 ${getAvatarColor(user.name)} text-white rounded-full text-sm font-semibold flex items-center justify-center`}
+                      >
+                        {getInitials(user.name)}
                     </button>
+                    
                     
                     {/* Analytics Tooltip pointing directly up at avatar */}
                     {showAnalyticsTooltip && (
