@@ -41,7 +41,8 @@ import {
   getAdminPins,
   createPin,
   updatePin,
-  deletePin
+  deletePin,
+  getAuditLogs
 } from '../services/api';
 import { useToast } from '../components/ToastProvider';
 
@@ -54,6 +55,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('Overview');
   const [stats, setStats] = useState(null);
   const [queries, setQueries] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
   const [queryPage, setQueryPage] = useState(1);
   const [loadingQueries, setLoadingQueries] = useState(false);
   const [users, setUsers] = useState([]);
@@ -94,10 +97,12 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   async function loadStats() {
+    setLoadingAuditLogs(true);
     try {
-      const [analyticsRes, queryRes] = await Promise.all([
+      const [analyticsRes, queryRes, auditLogsRes] = await Promise.all([
         getAnalytics(),
-        getQueryStats()
+        getQueryStats(),
+        getAuditLogs()
       ]);
       const data = analyticsRes.data;
       setStats({
@@ -115,8 +120,11 @@ export default function AdminDashboard() {
         dailyStats: [],
         queryStats: queryRes.data
       });
+      setAuditLogs(auditLogsRes.data || []);
     } catch (err) {
       showToast('Failed to load stats', 'error');
+    } finally {
+      setLoadingAuditLogs(false);
     }
   }
 
@@ -363,21 +371,33 @@ export default function AdminDashboard() {
     return matchesSearch && matchesFilter;
   });
 
+  // ── Admin theme tokens (Obsidian Shadow & Gold) ──────────────────────────
+  const adminTheme = {
+    bg:       '#141311',  // deepest surface
+    elevated: '#1c1a17',  // card/panel surface
+    elevated2:'#252320',  // row hover / input bg
+    border:   '#332f27',  // all borders
+    gold:     '#dca54c',  // accent / active tab
+    text:     '#f0ece4',  // primary text
+    muted:    '#9b9285',  // secondary text
+    faint:    '#625c52',  // placeholder / tertiary
+  };
+
   return (
-    <div className="theme-admin-station min-h-screen bg-[#141311]">
+    <div style={{ background: adminTheme.bg, minHeight: '100vh', color: adminTheme.text }}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       {/* Tabs */}
-      <div className="border-b border-slate-200 dark:border-slate-700">
+      <div style={{ borderBottom: `1px solid ${adminTheme.border}` }}>
         <nav className="flex flex-wrap gap-1 -mb-px">
           {TABS.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors focus:outline-none ${
-                activeTab === tab
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+              style={{
+                borderBottomColor: activeTab === tab ? adminTheme.gold : 'transparent',
+                color: activeTab === tab ? adminTheme.gold : adminTheme.muted,
+              }}
+              className="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors focus:outline-none hover:opacity-90"
             >
               {tab}
             </button>
@@ -386,61 +406,52 @@ export default function AdminDashboard() {
       </div>
 
       {/* Overview */}
-      {activeTab === 'Overview' && stats && <OverviewPanel stats={stats} />}
+      {activeTab === 'Overview' && stats && <OverviewPanel stats={stats} auditLogs={auditLogs} />}
 
       {/* Queries */}
       {activeTab === 'Queries' && (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Community Queries</h2>
+          <h2 style={{ color: adminTheme.gold }} className="text-lg font-semibold mb-4">Community Queries</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left border-b border-slate-200 dark:border-slate-700">
-                  <th className="pb-3 text-slate-500 font-medium">Query</th>
-                  <th className="pb-3 text-slate-500 font-medium">Status</th>
-                  <th className="pb-3 text-slate-500 font-medium">Claims</th>
-                  <th className="pb-3 text-slate-500 font-medium">Answers</th>
-                  <th className="pb-3 text-slate-500 font-medium">SLA</th>
-                  <th className="pb-3 text-slate-500 font-medium">Actions</th>
+                <tr style={{ borderBottom: `1px solid ${adminTheme.border}` }}>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium text-left">Query</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium text-left">Status</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium text-left">Claims</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium text-left">Answers</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium text-left">SLA</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {queries.map(q => (
-                  <tr key={q._id} className="border-b border-slate-100 dark:border-slate-800">
-                    <td className="py-3 text-slate-800 dark:text-slate-200 max-w-xs truncate">{q.title}</td>
+                  <tr key={q._id} style={{ borderBottom: `1px solid ${adminTheme.border}` }}>
+                    <td style={{ color: adminTheme.text }} className="py-3 max-w-xs truncate">{q.title}</td>
                     <td className="py-3">
                       <span className={`badge badge-${q.status === 'open' ? 'green' : q.status === 'claimed' ? 'yellow' : 'red'}`}>
                         {q.status}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-600 dark:text-slate-400">{q.claims?.length || 0}</td>
-                    <td className="py-3 text-slate-600 dark:text-slate-400">{q.answerCount || 0}</td>
-                    <td className="py-3 text-slate-600 dark:text-slate-400">
+                    <td style={{ color: adminTheme.muted }} className="py-3">{q.claims?.length || 0}</td>
+                    <td style={{ color: adminTheme.muted }} className="py-3">{q.answerCount || 0}</td>
+                    <td style={{ color: adminTheme.muted }} className="py-3">
                       {q.expiresAt ? new Date(q.expiresAt).toLocaleDateString() : '—'}
                     </td>
                     <td className="py-3 flex gap-2">
-                      <button onClick={() => navigate(`/community?highlight=${q._id}`)} className="text-primary-600 hover:underline text-xs">View</button>
-                      <button onClick={() => handleClose(q._id)} className="text-red-600 hover:underline text-xs">Close</button>
-                      <button onClick={() => handleDeleteQuery(q._id)} className="text-red-600 hover:underline text-xs">Delete</button>
+                      <button onClick={() => navigate(`/community?highlight=${q._id}`)} style={{ color: adminTheme.gold }} className="hover:underline text-xs">View</button>
+                      <button onClick={() => handleClose(q._id)} className="text-red-400 hover:underline text-xs">Close</button>
+                      <button onClick={() => handleDeleteQuery(q._id)} className="text-red-400 hover:underline text-xs">Delete</button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {/* Pagination */}
           <div className="flex items-center gap-3 mt-4">
-            <button
-              onClick={() => { setQueryPage(p => Math.max(1, p - 1)); loadQueries(); }}
-              disabled={queryPage === 1}
-              className="btn-secondary text-sm disabled:opacity-40"
-            >Previous</button>
-            <span className="text-sm text-slate-500">Page {queryPage}</span>
-            <button
-              onClick={() => { setQueryPage(p => p + 1); loadQueries(); }}
-              disabled={queries.length < PAGE_SIZE}
-              className="btn-secondary text-sm disabled:opacity-40"
-            >Next</button>
+            <button onClick={() => { setQueryPage(p => Math.max(1, p - 1)); loadQueries(); }} disabled={queryPage === 1} style={{ background: adminTheme.elevated, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }} className="px-3 py-1.5 rounded-lg text-sm disabled:opacity-40">Previous</button>
+            <span style={{ color: adminTheme.muted }} className="text-sm">Page {queryPage}</span>
+            <button onClick={() => { setQueryPage(p => p + 1); loadQueries(); }} disabled={queries.length < PAGE_SIZE} style={{ background: adminTheme.elevated, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }} className="px-3 py-1.5 rounded-lg text-sm disabled:opacity-40">Next</button>
           </div>
         </div>
       )}
@@ -865,31 +876,124 @@ export default function AdminDashboard() {
   );
 }
 
-function OverviewPanel({ stats }) {
-  const chartData = {
-    labels: (stats.dailyStats || []).slice(-7).map(s => s.date),
-    datasets: [{
-      label: 'Queries',
-      data: (stats.dailyStats || []).slice(-7).map(s => s.queries),
-      borderColor: '#6366f1',
-      backgroundColor: 'rgba(99,102,241,0.1)',
-      fill: true,
-      tension: 0.4
-    }]
+function OverviewPanel({ stats, auditLogs }) {
+  const adminTheme = {
+    bg:       '#141311',
+    elevated: '#1c1a17',
+    elevated2:'#252320',
+    border:   '#332f27',
+    gold:     '#dca54c',
+    text:     '#f0ece4',
+    muted:    '#9b9285',
+    faint:    '#625c52',
   };
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {[
-        { label: 'Total Users', value: stats.totalUsers },
-        { label: 'Total FAQs', value: stats.totalFaqs },
-        { label: 'Open Queries', value: stats.queryStats?.open || 0 },
-        { label: 'SLA Breach Rate', value: stats.slaBreachRate ? `${stats.slaBreachRate.toFixed(1)}%` : '0%' },
-      ].map(s => (
-        <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-          <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
-          <p className="text-sm text-slate-500 mt-1">{s.label}</p>
+    <div className="space-y-6 w-full">
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Users', value: stats.totalUsers },
+          { label: 'Total FAQs', value: stats.totalFaqs },
+          { label: 'Open Queries', value: stats.queryStats?.open || 0 },
+          { label: 'SLA Breach Rate', value: stats.slaBreachRate ? `${stats.slaBreachRate.toFixed(1)}%` : '0%' },
+        ].map(s => (
+          <div key={s.label} style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-5 shadow-sm">
+            <p className="text-3xl font-bold" style={{ color: adminTheme.text }}>{s.value}</p>
+            <p className="text-sm mt-1 font-medium" style={{ color: adminTheme.muted }}>{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Audit Logs Chronological Timeline */}
+      <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-6 shadow-md flex flex-col">
+        <div className="border-b pb-3 mb-4 flex items-center justify-between" style={{ borderBottomColor: adminTheme.border }}>
+          <div>
+            <h3 className="text-md font-semibold font-serif uppercase tracking-wider" style={{ color: adminTheme.gold }}>Moderator Activity Trail</h3>
+            <p className="text-xs mt-1" style={{ color: adminTheme.muted }}>Recent administrative events and moderation logs recorded on the platform.</p>
+          </div>
+          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: adminTheme.border, color: adminTheme.gold }}>
+            Live Feed
+          </span>
         </div>
-      ))}
+
+        <div className="overflow-y-auto max-h-[350px] pr-2 space-y-4 font-sans">
+          {(!auditLogs || auditLogs.length === 0) ? (
+            <div className="text-center py-10">
+              <span className="text-xl">📜</span>
+              <p className="text-sm mt-2 font-medium" style={{ color: adminTheme.muted }}>No moderation activity logged yet.</p>
+            </div>
+          ) : (
+            <div className="relative border-l pl-4 ml-2 space-y-5" style={{ borderLeftColor: adminTheme.border }}>
+              {auditLogs.map((log) => {
+                // Determine icon or color badge based on action/model
+                let color = adminTheme.gold;
+                let dotIcon = '●';
+                if (log.action.includes('delete') || log.action === 'deleted pin') {
+                  color = '#ef4444'; // Red
+                  dotIcon = '✕';
+                } else if (log.action.includes('restore')) {
+                  color = '#10b981'; // Green
+                  dotIcon = '↺';
+                } else if (log.action === 'resolved SLA breach') {
+                  color = '#f59e0b'; // Amber/Orange
+                  dotIcon = '⚡';
+                } else if (log.action === 'created pin') {
+                  color = '#3b82f6'; // Blue
+                  dotIcon = '📌';
+                }
+
+                const adminName = log.performedBy?.name || 'Admin';
+                const formattedDate = log.timestamp ? new Date(log.timestamp).toLocaleString() : '';
+
+                // Text builders based on exact actions
+                let actionText = '';
+                if (log.action === 'soft-deleted') {
+                  actionText = `soft-deleted ${log.targetModel} "${log.targetName || 'Untitled'}"`;
+                } else if (log.action === 'restored') {
+                  actionText = `restored ${log.targetModel} "${log.targetName || 'Untitled'}"`;
+                } else if (log.action === 'resolved SLA breach') {
+                  actionText = `resolved SLA breach for Query "${log.targetName || 'Untitled'}"`;
+                } else if (log.action === 'created pin') {
+                  actionText = `created Pin "${log.targetName || 'Untitled'}"`;
+                } else if (log.action === 'updated pin') {
+                  actionText = `updated Pin "${log.targetName || 'Untitled'}"`;
+                } else if (log.action === 'deleted pin') {
+                  actionText = `deleted Pin "${log.targetName || 'Untitled'}"`;
+                } else {
+                  actionText = `${log.action} ${log.targetModel} "${log.targetName || 'Untitled'}"`;
+                }
+
+                return (
+                  <div key={log._id} className="relative group">
+                    {/* Circle dot on line */}
+                    <div
+                      className="absolute -left-[25px] top-1 h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm select-none"
+                      style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color }}
+                    >
+                      {dotIcon}
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1 pl-1">
+                      <div>
+                        <span className="font-semibold text-sm mr-1.5" style={{ color: adminTheme.text }}>
+                          {adminName}
+                        </span>
+                        <span className="text-sm font-medium" style={{ color: adminTheme.muted }}>
+                          {actionText}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-semibold shrink-0" style={{ color: adminTheme.faint }}>
+                        {formattedDate}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
