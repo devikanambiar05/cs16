@@ -292,6 +292,18 @@ function CommunityPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const DRAFT_STORAGE_KEY = 'community_answer_drafts';
+
+  useEffect(() => {
+    try {
+      const savedDrafts = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || '{}');
+      if (savedDrafts && typeof savedDrafts === 'object') {
+        setAnswerContent(prev => ({ ...savedDrafts, ...prev }));
+      }
+    } catch (err) {
+      console.debug('No saved drafts loaded');
+    }
+  }, []);
   
   // Volunteering state
   const [showVolunteerModal, setShowVolunteerModal] = useState(false);
@@ -426,6 +438,8 @@ function CommunityPage() {
     }
   };
 
+  const DRAFT_STORAGE_KEY = 'community_answer_drafts';
+
   const handleSubmitAnswer = async (queryId, bypassVolunteerCheck = false) => {
     if (!user) {
       toast.warning('Please sign in to answer.');
@@ -445,7 +459,11 @@ function CommunityPage() {
     setSubmitting(queryId);
     try {
       await createAnswer(queryId, content);
-      setAnswerContent({ ...answerContent, [queryId]: '' });
+      const nextAnswers = { ...answerContent, [queryId]: '' };
+      setAnswerContent(nextAnswers);
+      const savedDrafts = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || '{}');
+      delete savedDrafts[queryId];
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(savedDrafts));
       toast.success('Answer submitted!');
       const detailsRes = await getQueryById(queryId);
       if (detailsRes.data) {
@@ -463,6 +481,18 @@ function CommunityPage() {
     } finally {
       setSubmitting(null);
     }
+  };
+
+  const handleSaveAnswerDraft = (queryId) => {
+    const content = answerContent[queryId] || '';
+    if (!content?.trim()) {
+      toast.warning('Enter some text before saving a draft.');
+      return;
+    }
+    const savedDrafts = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || '{}');
+    savedDrafts[queryId] = content;
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(savedDrafts));
+    toast.success('Draft saved locally');
   };
 
   const handleUpvoteAnswer = async (answerId) => {
@@ -786,6 +816,7 @@ function CommunityPage() {
                     answerContent={answerContent[query._id] || ''}
                     onAnswerChange={val => setAnswerContent({ ...answerContent, [query._id]: val })}
                     onSubmitAnswer={() => handleSubmitAnswer(query._id)}
+                    onSaveAnswerDraft={(queryId) => handleSaveAnswerDraft(queryId)}
                     onUpvoteAnswer={handleUpvoteAnswer}
                     onAcceptAnswer={handleAcceptAnswer}
                     onRequestFAQ={handleRequestFAQ}
@@ -1073,7 +1104,7 @@ function CommunityPage() {
 
 function QueryCard({
   query, isExpanded, onToggle,
-  answerContent, onAnswerChange, onSubmitAnswer,
+  answerContent, onAnswerChange, onSubmitAnswer, onSaveAnswerDraft,
   onUpvoteAnswer, onAcceptAnswer, onRequestFAQ, onVetAnswer,
   onClaimQuery, onUnclaimQuery, onStartEdit,
   isEditing, editForm, onEditFormChange, onSaveEdit, onCancelEdit,
@@ -1519,9 +1550,17 @@ function QueryCard({
                           Answer exceeds the {MAX_WORDS}-word limit.
                         </p>
                       )}
-                      <div className="flex justify-end mt-3">
+                      <div className="flex justify-end gap-2.5 mt-3">
                         <button
-                          onClick={onSubmitAnswer}
+                          type="button"
+                          onClick={() => onSaveAnswerDraft(query._id)}
+                          disabled={!answerContent?.trim()}
+                          className="px-4 py-2.5 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 rounded-xl text-sm font-semibold transition-all duration-150"
+                        >
+                          Save Draft
+                        </button>
+                        <button
+                          onClick={() => onSubmitAnswer()}
                           disabled={submitting === query._id || !answerContent?.trim() || getWordCount(answerContent) > MAX_WORDS}
                           className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
                         >
