@@ -4,6 +4,7 @@ import { useToast } from '../components/ToastProvider';
 import { getBookmarks, toggleBookmark, getLikedFAQs, getChatSessions, getChatSessionDetails, logoutAllDevices } from '../services/api';
 import { Link } from 'react-router-dom';
 import { getVolunteerLevel, getUserBadges } from '../utils/gamificationHelper';
+import { getInitials, getAvatarColor } from '../utils/avatar';
 
 export default function ProfilePage() {
   const { user, setBookmarks, logout } = useAuth();
