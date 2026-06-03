@@ -459,6 +459,7 @@ function CommunityPage() {
     }
     const content = answerContent[queryId];
     if (!content?.trim()) { toast.warning('Please write an answer before submitting.'); return; }
+
     // Admins bypass the volunteer gate — they can always answer
     if (!user.isVolunteer && !bypassVolunteerCheck && user.role !== 'admin') {
       setPendingAction({ type: 'answer', queryId });
