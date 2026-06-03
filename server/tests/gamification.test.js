@@ -8,7 +8,7 @@ let Answer;
 let UpvoteLog;
 
 beforeAll(async () => {
-  process.env.MONGO_URI = 'mongodb://localhost:27017/faqapp_test';
+  process.env.MONGO_URI = 'mongodb://127.0.0.1:27017/faqapp_test';
   app = require('../app');
   if (mongoose.connection.readyState !== 1) {
     await mongoose.connect(process.env.MONGO_URI);

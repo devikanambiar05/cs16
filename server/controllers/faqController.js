@@ -139,7 +139,9 @@ exports.upvoteFAQ = async (req, res) => {
       faq.upvotes -= 1;
       faq.upvoters = faq.upvoters.filter(id => id.toString() !== userId.toString());
 
+
       // FIX: Decrement author reputation by 2
+
       await User.findByIdAndUpdate(faq.createdBy, {
         $inc: { reputation: -2 }
       });

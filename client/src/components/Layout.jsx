@@ -196,7 +196,9 @@ export default function Layout() {
                           <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                             {notifications.length === 0 ? (
                               <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-                                <span className="text-xl mb-1">🔔</span>
+                                <svg className="w-6 h-6 text-slate-300 dark:text-slate-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
                                 <p className="text-[11px] text-slate-400">All caught up! No notifications yet.</p>
                               </div>
                             ) : (
@@ -235,8 +237,11 @@ export default function Layout() {
                       <div className="absolute right-0 top-full mt-2 w-60 bg-amber-500 text-white rounded-xl shadow-xl p-3 z-50 animate-bounce-slow flex flex-col gap-1 border border-amber-400">
                         <div className="absolute right-3.5 -top-1 w-3 h-3 bg-amber-500 transform rotate-45 border-l border-t border-amber-400" />
                         <div className="flex items-start justify-between gap-1.5">
-                          <p className="text-[11px] font-bold leading-normal">
-                            📊 Responder status active! Analytics added.
+                          <p className="text-[11px] font-bold leading-normal flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            Responder status active! Analytics added.
                           </p>
                           <button
                             type="button"

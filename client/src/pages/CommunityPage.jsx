@@ -57,24 +57,15 @@ const TrophyIcon = ({ className = "w-5 h-5 inline-block text-amber-500 mr-2" }) 
 );
 
 const GoldMedal = ({ className = "w-5 h-5 text-yellow-500 shrink-0" }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="5" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L8 8h8zM8 8l-2 6h12l-2-6zM12 17v5M9 22h6" />
-  </svg>
+  <span className="w-7 h-7 rounded-full bg-yellow-400 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm">1</span>
 );
 
 const SilverMedal = ({ className = "w-5 h-5 text-slate-400 shrink-0" }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="5" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L8 8h8zM8 8l-2 6h12l-2-6zM12 17v5M9 22h6" />
-  </svg>
+  <span className="w-7 h-7 rounded-full bg-slate-400 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm">2</span>
 );
 
 const BronzeMedal = ({ className = "w-5 h-5 text-amber-600 shrink-0" }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="5" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L8 8h8zM8 8l-2 6h12l-2-6zM12 17v5M9 22h6" />
-  </svg>
+  <span className="w-7 h-7 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm">3</span>
 );
 
 const TargetIcon = ({ className = "w-4 h-4 inline-block text-amber-500 mr-1" }) => (
@@ -382,7 +373,8 @@ function CommunityPage() {
 
   const handleClaimQuery = async (queryId, bypassVolunteerCheck = false) => {
     if (!user) { toast.warning('Please sign in to claim a query'); return; }
-    if (!user.isVolunteer && !bypassVolunteerCheck) {
+    // Admins bypass the volunteer gate — they can always claim
+    if (!user.isVolunteer && !bypassVolunteerCheck && user.role !== 'admin') {
       setPendingAction({ type: 'claim', queryId });
       setShowVolunteerModal(true);
       return;
@@ -430,7 +422,8 @@ function CommunityPage() {
     const content = answerContent[queryId];
     if (!content?.trim()) { toast.warning('Please write an answer before submitting.'); return; }
     if (!user) { toast.warning('Please sign in to answer.'); return; }
-    if (!user.isVolunteer && !bypassVolunteerCheck) {
+    // Admins bypass the volunteer gate — they can always answer
+    if (!user.isVolunteer && !bypassVolunteerCheck && user.role !== 'admin') {
       setPendingAction({ type: 'answer', queryId });
       setShowVolunteerModal(true);
       return;
@@ -687,7 +680,7 @@ function CommunityPage() {
               <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-[#191816] p-1 rounded-xl">
                 {[
                   { id: 'all', label: 'All Queries' },
-                  ...(user ? [{ id: 'my-claims', label: 'My Claims' }] : []),
+                  ...(user && user.role !== 'admin' ? [{ id: 'my-claims', label: 'My Claims' }] : []),
                   { id: 'unclaimed-sla', label: 'Unclaimed SLA' },
                   { id: 'closed', label: 'Closed' }
                 ].map(tab => (
@@ -865,7 +858,7 @@ function CommunityPage() {
                       className={`flex items-center justify-between p-3 rounded-xl border transition-all hover:scale-[1.02] ${rankStyles.bg}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-xl shrink-0 select-none flex items-center justify-center w-8 h-8">{rankStyles.badge}</span>
+                        <span className="shrink-0 select-none flex items-center justify-center">{rankStyles.badge}</span>
                         <div className="min-w-0">
                           <span className="block font-semibold text-xs md:text-sm text-slate-850 dark:text-slate-200 truncate">
                             {item.name}
@@ -911,7 +904,10 @@ function CommunityPage() {
           <div className="relative w-full max-w-md bg-white dark:bg-[#22211e] rounded-2xl border border-slate-205 dark:border-slate-800 p-6 shadow-2xl z-10 animate-fade-in flex flex-col overflow-hidden max-h-[90vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-serif font-bold text-lg text-slate-850 dark:text-slate-100 flex items-center gap-2">
-                🤝 Volunteer as a Responder
+                <svg className="w-5 h-5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Volunteer as a Responder
               </h3>
               <button
                 type="button"
@@ -1163,7 +1159,10 @@ function QueryCard({
                       : "I'm facing this issue as well"
                   }
                 >
-                  <span>🙋‍♂️ +{query.facingCount || 0}</span>
+                  <span className="flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" /></svg>
+                    +{query.facingCount || 0}
+                  </span>
                 </button>
               </>
             )}
@@ -1185,8 +1184,9 @@ function QueryCard({
                 <TargetIcon className="w-3.5 h-3.5 inline-block text-indigo-700 dark:text-indigo-400 mr-1" /> Claimed by You
               </span>
             ) : (
-              <span className="badge bg-amber-50 text-amber-700 border border-amber-250 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 text-xs font-semibold px-2.5 py-1">
-                🔒 {query.assignedTo?.name}
+              <span className="badge bg-amber-50 text-amber-700 border border-amber-250 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20 text-xs font-semibold px-2.5 py-1 flex items-center gap-1">
+                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                {query.assignedTo?.name}
               </span>
             )}
           </div>
@@ -1280,7 +1280,8 @@ function QueryCard({
               {similarQueries && similarQueries.length > 0 && (
                 <div className="mb-6 bg-slate-50/50 dark:bg-[#191816]/30 rounded-xl p-4 border border-slate-100 dark:border-slate-800/40">
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                    💡 Similar Community Queries
+                    <svg className="w-3.5 h-3.5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Similar Community Queries
                   </p>
                   <div className="space-y-2.5">
                     {similarQueries.map(sim => (
@@ -1436,28 +1437,59 @@ function QueryCard({
                 </div>
               )}
 
-              {/* Answer input */}
-              {!isClosed && query.status !== 'answered' && (!currentUser || (currentUser && !isOwnedByCurrentUser && currentUser.role !== 'admin')) && (
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <EditIcon /> Your Answer
-                  </p>
-                  <RichTextEditor 
-                    value={answerContent} 
-                    onChange={onAnswerChange} 
-                    placeholder="Write a step-by-step resolution, using Markdown formats..." 
-                  />
-                  <div className="flex justify-end mt-3">
-                    <button 
-                      onClick={onSubmitAnswer} 
-                      disabled={submitting === query._id || !answerContent?.trim()}
-                      className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
-                    >
-                      {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Answer input
+                  - Admin: can answer any open/claimed/answered query (not their own, not already answered by them)
+                  - Regular user: can answer only if unclaimed or they are the claim holder, and status != 'answered'
+              */}
+              {(() => {
+                const isAdmin = currentUser?.role === 'admin';
+                const alreadyAnswered = currentUser && query.answers?.some(
+                  a => (a.userId?._id || a.userId) === (currentUser._id || currentUser.id)
+                );
+                const isClaimHolder = isAssignedToCurrentUser;
+                const isUnclaimed = !assignedToId;
+                const canAnswer = !isClosed &&
+                  !alreadyAnswered &&
+                  currentUser &&
+                  !isOwnedByCurrentUser &&
+                  (isAdmin
+                    ? true  // admin can answer regardless of status
+                    : query.status !== 'answered' && (isClaimHolder || isUnclaimed));
+
+                if (alreadyAnswered && !isClosed) {
+                  return (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <p className="text-xs text-slate-400 dark:text-slate-500 italic text-center py-2">
+                        ✓ You have already submitted an answer to this query.
+                      </p>
+                    </div>
+                  );
+                }
+                if (canAnswer) {
+                  return (
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <EditIcon /> Your Answer
+                      </p>
+                      <RichTextEditor
+                        value={answerContent}
+                        onChange={onAnswerChange}
+                        placeholder="Write a step-by-step resolution, using Markdown formats..."
+                      />
+                      <div className="flex justify-end mt-3">
+                        <button
+                          onClick={onSubmitAnswer}
+                          disabled={submitting === query._id || !answerContent?.trim()}
+                          className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
+                        >
+                          {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {isClosed && (
                 <div className="bg-slate-100/70 dark:bg-[#191816] rounded-xl px-4 py-3 text-xs md:text-sm text-slate-500 dark:text-slate-400 text-center font-medium border border-slate-200/50 dark:border-slate-850 flex items-center justify-center gap-1.5 mt-3">

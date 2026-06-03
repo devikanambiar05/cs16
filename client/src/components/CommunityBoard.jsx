@@ -19,7 +19,6 @@ export default function CommunityBoard() {
 
   const typeConfig = {
     announcement: {
-      icon: '📢',
       bg: 'from-amber-50 to-white dark:from-amber-950/20 dark:to-slate-900',
       border: 'border-amber-200 dark:border-amber-900/30',
       badge: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
@@ -30,17 +29,19 @@ export default function CommunityBoard() {
   return (
     <div className="mb-8">
       {/* Section header */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center">
-          <span className="text-sm">📢</span>
+      <div className="flex items-center gap-2 mb-3 min-w-0">
+        <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center shrink-0">
+          <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+          </svg>
         </div>
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide truncate">
           Latest Announcements
         </h2>
       </div>
 
       {/* Grid of announcements */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3">
         {announcements.map(pin => {
           const cfg = typeConfig.announcement;
           return (
@@ -97,7 +98,9 @@ export default function CommunityBoard() {
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-4">
               <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${typeConfig.announcement.badge}`}>
-                <span>📢</span>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
                 <span>Announcement</span>
               </span>
               <button
