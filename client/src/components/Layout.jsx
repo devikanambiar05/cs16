@@ -265,6 +265,9 @@ export default function Layout() {
                       <Link to="/profile" className="block px-3 py-2 text-sm text-slate-650 hover:bg-slate-50 hover:text-primary-600">
                         My Profile
                       </Link>
+                      <Link to="/track-query" className="block px-3 py-2 text-sm text-slate-650 hover:bg-slate-50 hover:text-primary-600">
+                        Track Query
+                      </Link>
                       {user.isVolunteer && (
                         <Link to="/stats" className="block px-3 py-2 text-sm text-slate-650 hover:bg-slate-50 hover:text-primary-600">
                           Board Statistics

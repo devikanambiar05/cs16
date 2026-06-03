@@ -569,6 +569,68 @@ exports.ragChat = async (req, res) => {
   }
 };
 
+async function generateRagAnswerText(question) {
+  try {
+    const q = question.trim();
+    const { faqs, df, N } = await buildRagIndex();
+    if (faqs.length === 0) {
+      return "I searched the knowledge base but couldn't find any relevant FAQs. A community member will respond shortly!";
+    }
+
+    const qTokens = tokenize(q);
+    const avgDL = faqs.reduce((s, f) => s + f._docLen, 0) / faqs.length;
+
+    const scored = faqs
+      .map(faq => ({ ...faq, score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N) }))
+      .filter(f => f.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    if (scored.length === 0) {
+      return "I searched the knowledge base but couldn't find a direct match. A community member will respond shortly!";
+    }
+
+    const topFaq = scored[0];
+    const ollamaOk = await isOllamaAvailable();
+    if (ollamaOk) {
+      const context = scored.map(f => `**${f.title}**\n${f.content}`).join('\n\n');
+      const baseUrl = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
+      const model = process.env.OLLAMA_MODEL || 'llama3';
+      const prompt = `You are a helpful university FAQ assistant. Answer the user's question based ONLY on the provided FAQ context. If the context doesn't contain a sufficient answer, say you couldn't find a clear answer. Be concise (2-4 sentences).
+
+CONTEXT:
+${context}
+
+QUESTION: ${q}
+
+ANSWER:`;
+
+      try {
+        const response = await fetch(`${baseUrl}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, prompt, stream: false })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.response && data.response.trim().length > 10) {
+            return data.response.trim();
+          }
+        }
+      } catch (err) {
+        console.warn('Background Ollama generation failed:', err.message);
+      }
+    }
+
+    return `Based on the FAQ knowledge base:\n\n**${topFaq.title}**\n${topFaq.content}`;
+  } catch (err) {
+    console.error('generateRagAnswerText error:', err);
+    return 'Failed to generate automatic RAG answer.';
+  }
+}
+
+exports.generateRagAnswerText = generateRagAnswerText;
+
 // Export internal variables and functions under test environment to enable clean test coverage
 if (process.env.NODE_ENV === 'test') {
   exports.semanticCache = semanticCache;
