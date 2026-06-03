@@ -17,7 +17,8 @@ const {
   updatePin,
   deletePin,
   getAdminFaqs,
-  patchFaq
+  patchFaq,
+  bulkUserAction
 } = require('../controllers/adminController');
 
 // ─── FAQ Management ────────────────────────────────────────────────────────────
@@ -46,6 +47,11 @@ router.patch('/answers/:id/reject', protect, adminOnly, rejectAnswer);
 
 // Soft-delete / Restore any query
 router.patch('/queries/:id', protect, adminOnly, deleteQuery);
+
+// ─── User Management ─────────────────────────────────────────────────────────
+
+// Bulk ban/unban/promote users in one request
+router.patch('/users/bulk', protect, adminOnly, bulkUserAction);
 
 // ─── Analytics & Stats ─────────────────────────────────────────────────────────
 

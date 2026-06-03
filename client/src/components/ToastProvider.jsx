@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, useMemo } from 'react';
 
 const ToastContext = createContext(null);
 
@@ -20,12 +20,39 @@ export function ToastProvider({ children }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const toast = {
+  const toast = useMemo(() => ({
     success: (message, opts = {}) => addToast({ message, type: 'success', ...opts }),
-    error: (message, opts = {}) => addToast({ message, type: 'error', ...opts }),
+    error: (message, opts = {}) => {
+      const rateLimitMsg = '⚡ Request limit reached. Please wait a few moments before trying again.';
+      if (message === rateLimitMsg && opts.fromGlobalListener !== true) {
+        // Ignore duplicate rate limit toast from local catch block
+        return;
+      }
+      if (typeof window !== 'undefined' && Date.now() - (window.__lastRateLimitTime || 0) < 100) {
+        if (typeof message === 'string' && (message.includes('Failed to') || message === 'Request failed' || message.includes('Error'))) {
+          // Suppress generic failure toasts immediately after rate limiting
+          return;
+        }
+      }
+      return addToast({ message, type: 'error', ...opts });
+    },
     warning: (message, opts = {}) => addToast({ message, type: 'warning', ...opts }),
     info: (message, opts = {}) => addToast({ message, type: 'info', ...opts }),
-  };
+  }), [addToast]);
+
+  useEffect(() => {
+    const handleShowToast = (e) => {
+      const { message, type, opts } = e.detail || {};
+      if (message) {
+        if (type === 'success') toast.success(message, opts);
+        else if (type === 'warning') toast.warning(message, opts);
+        else if (type === 'info') toast.info(message, opts);
+        else toast.error(message, { ...opts, fromGlobalListener: true });
+      }
+    };
+    window.addEventListener('show-toast', handleShowToast);
+    return () => window.removeEventListener('show-toast', handleShowToast);
+  }, [toast]);
 
   return (
     <ToastContext.Provider value={toast}>
