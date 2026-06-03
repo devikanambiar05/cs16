@@ -50,6 +50,38 @@ function bm25Score(queryTokens, docTokens, docLen, avgDL, df, N) {
 
 // ─── Semantic Cache ──────────────────────────────────────────────────────────
 
+async function getOllamaEmbedding(text) {
+  const baseUrl = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
+  const model = process.env.OLLAMA_MODEL || 'llama3';
+  try {
+    const res = await fetch(`${baseUrl}/api/embeddings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt: text })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.embedding;
+  } catch (err) {
+    console.warn('[Embedding] Failed to generate Ollama embedding:', err.message);
+    return null;
+  }
+}
+
+function cosineSimilarity(vecA, vecB) {
+  if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
 const RAG_CACHE_CAP = 150; // light-weight process foot-print to avoid heavy memory consumption
 const semanticCache = new Map(); // maps lowercased query string to { answer: string, sources: Array, faqsFound: number, timestamp: number }
 const MAX_CACHE_SIZE = RAG_CACHE_CAP;
@@ -215,19 +247,20 @@ let ragCacheAt = 0;
 
 async function buildRagIndex() {
   if (ragCache && Date.now() - ragCacheAt < RAG_TTL_MS) return ragCache;
+  const ollamaOk = await isOllamaAvailable();
 
   // 1. Fetch resolved FAQs from database
   const faqs = await FAQ.find({
     status: 'resolved',
     deletedAt: null,
     finalAnswer: { $type: 'string', $ne: '' }
-  }).select('title finalAnswer tags upvotes isValidated').lean();
+  }).select('title finalAnswer tags upvotes isValidated embedding').lean();
 
   // 2. Fetch resolved community queries and their accepted answers
   const resolvedQueries = await Query.find({
     status: { $in: ['closed', 'answered'] },
     deletedAt: null
-  }).select('_id title description tags upvotes').lean();
+  }).select('_id title description tags upvotes embedding').lean();
 
   const communityFaqs = [];
   for (const q of resolvedQueries) {
@@ -243,7 +276,8 @@ async function buildRagIndex() {
         tags: q.tags,
         upvotes: q.upvotes || 0,
         isValidated: true,
-        isCommunity: true
+        isCommunity: true,
+        embedding: q.embedding
       });
     }
   }
@@ -279,6 +313,25 @@ async function buildRagIndex() {
     triggerBackgroundValidation(pendingFaqsOnly);
   }
 
+  // Calculate missing embeddings in background
+  if (ollamaOk) {
+    for (const faq of validatedFaqs) {
+      if (!faq.embedding || faq.embedding.length === 0) {
+        const textToEmbed = `${faq.title} ${faq.isCommunity ? faq.description || '' : faq.finalAnswer || ''}`.substring(0, 1000);
+        getOllamaEmbedding(textToEmbed).then(emb => {
+          if (emb) {
+            faq.embedding = emb;
+            if (faq.isCommunity) {
+              Query.updateOne({ _id: faq._id }, { $set: { embedding: emb } }).catch(e => console.warn('Failed background Query embedding save:', e.message));
+            } else {
+              FAQ.updateOne({ _id: faq._id }, { $set: { embedding: emb } }).catch(e => console.warn('Failed background FAQ embedding save:', e.message));
+            }
+          }
+        }).catch(err => console.warn('Failed background embedding generation:', err.message));
+      }
+    }
+  }
+
   if (validatedFaqs.length === 0) {
     ragCache = { faqs: [], df: {}, N: 0 };
     ragCacheAt = Date.now();
@@ -308,6 +361,7 @@ async function buildRagIndex() {
         content: contentText,
         tags: f.tags,
         upvotes: f.upvotes,
+        embedding: f.embedding,
         _tokens: tokenize(`${f.title} ${contentText}`),
         _docLen: tokenize(`${f.title} ${contentText}`).length
       };
@@ -443,7 +497,7 @@ exports.ragChat = async (req, res) => {
       return;
     }
 
-    // 1. Retrieve top-k relevant FAQs using BM25
+    // 1. Retrieve top-k relevant FAQs using Hybrid Search (Vector + BM25)
     const { faqs, df, N } = await buildRagIndex();
 
     if (faqs.length === 0) {
@@ -457,11 +511,30 @@ exports.ragChat = async (req, res) => {
     const qTokens = tokenize(q);
     const avgDL = faqs.reduce((s, f) => s + f._docLen, 0) / faqs.length;
 
-    const scored = faqs
-      .map(faq => ({ ...faq, score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N) }))
-      .filter(f => f.score >= 1.2)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+    let scored = [];
+    const ollamaOk = await isOllamaAvailable();
+    let queryEmbedding = null;
+    if (ollamaOk) {
+      queryEmbedding = await getOllamaEmbedding(q);
+    }
+
+    if (queryEmbedding) {
+      scored = faqs
+        .map(faq => {
+          const sim = cosineSimilarity(queryEmbedding, faq.embedding);
+          const vectorScore = sim > 0 ? sim * 5.0 : 0;
+          return { ...faq, score: vectorScore, similarity: sim };
+        })
+        .filter(f => f.score >= 1.2)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+    } else {
+      scored = faqs
+        .map(faq => ({ ...faq, score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N) }))
+        .filter(f => f.score >= 1.2)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+    }
 
     const sources = scored.map(f => ({
       _id: f._id,
@@ -533,7 +606,7 @@ exports.ragChat = async (req, res) => {
       ? scored.map(f => `**${f.title}**\n${f.content}`).join('\n\n')
       : 'No relevant FAQs found for this question.';
 
-    const ollamaOk = await isOllamaAvailable();
+    // ollamaOk is already defined at top of ragChat
     if (!ollamaOk) {
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Transfer-Encoding', 'chunked');
@@ -618,18 +691,37 @@ async function generateRagAnswerText(question) {
     const qTokens = tokenize(q);
     const avgDL = faqs.reduce((s, f) => s + f._docLen, 0) / faqs.length;
 
-    const scored = faqs
-      .map(faq => ({ ...faq, score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N) }))
-      .filter(f => f.score >= 1.2)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+    let scored = [];
+    const ollamaOk = await isOllamaAvailable();
+    let queryEmbedding = null;
+    if (ollamaOk) {
+      queryEmbedding = await getOllamaEmbedding(q);
+    }
+
+    if (queryEmbedding) {
+      scored = faqs
+        .map(faq => {
+          const sim = cosineSimilarity(queryEmbedding, faq.embedding);
+          const vectorScore = sim > 0 ? sim * 5.0 : 0;
+          return { ...faq, score: vectorScore, similarity: sim };
+        })
+        .filter(f => f.score >= 1.2)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+    } else {
+      scored = faqs
+        .map(faq => ({ ...faq, score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N) }))
+        .filter(f => f.score >= 1.2)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+    }
 
     if (scored.length === 0) {
       return "I searched the knowledge base but couldn't find a direct match. A community member will respond shortly!";
     }
 
     const topFaq = scored[0];
-    const ollamaOk = await isOllamaAvailable();
+    // ollamaOk is already defined at top of generateRagAnswerText
     if (ollamaOk) {
       const context = scored.map(f => `**${f.title}**\n${f.content}`).join('\n\n');
       const baseUrl = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
@@ -673,6 +765,62 @@ exports.clearRagCache = () => {
   ragCache = null;
   ragCacheAt = 0;
 };
+
+async function linkQuerySemanticGraph(queryId) {
+  try {
+    const query = await Query.findById(queryId);
+    if (!query) return;
+
+    const { faqs } = await buildRagIndex();
+    if (faqs.length === 0) return;
+
+    const qTokens = tokenize(query.title);
+    if (qTokens.length === 0) return;
+
+    const avgDL = faqs.reduce((s, f) => s + f._docLen, 0) / faqs.length;
+    
+    const scored = faqs
+      .filter(f => f._id.toString() !== query._id.toString())
+      .map(faq => {
+        const tf = {};
+        for (const t of faq._tokens) tf[t] = (tf[t] || 0) + 1;
+        
+        let score = 0;
+        for (const term of qTokens) {
+          const tfVal = tf[term] || 0;
+          if (tfVal === 0) continue;
+          const tfPart = tfVal * (1.5 + 1) / (tfVal + 1.5 * (1 - 0.75 + 0.75 * (faq._docLen / avgDL)));
+          score += tfPart;
+        }
+        return { _id: faq._id, score, tags: faq.tags };
+      })
+      .filter(f => f.score > 0.3)
+      .sort((a, b) => b.score - a.score);
+
+    if (scored.length > 0) {
+      const related = scored.slice(0, 3).map(f => f._id);
+      const suggestedTags = new Set(query.tags || []);
+      for (const item of scored.slice(0, 5)) {
+        if (item.tags) {
+          item.tags.forEach(t => {
+            if (!t.startsWith('from-community-')) {
+              suggestedTags.add(t);
+            }
+          });
+        }
+      }
+      
+      query.relatedQueries = related;
+      query.tags = [...suggestedTags].slice(0, 5);
+      await query.save();
+      console.log(`[Semantic Graph] Linked Query "${query.title}" -> ${related.length} items. Suggested tags: [${query.tags.join(', ')}]`);
+    }
+  } catch (err) {
+    console.error('linkQuerySemanticGraph error:', err);
+  }
+}
+
+exports.linkQuerySemanticGraph = linkQuerySemanticGraph;
 
 // Export internal variables and functions under test environment to enable clean test coverage
 if (process.env.NODE_ENV === 'test') {

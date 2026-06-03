@@ -97,7 +97,19 @@ const querySchema = new mongoose.Schema({
   deletedAt: {
     type: Date,
     default: null
-  }
+  },
+  embedding: {
+    type: [Number],
+    default: undefined
+  },
+  searchHits: {
+    type: Number,
+    default: 0
+  },
+  relatedQueries: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Query'
+  }]
 }, {
   timestamps: true
 });

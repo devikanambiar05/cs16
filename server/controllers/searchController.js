@@ -287,6 +287,23 @@ exports.searchSimilar = async (req, res) => {
       else openQueries.push({ ...query, acceptedAnswer: null });
     }
 
+    // Increment search hits for matched queries in background
+    if (topRawQueries.length > 0) {
+      const queryIds = topRawQueries.map(rq => rq._id);
+      Query.updateMany({ _id: { $in: queryIds } }, { $inc: { searchHits: 1 } })
+        .then(async () => {
+          try {
+            const { checkFAQPromotion } = require('../services/promotionService');
+            for (const qId of queryIds) {
+              await checkFAQPromotion(qId);
+            }
+          } catch (e) {
+            console.warn('Failed background FAQ promotion check:', e.message);
+          }
+        })
+        .catch(err => console.warn('Failed background searchHits increment:', err.message));
+    }
+
     const scoredResolved = resolvedQueries.map(query => ({
       ...query,
       titleSimilarity: jaccardSimilarity(q, query.title)

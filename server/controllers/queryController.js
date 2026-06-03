@@ -102,7 +102,8 @@ exports.getQueryById = async (req, res) => {
     const query = await Query.findById(req.params.id)
       .populate('createdBy', 'name reputation')
       .populate('assignedTo', 'name reputation')
-      .populate('taggedUsers', 'name reputation');
+      .populate('taggedUsers', 'name reputation')
+      .populate('relatedQueries', 'title status');
 
     if (!query) return res.status(404).json({ error: 'Query not found' });
 
@@ -284,8 +285,17 @@ exports.createQuery = async (req, res) => {
       notifyTaggedUsers(query, taggedUsers).catch(err => console.error('Failed to notify tagged users:', err));
     }
 
-    // Trigger RAG auto-answer in the background
+    // Trigger RAG auto-answer and semantic linkage in the background
     setImmediate(async () => {
+      // 1. Semantic Linkage & Knowledge Graph Suggestion
+      try {
+        const { linkQuerySemanticGraph } = require('./ragController');
+        await linkQuerySemanticGraph(query._id);
+      } catch (err) {
+        console.error('[Semantic Graph] Failed background linkage:', err);
+      }
+
+      // 2. RAG Auto-Answer
       try {
         const { generateRagAnswerText } = require('./ragController');
         const Answer = require('../models/Answer');
@@ -627,6 +637,11 @@ exports.toggleFacing = async (req, res) => {
     }
 
     await query.save();
+
+    // Check and trigger FAQ promotion checks
+    const { checkFAQPromotion } = require('../services/promotionService');
+    checkFAQPromotion(query._id).catch(e => console.warn('Failed background promotion check on toggleFacing:', e.message));
+
     res.json({ facingCount: query.facingCount, facingUsers: query.facingUsers });
   } catch (error) {
     console.error('Toggle facing error:', error);

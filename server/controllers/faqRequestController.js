@@ -133,6 +133,28 @@ exports.approveFAQRequest = async (req, res) => {
       $inc: { reputation: 10 }
     });
 
+    // Award +15 reputation to BOTH original author and responder for collaborative promotion
+    const query = await Query.findById(faqRequest.queryId);
+    const answer = await Answer.findById(faqRequest.answerId);
+    if (query) {
+      query.status = 'closed';
+      query.resolvedFAQ = faq._id;
+      await query.save();
+
+      await User.findByIdAndUpdate(query.createdBy, { $inc: { reputation: 15 } });
+    }
+    if (answer) {
+      await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: 15 } });
+    }
+
+    // Clear RAG cache so the newly approved FAQ is instantly indexed
+    try {
+      const { clearRagCache } = require('./ragController');
+      clearRagCache();
+    } catch (err) {
+      console.warn('Failed to clear RAG cache on FAQ approval:', err.message);
+    }
+
     const populated = await FAQRequest.findById(id)
       .populate('submittedBy', 'name reputation')
       .populate('reviewedBy', 'name')
