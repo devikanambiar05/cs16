@@ -570,3 +570,91 @@ exports.toggleFacing = async (req, res) => {
     res.status(500).json({ error: 'Failed to update facing status' });
   }
 };
+
+exports.releaseInactiveClaims = async () => {
+  console.log(`[Claim Release Scheduler] Checking for inactive query claims...`);
+  try {
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const claimedQueries = await Query.find({
+      status: 'claimed',
+      claimedAt: { $lt: fortyEightHoursAgo }
+    });
+
+    let releasedCount = 0;
+
+    for (const query of claimedQueries) {
+      // Check if any answers have been submitted
+      const hasAnswer = await Answer.exists({ queryId: query._id });
+      if (!hasAnswer) {
+        console.log(`[Claim Release Scheduler] Releasing inactive claim on query: "${query.title}" (assigned to ${query.assignedTo})`);
+        
+        const previousAssignee = query.assignedTo;
+        
+        // Nullify claim
+        query.assignedTo = null;
+        query.claimedAt = null;
+        query.status = 'open';
+        // Restart SLA window
+        query.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        query.skipCount = (query.skipCount || 0) + 1;
+
+        // Direct Admin Escalation if skipped 3 or more times
+        if (query.skipCount >= 3) {
+          const { notifyAdminsOfEscalatedQuery } = require('../services/notificationService');
+          notifyAdminsOfEscalatedQuery(query).catch(err => console.error('Failed to notify admins of skipped query:', err));
+        }
+
+        await query.save();
+
+        // Emit notification signals to the user who lost the claim
+        if (previousAssignee) {
+          const Notification = require('../models/Notification');
+          await Notification.create({
+            recipient: previousAssignee,
+            type: 'claim',
+            title: 'Query Claim Released',
+            message: `Your claim on query "${query.title}" was automatically released due to 48 hours of inactivity.`,
+            link: '/community'
+          }).catch(err => console.error('Failed to create in-app notification for released claim:', err));
+          
+          // Send email notification if user enabled notifications
+          const userDoc = await User.findById(previousAssignee).select('email name emailNotifications');
+          if (userDoc && userDoc.email && userDoc.emailNotifications !== false) {
+            const { sendEmail } = require('../services/emailService');
+            sendEmail({
+              to: userDoc.email,
+              subject: `⚠️ Query claim released: "${query.title}"`,
+              text: `Hi ${userDoc.name},\n\nYour claim on the query "${query.title}" has been automatically released because it was inactive for more than 48 hours with no answers submitted.\n\nOther community members can now claim this query.\n\nView community board → ${process.env.FRONTEND_URL || 'http://localhost:3000'}/community`,
+              html: `
+                <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
+                  <div style="background: #ef4444; color: white; padding: 20px 24px; border-radius: 12px 12px 0 0;">
+                    <h2 style="margin: 0; font-size: 18px;">⚠️ Claim Released due to Inactivity</h2>
+                  </div>
+                  <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+                    <p style="margin: 0 0 8px; font-size: 14px; color: #6b7280;">Hi ${userDoc.name},</p>
+                    <p style="margin: 0 0 16px; font-size: 14px; color: #374151;">
+                      Your claim on the query <strong>"${query.title}"</strong> has been automatically released because it was inactive for more than 48 hours with no answers submitted.
+                    </p>
+                    <p style="margin: 0 0 16px; font-size: 14px; color: #374151;">
+                      Other community members can now claim and answer this query.
+                    </p>
+                    <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/community" style="display: inline-block; background: #ef4444; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;">
+                      View Community Board →
+                    </a>
+                  </div>
+                </div>`
+            }).catch(err => console.error('Failed to send claim release email:', err));
+          }
+        }
+
+        releasedCount++;
+      }
+    }
+    
+    console.log(`[Claim Release Scheduler] Finished. Released ${releasedCount} inactive claim(s).`);
+    return releasedCount;
+  } catch (error) {
+    console.error('[Claim Release Scheduler] Error:', error);
+    return 0;
+  }
+};
