@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { marked } from 'marked';
 import { uploadImage } from '../services/api';
 
@@ -57,6 +57,49 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false); 
+  // 🚀 Toast state tracking hook for temporary inline notifications
+  const [showToast, setShowToast] = useState(false); 
+
+  // Generates a sanitized, scope-safe dynamic draft isolation key using the placeholder property string
+  const storageKey = `editor-draft-${placeholder ? placeholder.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'general'}`;
+
+  // ── FEATURE PART A: AUTOMATIC RESTORE STRATEGY ON COMPONENT MOUNT ──
+  useEffect(() => {
+    if (readOnly) return;
+
+    const savedDraft = localStorage.getItem(storageKey);
+    // Explicit condition check: trigger recovery only when the current incoming value string layer is fully blank
+    if (savedDraft && !value) {
+      onChange(savedDraft);
+      setShowToast(true);
+      
+      // Auto dismiss draft popup notification indicator after 3000 milliseconds
+      const toastTimer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+      
+      return () => clearTimeout(toastTimer);
+    }
+  }, [storageKey, readOnly]);
+
+  // ── FEATURE PART B: 800MS DEBOUCED STORAGE WRITER CORE ──
+  useEffect(() => {
+    if (readOnly) return;
+
+    // Wipe out the local partition instantly if the content field gets blanked out manually
+    if (!value) {
+      localStorage.removeItem(storageKey);
+      return;
+    }
+
+    // Set cooling timeout block before writing raw strings directly onto local disk memory
+    const saveTimer = setTimeout(() => {
+      localStorage.setItem(storageKey, value);
+    }, 800);
+
+    // Cancel pending timer instance whenever input mutations re-fire within the cooling limits
+    return () => clearTimeout(saveTimer);
+  }, [value, storageKey, readOnly]);
 
   const insertWrap = (before, after = before) => {
     const ta = textareaRef.current;
@@ -149,63 +192,73 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   }
 
   return (
-    <div 
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={`border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-200 focus-within:border-primary-400 transition-all duration-200 ${
-        isDragging 
-          ? 'border-dashed border-primary-500 bg-primary-50/10 dark:bg-primary-950/10' 
-          : 'border-slate-300 dark:border-slate-600'
-      }`}
-    >
-      {/* Toolbar */}
-      <div className="flex items-center gap-1 px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
-        {toolbarButtons.map((btn) => (
+    <div className="relative w-full">
+      {/* ✨ CLEAN INLINE TOAST NOTIFICATION BLOCK */}
+      {showToast && (
+        <div className="absolute top-2 right-2 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-white shadow-md border border-emerald-400/20 animate-fade-in select-none">
+          <span>✨ Draft restored successfully</span>
+          <button type="button" onClick={() => setShowToast(false)} className="hover:opacity-80 font-bold ml-1">✕</button>
+        </div>
+      )}
+
+      <div 
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-200 focus-within:border-primary-400 transition-all duration-200 ${
+          isDragging 
+            ? 'border-dashed border-primary-500 bg-primary-50/10 dark:bg-primary-950/10' 
+            : 'border-slate-300 dark:border-slate-600'
+        }`}
+      >
+        {/* Toolbar */}
+        <div className="flex items-center gap-1 px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
+          {toolbarButtons.map((btn) => (
+            <button
+              key={btn.label}
+              type="button"
+              title={btn.title}
+              onClick={() => insertWrap(btn.wrap[0], btn.wrap[1])}
+              className={`w-7 h-7 flex items-center justify-center rounded text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200 transition-colors ${btn.className}`}
+            >
+              {btn.label}
+            </button>
+          ))}
+
+          <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1" />
+
+          {/* Image upload button */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
           <button
-            key={btn.label}
             type="button"
-            title={btn.title}
-            onClick={() => insertWrap(btn.wrap[0], btn.wrap[1])}
-            className={`w-7 h-7 flex items-center justify-center rounded text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200 transition-colors ${btn.className}`}
+            title="Add image"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className={`w-7 h-7 flex items-center justify-center rounded text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {btn.label}
+            {uploading ? '…' : '📷'}
           </button>
-        ))}
 
-        <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1" />
+          <div className="flex-1" />
+          <span className="text-xs text-slate-400 dark:text-slate-500">Markdown enabled</span>
+        </div>
 
-        {/* Image upload button */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp"
-          className="hidden"
-          onChange={handleImageUpload}
+        {/* Textarea */}
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full px-3 py-2.5 text-sm resize-y focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 leading-relaxed"
+          style={{ minHeight: '150px' }}
         />
-        <button
-          type="button"
-          title="Add image"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className={`w-7 h-7 flex items-center justify-center rounded text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {uploading ? '…' : '📷'}
-        </button>
-
-        <div className="flex-1" />
-        <span className="text-xs text-slate-400 dark:text-slate-500">Markdown enabled</span>
       </div>
-
-      {/* Textarea */}
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full px-3 py-2.5 text-sm resize-y focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 leading-relaxed"
-        style={{ minHeight: '150px' }}
-      />
     </div>
   );
 }
