@@ -18,11 +18,8 @@ const {
   deletePin,
   getAdminFaqs,
   patchFaq,
-<<<<<<< HEAD
-  getAuditLogs
-=======
+  getAuditLogs,
   bulkUserAction
->>>>>>> origin/main
 } = require('../controllers/adminController');
 
 // ─── FAQ Management ────────────────────────────────────────────────────────────

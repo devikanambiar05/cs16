@@ -125,11 +125,8 @@ export default function AdminDashboard() {
   }, [faqSearchInput]);
 
   async function loadStats() {
-<<<<<<< HEAD
     setLoadingStats(true);
-=======
     setLoadingAuditLogs(true);
->>>>>>> pr-102
     try {
       const [analyticsRes, queryRes, auditLogsRes] = await Promise.all([
         getAnalytics(),
@@ -156,11 +153,8 @@ export default function AdminDashboard() {
     } catch (err) {
       showToast('Failed to load stats', 'error');
     } finally {
-<<<<<<< HEAD
       setLoadingStats(false);
-=======
       setLoadingAuditLogs(false);
->>>>>>> pr-102
     }
   }
 
@@ -511,11 +505,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Overview */}
-<<<<<<< HEAD
-      {activeTab === 'Overview' && <OverviewPanel stats={stats} loading={loadingStats} />}
-=======
-      {activeTab === 'Overview' && stats && <OverviewPanel stats={stats} auditLogs={auditLogs} />}
->>>>>>> pr-102
+      {activeTab === 'Overview' && stats && <OverviewPanel stats={stats} loading={loadingStats} auditLogs={auditLogs} />}
 
       {/* Queries */}
       {activeTab === 'Queries' && (
@@ -1114,23 +1104,34 @@ export default function AdminDashboard() {
         </div>
       )}
     </div>
-<<<<<<< HEAD
+    </div>
   );
 }
 
-function OverviewPanel({ stats, loading }) {
+function OverviewPanel({ stats, loading, auditLogs }) {
+  const adminTheme = {
+    bg:       '#141311',
+    elevated: '#1c1a17',
+    elevated2:'#252320',
+    border:   '#332f27',
+    gold:     '#dca54c',
+    text:     '#f0ece4',
+    muted:    '#9b9285',
+    faint:    '#625c52',
+  };
+
   const dailyStats = stats?.dailyStats || [];
   const chartData = {
     labels: dailyStats.slice(-7).map(s => s.date),
     datasets: [{
       label: 'Queries',
       data: dailyStats.slice(-7).map(s => s.queries),
-      borderColor: '#6366f1',
-      backgroundColor: 'rgba(99,102,241,0.15)',
+      borderColor: adminTheme.gold,
+      backgroundColor: 'rgba(220,165,76,0.12)',
       fill: true,
       tension: 0.4,
       pointRadius: 3,
-      pointBackgroundColor: '#6366f1'
+      pointBackgroundColor: adminTheme.gold
     }]
   };
 
@@ -1144,43 +1145,14 @@ function OverviewPanel({ stats, loading }) {
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#64748b' }
+        ticks: { color: adminTheme.muted }
       },
       y: {
         beginAtZero: true,
-        grid: { color: 'rgba(148,163,184,0.16)' },
-        ticks: { color: '#64748b' }
+        grid: { color: `${adminTheme.border}80` },
+        ticks: { color: adminTheme.muted }
       }
     }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Users', value: stats?.totalUsers ?? 0 },
-          { label: 'Total FAQs', value: stats?.totalFaqs ?? 0 },
-          { label: 'Open Queries', value: stats?.queryStats?.open ?? 0 },
-          { label: 'SLA Breach Rate', value: stats?.slaBreachRate != null ? `${stats.slaBreachRate.toFixed(1)}%` : '0%' },
-        ].map(s => (
-          <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
-            <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
-            <p className="text-sm text-slate-500 mt-1">{s.label}</p>
-=======
-    </div>
-  );
-}
-
-function OverviewPanel({ stats, auditLogs }) {
-  const adminTheme = {
-    bg:       '#141311',
-    elevated: '#1c1a17',
-    elevated2:'#252320',
-    border:   '#332f27',
-    gold:     '#dca54c',
-    text:     '#f0ece4',
-    muted:    '#9b9285',
-    faint:    '#625c52',
   };
 
   return (
@@ -1188,34 +1160,32 @@ function OverviewPanel({ stats, auditLogs }) {
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Users', value: stats.totalUsers },
-          { label: 'Total FAQs', value: stats.totalFaqs },
-          { label: 'Open Queries', value: stats.queryStats?.open || 0 },
-          { label: 'SLA Breach Rate', value: stats.slaBreachRate ? `${stats.slaBreachRate.toFixed(1)}%` : '0%' },
+          { label: 'Total Users', value: stats?.totalUsers ?? 0 },
+          { label: 'Total FAQs', value: stats?.totalFaqs ?? 0 },
+          { label: 'Open Queries', value: stats?.queryStats?.open ?? 0 },
+          { label: 'SLA Breach Rate', value: stats?.slaBreachRate != null ? `${stats.slaBreachRate.toFixed(1)}%` : '0%' },
         ].map(s => (
           <div key={s.label} style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-5 shadow-sm">
             <p className="text-3xl font-bold" style={{ color: adminTheme.text }}>{s.value}</p>
             <p className="text-sm mt-1 font-medium" style={{ color: adminTheme.muted }}>{s.label}</p>
->>>>>>> pr-102
-          </div>
-        ))}
+        </div>
       </div>
 
-<<<<<<< HEAD
-      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 min-h-[320px]">
+      {/* Query Volume Chart */}
+      <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-5 min-h-[320px]">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div>
-            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Query volume</p>
-            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Last 7 days</h3>
+            <p className="text-sm font-semibold" style={{ color: adminTheme.muted }}>Query volume</p>
+            <h3 className="text-xl font-semibold" style={{ color: adminTheme.text }}>Last 7 days</h3>
           </div>
-          <span className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+          <span className="text-xs uppercase tracking-[0.2em]" style={{ color: adminTheme.faint }}>
             {dailyStats.length ? `${dailyStats.length} days tracked` : 'No data'}
           </span>
         </div>
 
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
+            <div className="inline-flex items-center gap-2" style={{ color: adminTheme.muted }}>
               <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" strokeOpacity="0.2" />
                 <path d="M22 12a10 10 0 0 1-10 10" strokeLinecap="round" />
@@ -1224,13 +1194,14 @@ function OverviewPanel({ stats, auditLogs }) {
             </div>
           </div>
         ) : dailyStats.length === 0 ? (
-          <div className="flex h-64 items-center justify-center text-slate-500 dark:text-slate-400">No query data available yet.</div>
+          <div className="flex h-64 items-center justify-center" style={{ color: adminTheme.muted }}>No query data available yet.</div>
         ) : (
           <div className="h-[320px]">
             <Line data={chartData} options={chartOptions} />
           </div>
         )}
-=======
+      </div>
+
       {/* Audit Logs Chronological Timeline */}
       <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-6 shadow-md flex flex-col">
         <div className="border-b pb-3 mb-4 flex items-center justify-between" style={{ borderBottomColor: adminTheme.border }}>
@@ -1252,27 +1223,25 @@ function OverviewPanel({ stats, auditLogs }) {
           ) : (
             <div className="relative border-l pl-4 ml-2 space-y-5" style={{ borderLeftColor: adminTheme.border }}>
               {auditLogs.map((log) => {
-                // Determine icon or color badge based on action/model
                 let color = adminTheme.gold;
                 let dotIcon = '●';
                 if (log.action.includes('delete') || log.action === 'deleted pin') {
-                  color = '#ef4444'; // Red
+                  color = '#ef4444';
                   dotIcon = '✕';
                 } else if (log.action.includes('restore')) {
-                  color = '#10b981'; // Green
+                  color = '#10b981';
                   dotIcon = '↺';
                 } else if (log.action === 'resolved SLA breach') {
-                  color = '#f59e0b'; // Amber/Orange
+                  color = '#f59e0b';
                   dotIcon = '⚡';
                 } else if (log.action === 'created pin') {
-                  color = '#3b82f6'; // Blue
+                  color = '#3b82f6';
                   dotIcon = '📌';
                 }
 
                 const adminName = log.performedBy?.name || 'Admin';
                 const formattedDate = log.timestamp ? new Date(log.timestamp).toLocaleString() : '';
 
-                // Text builders based on exact actions
                 let actionText = '';
                 if (log.action === 'soft-deleted') {
                   actionText = `soft-deleted ${log.targetModel} "${log.targetName || 'Untitled'}"`;
@@ -1292,7 +1261,6 @@ function OverviewPanel({ stats, auditLogs }) {
 
                 return (
                   <div key={log._id} className="relative group">
-                    {/* Circle dot on line */}
                     <div
                       className="absolute -left-[25px] top-1 h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm select-none"
                       style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color }}
@@ -1319,7 +1287,6 @@ function OverviewPanel({ stats, auditLogs }) {
             </div>
           )}
         </div>
->>>>>>> pr-102
       </div>
     </div>
   );
