@@ -20,6 +20,7 @@ export default function RAGChatWidget() {
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [showProbe, setShowProbe] = useState(false);
+  const [isMinimised, setIsMinimised] = useState(false);
 
   const bottomRef = useRef(null);
   const dialogTextareaRef = useRef(null);
@@ -243,11 +244,13 @@ export default function RAGChatWidget() {
 
   const openDialog = () => {
     setDialogOpen(true);
+    setIsMinimised(false);
     if (showProbe) dismissProbe();
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
+    setIsMinimised(false);
     setError('');
   };
 
@@ -284,7 +287,9 @@ export default function RAGChatWidget() {
             dragElastic={0}
             dragConstraints={viewportRef}
             className="absolute bottom-24 left-0 right-0 mx-auto w-[min(calc(100vw-2rem),32rem)] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
-            style={{ maxHeight: 'min(65vh, 560px)' }}
+            style={{ maxHeight: isMinimised ? '48px' : 'min(65vh, 560px)' }}
+            animate={{ maxHeight: isMinimised ? 48 : 560 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
           >
             {/* Drag handle bar */}
             <div
@@ -294,7 +299,12 @@ export default function RAGChatWidget() {
               }}
               className="flex items-center justify-between px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 shrink-0 cursor-grab active:cursor-grabbing select-none"
             >
-              <div className="flex items-center gap-2">
+              {/* Title — also acts as restore trigger when minimised */}
+              <button
+                type="button"
+                onClick={() => isMinimised && setIsMinimised(false)}
+                className={`flex items-center gap-2 ${isMinimised ? 'cursor-pointer' : 'cursor-default'}`}
+              >
                 <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -304,13 +314,40 @@ export default function RAGChatWidget() {
                     ({messages.filter(m => m.role === 'assistant').length})
                   </span>
                 )}
-              </div>
+                {isMinimised && loading && (
+                  <span className="flex gap-0.5 ml-1">
+                    <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" />
+                    <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '200ms' }} />
+                    <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '400ms' }} />
+                  </span>
+                )}
+              </button>
               <div className="flex items-center gap-2">
+                {!isMinimised && (
+                  <button
+                    onClick={clearChat}
+                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+                {/* Minimize / restore button */}
                 <button
-                  onClick={clearChat}
-                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  onClick={() => setIsMinimised(v => !v)}
+                  title={isMinimised ? 'Restore chat' : 'Minimise chat'}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  Clear
+                  {isMinimised ? (
+                    /* Restore — chevron up */
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  ) : (
+                    /* Minimise — minus/dash */
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                  )}
                 </button>
                 <button
                   onClick={closeDialog}
@@ -324,7 +361,7 @@ export default function RAGChatWidget() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-[150px]">
+            <div className={`flex-1 overflow-y-auto px-5 py-4 space-y-3 min-h-[150px] ${isMinimised ? 'hidden' : ''}`}>
               {messages.length === 0 && !loading && (
                 <div className="text-center py-8 text-slate-400 text-sm">
                   <p className="mb-1">👋 Ask me anything about the FAQ knowledge base.</p>
@@ -423,7 +460,7 @@ export default function RAGChatWidget() {
             </div>
 
             {/* Dialog input — auto-expanding textarea */}
-            <div className="shrink-0 px-5 py-4 bg-white dark:bg-slate-900 border-t dark:border-slate-800">
+            <div className={`shrink-0 px-5 py-4 bg-white dark:bg-slate-900 border-t dark:border-slate-800 ${isMinimised ? 'hidden' : ''}`}>
               <form onSubmit={sendMessage} className="relative">
                 <textarea
                   ref={dialogTextareaRef}
