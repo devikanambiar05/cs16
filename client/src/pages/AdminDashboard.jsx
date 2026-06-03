@@ -483,7 +483,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div style={{ background: adminTheme.bg, minHeight: '100vh', color: adminTheme.text }}>
+    <div className="theme-admin-station" style={{ background: adminTheme.bg, minHeight: '100vh', color: adminTheme.text }}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       {/* Tabs */}
       <div style={{ borderBottom: `1px solid ${adminTheme.border}` }}>
@@ -558,12 +558,12 @@ export default function AdminDashboard() {
       {/* Users */}
       {activeTab === 'Users' && (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Users</h2>
+          <h2 style={{ color: adminTheme.gold }} className="text-lg font-semibold mb-4">Users</h2>
 
           {/* ── Sticky Bulk Toolbar ── */}
           {selectedUserIds.size > 0 && (
-            <div className="sticky top-0 z-10 flex items-center gap-3 bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-xl px-4 py-3 mb-4 shadow-sm">
-              <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">
+            <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="sticky top-0 z-10 flex items-center gap-3 rounded-xl px-4 py-3 mb-4 shadow-sm">
+              <span className="text-sm font-semibold" style={{ color: adminTheme.gold }}>
                 {selectedUserIds.size} user{selectedUserIds.size !== 1 ? 's' : ''} selected
               </span>
               <div className="flex items-center gap-2 ml-auto">
@@ -590,7 +590,8 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   onClick={() => setSelectedUserIds(new Set())}
-                  className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  style={{ border: `1px solid ${adminTheme.border}`, color: adminTheme.muted }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold hover:opacity-80 transition-colors"
                 >
                   Clear
                 </button>
@@ -601,32 +602,35 @@ export default function AdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left border-b border-slate-200 dark:border-slate-700">
+                <tr style={{ borderBottom: `1px solid ${adminTheme.border}` }} className="text-left">
                   {/* Select-all checkbox */}
                   <th className="pb-3 pr-3 w-8">
                     <input
                       type="checkbox"
                       checked={users.length > 0 && selectedUserIds.size === users.length}
                       onChange={toggleSelectAll}
-                      className="rounded border-slate-300 dark:border-slate-600 accent-primary-600 cursor-pointer"
+                      className="rounded cursor-pointer"
+                      style={{ accentColor: adminTheme.gold }}
                       title="Select all"
                     />
                   </th>
-                  <th className="pb-3 text-slate-500 font-medium">Name</th>
-                  <th className="pb-3 text-slate-500 font-medium">Email</th>
-                  <th className="pb-3 text-slate-500 font-medium">Role</th>
-                  <th className="pb-3 text-slate-500 font-medium">Reputation</th>
-                  <th className="pb-3 text-slate-500 font-medium">Status</th>
-                  <th className="pb-3 text-slate-500 font-medium">Actions</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Name</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Email</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Role</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Reputation</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Status</th>
+                  <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
                   <tr
                     key={u._id}
-                    className={`border-b border-slate-100 dark:border-slate-800 transition-colors ${
-                      selectedUserIds.has(u._id) ? 'bg-primary-50/50 dark:bg-primary-950/20' : ''
-                    }`}
+                    style={{
+                      borderBottom: `1px solid ${adminTheme.border}`,
+                      background: selectedUserIds.has(u._id) ? adminTheme.elevated2 : 'transparent',
+                    }}
+                    className="transition-colors"
                   >
                     {/* Per-row checkbox */}
                     <td className="py-3 pr-3">
@@ -634,15 +638,16 @@ export default function AdminDashboard() {
                         type="checkbox"
                         checked={selectedUserIds.has(u._id)}
                         onChange={() => toggleSelectUser(u._id)}
-                        className="rounded border-slate-300 dark:border-slate-600 accent-primary-600 cursor-pointer"
+                        className="rounded cursor-pointer"
+                        style={{ accentColor: adminTheme.gold }}
                       />
                     </td>
-                    <td className="py-3 text-slate-800 dark:text-slate-200">{u.name}</td>
-                    <td className="py-3 text-slate-600 dark:text-slate-400">{u.email}</td>
+                    <td style={{ color: adminTheme.text }} className="py-3">{u.name}</td>
+                    <td style={{ color: adminTheme.muted }} className="py-3">{u.email}</td>
                     <td className="py-3">
                       <span className={`badge ${u.role === 'admin' ? 'badge-red' : 'badge-blue'}`}>{u.role}</span>
                     </td>
-                    <td className="py-3 text-slate-600 dark:text-slate-400">{(u.reputation || 0).toLocaleString()}</td>
+                    <td style={{ color: adminTheme.muted }} className="py-3">{(u.reputation || 0).toLocaleString()}</td>
                     <td className="py-3">
                       {u.status === 'banned'
                         ? <span className="badge badge-red">Banned</span>
@@ -652,7 +657,7 @@ export default function AdminDashboard() {
                       <button
                         onClick={() => handleToggleBan(u._id, u.status)}
                         disabled={userStatus[u._id] === 'loading'}
-                        className="text-xs text-red-600 hover:underline disabled:opacity-40"
+                        className="text-xs text-red-400 hover:underline disabled:opacity-40"
                       >
                         {u.status === 'banned' ? 'Unban' : 'Ban'}
                       </button>
@@ -663,9 +668,9 @@ export default function AdminDashboard() {
             </table>
           </div>
           <div className="flex items-center gap-3 mt-4">
-            <button onClick={() => { setUserPage(p => Math.max(1, p - 1)); loadUsers(); }} disabled={userPage === 1} className="btn-secondary text-sm disabled:opacity-40">Previous</button>
-            <span className="text-sm text-slate-500">Page {userPage}</span>
-            <button onClick={() => { setUserPage(p => p + 1); loadUsers(); }} disabled={users.length < PAGE_SIZE} className="btn-secondary text-sm disabled:opacity-40">Next</button>
+            <button onClick={() => { setUserPage(p => Math.max(1, p - 1)); loadUsers(); }} disabled={userPage === 1} style={{ background: adminTheme.elevated, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }} className="px-3 py-1.5 rounded-lg text-sm disabled:opacity-40">Previous</button>
+            <span style={{ color: adminTheme.muted }} className="text-sm">Page {userPage}</span>
+            <button onClick={() => { setUserPage(p => p + 1); loadUsers(); }} disabled={users.length < PAGE_SIZE} style={{ background: adminTheme.elevated, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }} className="px-3 py-1.5 rounded-lg text-sm disabled:opacity-40">Next</button>
           </div>
         </div>
       )}
@@ -673,35 +678,35 @@ export default function AdminDashboard() {
       {/* FAQ Requests */}
       {activeTab === 'FAQ Requests' && (
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">FAQ Requests</h2>
+          <h2 style={{ color: adminTheme.gold }} className="text-lg font-semibold mb-4">FAQ Requests</h2>
           {faqLoading ? (
-            <p className="text-slate-500">Loading...</p>
+            <p style={{ color: adminTheme.muted }}>Loading...</p>
           ) : faqRequests.length === 0 ? (
-            <p className="text-slate-500 dark:text-slate-400">No pending FAQ requests.</p>
+            <p style={{ color: adminTheme.muted }}>No pending FAQ requests.</p>
           ) : (
             <div className="space-y-4">
               {faqRequests.map(req => (
-                <div key={req._id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                <div key={req._id} style={{ border: `1px solid ${adminTheme.border}`, background: adminTheme.elevated }} className="rounded-xl p-4">
                   <div className="mb-2">
                     <span className={`badge ${req.status === 'pending' ? 'badge-yellow' : req.status === 'approved' ? 'badge-green' : 'badge-red'}`}>
                       {req.status}
                     </span>
                     {req.submittedBy && (
-                      <span className="text-xs text-slate-400 ml-2">by {req.submittedBy.name || 'unknown'}</span>
+                      <span style={{ color: adminTheme.faint }} className="text-xs ml-2">by {req.submittedBy.name || 'unknown'}</span>
                     )}
                     {req.queryId && (
-                      <span className="text-xs text-slate-400 ml-2">on: {typeof req.queryId === 'object' ? req.queryId.title : req.queryId}</span>
+                      <span style={{ color: adminTheme.faint }} className="text-xs ml-2">on: {typeof req.queryId === 'object' ? req.queryId.title : req.queryId}</span>
                     )}
                   </div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100 mb-1">Q: {req.proposedQuestion}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-3">A: {req.proposedAnswer}</p>
+                  <p style={{ color: adminTheme.text }} className="font-medium mb-1">Q: {req.proposedQuestion}</p>
+                  <p style={{ color: adminTheme.muted }} className="text-sm mb-3 line-clamp-3">A: {req.proposedAnswer}</p>
                   {req.proposedTags && req.proposedTags.length > 0 && (
-                    <p className="text-xs text-slate-400 mb-2">Tags: {req.proposedTags.join(', ')}</p>
+                    <p style={{ color: adminTheme.faint }} className="text-xs mb-2">Tags: {req.proposedTags.join(', ')}</p>
                   )}
                   {req.status === 'pending' && (
                     <div className="flex gap-2">
                       <button onClick={() => handleResolve(req._id)} className="btn-primary text-sm">Approve</button>
-                      <button onClick={() => openRejectModal(req._id)} className="btn-secondary text-sm">Reject</button>
+                      <button onClick={() => openRejectModal(req._id)} style={{ background: adminTheme.elevated2, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }} className="px-3 py-1.5 rounded-lg text-sm hover:opacity-80 transition-colors">Reject</button>
                     </div>
                   )}
                 </div>
@@ -712,22 +717,23 @@ export default function AdminDashboard() {
       )}
 
       {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
-          <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
+          <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="w-full max-w-xl rounded-3xl shadow-2xl p-6">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Reject FAQ Request</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Provide a short reason to help the volunteer understand why this request was rejected.</p>
+                <h3 style={{ color: adminTheme.text }} className="text-lg font-semibold">Reject FAQ Request</h3>
+                <p style={{ color: adminTheme.muted }} className="text-sm">Provide a short reason to help the volunteer understand why this request was rejected.</p>
               </div>
               <button
                 onClick={closeRejectModal}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                style={{ color: adminTheme.muted }}
+                className="hover:opacity-80"
                 aria-label="Close reject modal"
               >
                 ×
               </button>
             </div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2" htmlFor="rejectionReason">
+            <label style={{ color: adminTheme.text }} className="block text-sm font-medium mb-2" htmlFor="rejectionReason">
               Rejection reason
             </label>
             <textarea
@@ -735,14 +741,16 @@ export default function AdminDashboard() {
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               rows={5}
-              className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100 p-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color: adminTheme.text }}
+              className="w-full rounded-2xl text-sm p-3 focus:outline-none focus:ring-2 focus:ring-yellow-500/40"
               placeholder="Example: Duplicate of FAQ #10"
             />
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={closeRejectModal}
-                className="btn-secondary text-sm"
+                style={{ background: adminTheme.elevated2, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }}
+                className="px-4 py-2 rounded-lg text-sm hover:opacity-80 transition-colors"
               >
                 Cancel
               </button>
@@ -763,7 +771,7 @@ export default function AdminDashboard() {
       {activeTab === 'Manage FAQs' && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Manage FAQs</h2>
+            <h2 style={{ color: adminTheme.gold }} className="text-lg font-semibold">Manage FAQs</h2>
             <div className="flex items-center gap-3">
               {/* Search — debounced via faqSearchInput state */}
               <input
@@ -771,7 +779,8 @@ export default function AdminDashboard() {
                 placeholder="Search FAQs..."
                 value={faqSearchInput}
                 onChange={e => setFaqSearchInput(e.target.value)}
-                className="input py-1.5 text-sm w-48"
+                style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}`, color: adminTheme.text }}
+                className="py-1.5 px-3.5 rounded-lg text-sm w-48 focus:outline-none focus:ring-2 focus:ring-yellow-500/30 placeholder:opacity-50"
               />
               {/* Filter — resets to page 1 */}
               <select
@@ -782,14 +791,15 @@ export default function AdminDashboard() {
                   setFaqManagePage(1);
                   loadAdminFaqs(1, newFilter, faqSearch); // pass fresh values directly
                 }}
-                className="input py-1.5 text-sm"
+                style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}`, color: adminTheme.text }}
+                className="py-1.5 px-3.5 rounded-lg text-sm focus:outline-none"
               >
                 <option value="all">All FAQs</option>
                 <option value="resolved">Resolved</option>
                 <option value="duplicate">Duplicate</option>
               </select>
               {/* Refresh */}
-              <button onClick={() => loadAdminFaqs(1, faqFilter, faqSearch)} className="btn-secondary text-sm">Refresh</button>
+              <button onClick={() => loadAdminFaqs(1, faqFilter, faqSearch)} style={{ background: adminTheme.elevated, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }} className="px-3 py-1.5 rounded-lg text-sm hover:opacity-80 transition-colors">Refresh</button>
             </div>
           </div>
 
@@ -800,60 +810,63 @@ export default function AdminDashboard() {
               { label: 'Resolved', value: adminFaqs.filter(f => f.status === 'resolved').length },
               { label: 'Soft-deleted', value: adminFaqs.filter(f => f.deletedAt).length },
             ].map(s => (
-              <div key={s.label} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
-                <p className="text-sm text-slate-500">{s.label}</p>
+              <div key={s.label} style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-4">
+                <p style={{ color: adminTheme.text }} className="text-2xl font-bold">{s.value}</p>
+                <p style={{ color: adminTheme.muted }} className="text-sm">{s.label}</p>
               </div>
             ))}
           </div>
 
           {/* Table */}
           {faqLoading ? (
-            <p className="text-slate-500">Loading...</p>
+            <p style={{ color: adminTheme.muted }}>Loading...</p>
           ) : adminFaqs.length === 0 ? (
-            <p className="text-slate-500 dark:text-slate-400">No FAQs found.</p>
+            <p style={{ color: adminTheme.muted }}>No FAQs found.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left border-b border-slate-200 dark:border-slate-700">
-                    <th className="pb-3 text-slate-500 font-medium">Title</th>
-                    <th className="pb-3 text-slate-500 font-medium">Status</th>
-                    <th className="pb-3 text-slate-500 font-medium">Tags</th>
-                    <th className="pb-3 text-slate-500 font-medium">Upvotes</th>
-                    <th className="pb-3 text-slate-500 font-medium">Actions</th>
+                  <tr style={{ borderBottom: `1px solid ${adminTheme.border}` }} className="text-left">
+                    <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Title</th>
+                    <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Status</th>
+                    <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Tags</th>
+                    <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Upvotes</th>
+                    <th style={{ color: adminTheme.muted }} className="pb-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {adminFaqs.map(faq => (
-                    <tr key={faq._id} className={`border-b border-slate-100 dark:border-slate-800 ${faq.deletedAt ? 'opacity-60' : ''}`}>
-                      <td className="py-3 text-slate-800 dark:text-slate-200 max-w-xs truncate">{faq.title}</td>
+                    <tr key={faq._id} style={{ borderBottom: `1px solid ${adminTheme.border}` }} className={faq.deletedAt ? 'opacity-60' : ''}>
+                      <td style={{ color: adminTheme.text }} className="py-3 max-w-xs truncate">{faq.title}</td>
                       <td className="py-3">
                         <span className={`badge ${faq.deletedAt ? 'badge-red' : faq.status === 'resolved' ? 'badge-green' : 'badge-yellow'}`}>
                           {faq.deletedAt ? 'Deleted' : faq.status}
                         </span>
                         {faq.pinned && <span className="badge badge-amber ml-1">pinned</span>}
                       </td>
-                      <td className="py-3 text-slate-600 dark:text-slate-400">
+                      <td style={{ color: adminTheme.muted }} className="py-3">
                         {(faq.tags || []).slice(0, 3).join(', ')}
                       </td>
-                      <td className="py-3 text-slate-600 dark:text-slate-400">{faq.upvotes || 0}</td>
+                      <td style={{ color: adminTheme.muted }} className="py-3">{faq.upvotes || 0}</td>
                       <td className="py-3 flex gap-2 flex-wrap">
                         <button
                           onClick={() => setEditingFaq({ _id: faq._id, title: faq.title, finalAnswer: faq.finalAnswer || '' })}
-                          className="text-primary-600 hover:underline text-xs whitespace-nowrap"
+                          style={{ color: adminTheme.gold }}
+                          className="hover:underline text-xs whitespace-nowrap"
                         >
                           Edit Answer
                         </button>
                         <button
                           onClick={() => handleSoftDeleteRestore(faq._id, !!faq.deletedAt)}
+                          style={{ color: adminTheme.muted }}
                           className="text-xs hover:underline whitespace-nowrap"
                         >
                           {faq.deletedAt ? 'Restore' : 'Soft-Delete'}
                         </button>
                         <button
                           onClick={() => handleTogglePin(faq._id, !!faq.pinned)}
-                          className={`text-xs hover:underline whitespace-nowrap ${faq.pinned ? 'text-amber-600' : ''}`}
+                          style={{ color: faq.pinned ? adminTheme.gold : adminTheme.muted }}
+                          className="text-xs hover:underline whitespace-nowrap"
                         >
                           {faq.pinned ? 'Unpin' : 'Pin'}
                         </button>
@@ -871,13 +884,15 @@ export default function AdminDashboard() {
               <button
                 onClick={() => setFaqManagePage(p => Math.max(1, p - 1))}
                 disabled={faqManagePage === 1}
-                className="btn-secondary text-sm disabled:opacity-40"
+                style={{ background: adminTheme.elevated, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }}
+                className="px-3 py-1.5 rounded-lg text-sm disabled:opacity-40"
               >Previous</button>
-              <span className="text-sm text-slate-500">Page {faqManagePage} of {faqManageTotalPages}</span>
+              <span style={{ color: adminTheme.muted }} className="text-sm">Page {faqManagePage} of {faqManageTotalPages}</span>
               <button
                 onClick={() => setFaqManagePage(p => Math.min(faqManageTotalPages, p + 1))}
                 disabled={faqManagePage === faqManageTotalPages}
-                className="btn-secondary text-sm disabled:opacity-40"
+                style={{ background: adminTheme.elevated, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }}
+                className="px-3 py-1.5 rounded-lg text-sm disabled:opacity-40"
               >Next</button>
             </div>
           )}
@@ -887,10 +902,10 @@ export default function AdminDashboard() {
       {/* Pins */}
       {activeTab === 'Pins' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-850 pb-4">
+          <div style={{ borderBottom: `1px solid ${adminTheme.border}` }} className="flex items-center justify-between pb-4">
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 font-serif">Pins Administration</h2>
-              <p className="text-xs text-slate-500 mt-1">Manage announcements, platform overviews, and persistent homepage FAQ spotlights.</p>
+              <h2 style={{ color: adminTheme.gold }} className="text-xl font-bold font-serif">Pins Administration</h2>
+              <p style={{ color: adminTheme.muted }} className="text-xs mt-1">Manage announcements, platform overviews, and persistent homepage FAQ spotlights.</p>
             </div>
             <button
               onClick={() => {
@@ -908,17 +923,18 @@ export default function AdminDashboard() {
               <div className="spinner" />
             </div>
           ) : pins.length === 0 ? (
-            <div className="text-center py-16 bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+            <div style={{ border: `1px dashed ${adminTheme.border}`, background: adminTheme.elevated }} className="text-center py-16 rounded-2xl">
               <span className="text-3xl">📌</span>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-3 font-medium">No pins active on the platform feed.</p>
-              <p className="text-xs text-slate-400 mt-1">Create an announcement, overview, or FAQ pin to pin content to the top.</p>
+              <p style={{ color: adminTheme.muted }} className="text-sm mt-3 font-medium">No pins active on the platform feed.</p>
+              <p style={{ color: adminTheme.faint }} className="text-xs mt-1">Create an announcement, overview, or FAQ pin to pin content to the top.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pins.map(pin => (
                 <div
                   key={pin._id}
-                  className="card flex flex-col justify-between border border-slate-200/60 dark:border-slate-800/80 bg-white/70 dark:bg-[#1f1e1b]/40 backdrop-blur-sm shadow-sm hover:border-primary-400/50 dark:hover:border-primary-500/40 transition-all duration-300"
+                  style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }}
+                  className="flex flex-col justify-between rounded-xl p-5 shadow-sm hover:border-yellow-600/40 transition-all duration-300"
                 >
                   <div className="space-y-3 flex-1">
                     <div className="flex items-center justify-between gap-2">
@@ -929,46 +945,47 @@ export default function AdminDashboard() {
                       }`}>
                         {pin.type}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-555 flex items-center gap-1 uppercase select-none">
-                        Order Index: <span className="text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-850 px-1.5 py-0.5 rounded">{pin.order}</span>
+                      <span style={{ color: adminTheme.faint }} className="text-[10px] font-bold flex items-center gap-1 uppercase select-none">
+                        Order Index: <span style={{ color: adminTheme.muted, background: adminTheme.elevated2 }} className="px-1.5 py-0.5 rounded">{pin.order}</span>
                       </span>
                     </div>
 
                     <div>
-                      <p className="font-semibold text-slate-900 dark:text-slate-100 text-base leading-snug font-serif">{pin.title}</p>
+                      <p style={{ color: adminTheme.text }} className="font-semibold text-base leading-snug font-serif">{pin.title}</p>
                       {pin.type !== 'faq' && pin.content && (
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed line-clamp-3 whitespace-pre-wrap font-sans">
+                        <p style={{ color: adminTheme.muted }} className="text-sm mt-1.5 leading-relaxed line-clamp-3 whitespace-pre-wrap font-sans">
                           {pin.content}
                         </p>
                       )}
                       {pin.type === 'faq' && pin.faqId && (
-                        <div className="mt-2.5 p-2.5 rounded-lg bg-primary-50/20 dark:bg-primary-950/5 border border-primary-100/30 dark:border-primary-900/10">
-                          <p className="text-[10px] font-bold text-primary-500 uppercase tracking-wider mb-1">Spotlight FAQ Link</p>
-                          <p className="text-xs font-semibold text-slate-755 dark:text-slate-300 truncate">
+                        <div style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}` }} className="mt-2.5 p-2.5 rounded-lg">
+                          <p style={{ color: adminTheme.gold }} className="text-[10px] font-bold uppercase tracking-wider mb-1">Spotlight FAQ Link</p>
+                          <p style={{ color: adminTheme.text }} className="text-xs font-semibold truncate">
                             {pin.faqId.title || "Untitled FAQ"}
                           </p>
-                          <p className="text-[10px] text-slate-400 mt-0.5 truncate">ID: {pin.faqId._id || pin.faqId}</p>
+                          <p style={{ color: adminTheme.faint }} className="text-[10px] mt-0.5 truncate">ID: {pin.faqId._id || pin.faqId}</p>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 mt-4 pt-3 select-none">
-                    <div className="text-[10px] text-slate-405 flex items-center gap-1.5">
+                  <div style={{ borderTop: `1px solid ${adminTheme.border}` }} className="flex items-center justify-between mt-4 pt-3 select-none">
+                    <div style={{ color: adminTheme.faint }} className="text-[10px] flex items-center gap-1.5">
                       <span>👤 Pinned by</span>
-                      <span className="font-semibold text-slate-600 dark:text-slate-350">{pin.pinnedBy?.name || 'Admin'}</span>
+                      <span style={{ color: adminTheme.muted }} className="font-semibold">{pin.pinnedBy?.name || 'Admin'}</span>
                     </div>
 
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => openEditPin(pin)}
-                        className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-350 text-xs font-bold transition-colors"
+                        style={{ color: adminTheme.gold }}
+                        className="text-xs font-bold hover:opacity-80 transition-colors"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeletePin(pin._id)}
-                        className="text-red-500 hover:text-red-650 text-xs font-bold transition-colors"
+                        className="text-red-400 text-xs font-bold hover:opacity-80 transition-colors"
                       >
                         Remove
                       </button>
@@ -981,13 +998,13 @@ export default function AdminDashboard() {
 
           {/* Create/Edit Pin Modal */}
           {showPinForm && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 rounded-2xl shadow-2xl w-full max-w-md animate-zoom-in">
-                <div className="px-6 py-4.5 border-b border-slate-200 dark:border-slate-800/85 flex items-center justify-between">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 font-serif">
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl shadow-2xl w-full max-w-md animate-zoom-in">
+                <div style={{ borderBottom: `1px solid ${adminTheme.border}` }} className="px-6 py-4 flex items-center justify-between">
+                  <h3 style={{ color: adminTheme.text }} className="text-base font-bold font-serif">
                     {editingPin ? '✏️ Modify Active Pin' : '📌 Create Spotlight Pin'}
                   </h3>
-                  <button onClick={closePinForm} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-250 transition-colors">
+                  <button onClick={closePinForm} style={{ color: adminTheme.muted }} className="hover:opacity-80 transition-colors">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -995,11 +1012,12 @@ export default function AdminDashboard() {
                 </div>
                 <form onSubmit={handleCreatePin} className="p-6 space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Pin Type</label>
+                    <label style={{ color: adminTheme.muted }} className="block text-xs font-bold uppercase tracking-wide mb-1">Pin Type</label>
                     <select
                       value={pinType}
                       onChange={e => setPinType(e.target.value)}
-                      className="input w-full py-2.5 text-sm"
+                      style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color: adminTheme.text }}
+                      className="w-full py-2.5 px-3.5 rounded-lg text-sm focus:outline-none"
                     >
                       <option value="announcement">Announcement Card</option>
                       <option value="overview">Platform Overview Text</option>
@@ -1008,12 +1026,13 @@ export default function AdminDashboard() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Title</label>
+                    <label style={{ color: adminTheme.muted }} className="block text-xs font-bold uppercase tracking-wide mb-1">Title</label>
                     <input
                       type="text"
                       value={pinTitle}
                       onChange={e => setPinTitle(e.target.value)}
-                      className="input w-full py-2.5 text-sm"
+                      style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color: adminTheme.text }}
+                      className="w-full py-2.5 px-3.5 rounded-lg text-sm focus:outline-none placeholder:opacity-40"
                       placeholder="e.g. Phase 2 Registration Deadline"
                       required
                     />
@@ -1021,11 +1040,12 @@ export default function AdminDashboard() {
 
                   {pinType !== 'faq' ? (
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Content Body</label>
+                      <label style={{ color: adminTheme.muted }} className="block text-xs font-bold uppercase tracking-wide mb-1">Content Body</label>
                       <textarea
                         value={pinContent}
                         onChange={e => setPinContent(e.target.value)}
-                        className="input w-full font-sans py-2 text-sm leading-relaxed"
+                        style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color: adminTheme.text }}
+                        className="w-full font-sans py-2 px-3.5 rounded-lg text-sm leading-relaxed focus:outline-none placeholder:opacity-40"
                         rows={4}
                         placeholder="Write announcement body or platform description details here..."
                         required
@@ -1033,15 +1053,16 @@ export default function AdminDashboard() {
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1 flex items-center justify-between">
+                      <label style={{ color: adminTheme.muted }} className="block text-xs font-bold uppercase tracking-wide mb-1 flex items-center justify-between">
                         <span>FAQ Linked ID</span>
-                        <span className="text-[10px] text-slate-400 normal-case font-normal">(24-char Mongoose ObjectId)</span>
+                        <span style={{ color: adminTheme.faint }} className="text-[10px] normal-case font-normal">(24-char Mongoose ObjectId)</span>
                       </label>
                       <input
                         type="text"
                         value={pinFaqId}
                         onChange={e => setPinFaqId(e.target.value)}
-                        className="input w-full py-2.5 text-sm font-mono"
+                        style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color: adminTheme.text }}
+                        className="w-full py-2.5 px-3.5 rounded-lg text-sm font-mono focus:outline-none placeholder:opacity-40"
                         placeholder="e.g. 66567634f19b22204c00010c"
                         required
                       />
@@ -1049,20 +1070,21 @@ export default function AdminDashboard() {
                   )}
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Display Order Index</label>
+                    <label style={{ color: adminTheme.muted }} className="block text-xs font-bold uppercase tracking-wide mb-1">Display Order Index</label>
                     <input
                       type="number"
                       value={pinOrder}
                       onChange={e => setPinOrder(e.target.value)}
-                      className="input w-full py-2.5 text-sm"
+                      style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color: adminTheme.text }}
+                      className="w-full py-2.5 px-3.5 rounded-lg text-sm focus:outline-none"
                       placeholder="0"
                       min="0"
                     />
-                    <p className="text-[10px] text-slate-400 mt-1">Lower order numbers appear first. Default is 0.</p>
+                    <p style={{ color: adminTheme.faint }} className="text-[10px] mt-1">Lower order numbers appear first. Default is 0.</p>
                   </div>
 
-                  <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 mt-5">
-                    <button type="button" onClick={closePinForm} className="btn-outline px-4 py-2">Cancel</button>
+                  <div style={{ borderTop: `1px solid ${adminTheme.border}` }} className="flex justify-end gap-3 pt-3 mt-5">
+                    <button type="button" onClick={closePinForm} style={{ background: adminTheme.elevated2, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }} className="px-4 py-2 rounded-lg text-sm hover:opacity-80 transition-colors">Cancel</button>
                     <button type="submit" className="btn-primary px-5 py-2">
                       {editingPin ? 'Save Changes' : 'Publish Pin'}
                     </button>
@@ -1076,23 +1098,24 @@ export default function AdminDashboard() {
 
       {/* Edit FAQ Modal */}
       {editingFaq && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Edit FAQ Answer</h3>
-              <p className="text-sm text-slate-500 truncate max-w-xs">{editingFaq.title}</p>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div style={{ borderBottom: `1px solid ${adminTheme.border}` }} className="p-6 flex items-center justify-between">
+              <h3 style={{ color: adminTheme.text }} className="text-lg font-semibold">Edit FAQ Answer</h3>
+              <p style={{ color: adminTheme.muted }} className="text-sm truncate max-w-xs">{editingFaq.title}</p>
             </div>
             <div className="p-6">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Answer</label>
+              <label style={{ color: adminTheme.text }} className="block text-sm font-medium mb-2">Answer</label>
               <textarea
                 rows={8}
-                className="input w-full font-mono text-sm"
+                style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color: adminTheme.text }}
+                className="w-full font-mono text-sm rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-yellow-500/30"
                 value={editingFaq.finalAnswer}
                 onChange={e => setEditingFaq(f => ({ ...f, finalAnswer: e.target.value }))}
               />
             </div>
-            <div className="p-6 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
-              <button onClick={() => setEditingFaq(null)} className="btn-secondary">Cancel</button>
+            <div style={{ borderTop: `1px solid ${adminTheme.border}` }} className="p-6 flex justify-end gap-3">
+              <button onClick={() => setEditingFaq(null)} style={{ background: adminTheme.elevated2, color: adminTheme.text, border: `1px solid ${adminTheme.border}` }} className="px-4 py-2 rounded-lg text-sm hover:opacity-80 transition-colors">Cancel</button>
               <button
                 onClick={() => handleEditSave(editingFaq._id, editingFaq.finalAnswer)}
                 className="btn-primary"
