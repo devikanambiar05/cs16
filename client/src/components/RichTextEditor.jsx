@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { marked } from 'marked';
 import { uploadImage } from '../services/api';
 
@@ -71,6 +71,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   const [isDraggingEditor, setIsDraggingEditor] = useState(false);
   const [isDraggingDropzone, setIsDraggingDropzone] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [showToast, setShowToast] = useState(false);
 
   const MAX_WORDS = 500;
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -79,6 +80,33 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   const isOverLimit = wordCount > MAX_WORDS;
   const barColor = isOverLimit ? 'bg-red-500' : isWarning ? 'bg-amber-400 dark:bg-amber-300' : 'bg-slate-400 dark:bg-slate-500';
   const textColor = isOverLimit ? 'text-red-500 dark:text-red-400' : isWarning ? 'text-amber-500 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400';
+
+  const storageKey = `editor-draft-${placeholder ? placeholder.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'general'}`;
+
+  useEffect(() => {
+    if (readOnly) return;
+    const savedDraft = localStorage.getItem(storageKey);
+    if (savedDraft && !value) {
+      onChange(savedDraft);
+      setShowToast(true);
+      const toastTimer = setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
+      return () => clearTimeout(toastTimer);
+    }
+  }, [storageKey, readOnly]);
+
+  useEffect(() => {
+    if (readOnly) return;
+    if (!value) {
+      localStorage.removeItem(storageKey);
+      return;
+    }
+    const saveTimer = setTimeout(() => {
+      localStorage.setItem(storageKey, value);
+    }, 800);
+    return () => clearTimeout(saveTimer);
+  }, [value, storageKey, readOnly]);
 
   const insertWrap = (before, after = before) => {
     const ta = textareaRef.current;
@@ -121,7 +149,6 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
       alert('Only JPEG, PNG, GIF, and WebP images are allowed.');
       return;
     }
-
     setUploading(true);
     try {
       const res = await uploadImage(file);
@@ -164,7 +191,11 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
+<<<<<<< HEAD
       await uploadFile(files[0]);
+=======
+      await processImageFile(files[0]);
+>>>>>>> feat#24
     }
   };
 
@@ -205,7 +236,15 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   }
 
   return (
-    <div className="space-y-3">
+    <div className="relative w-full space-y-3">
+      {/* ✨ CLEAN INLINE TOAST NOTIFICATION BLOCK */}
+      {showToast && (
+        <div className="absolute top-2 right-2 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-white shadow-md border border-emerald-400/20 animate-fade-in select-none">
+          <span>✨ Draft restored successfully</span>
+          <button type="button" onClick={() => setShowToast(false)} className="hover:opacity-80 font-bold ml-1">✕</button>
+        </div>
+      )}
+
       {/* Editor border container */}
       <div
         onDragOver={handleEditorDragOver}
@@ -233,7 +272,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
 
           <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1" />
 
-          {/* Legacy toolbar image upload button */}
+          {/* Image upload button */}
           <input
             ref={fileInputRef}
             type="file"
@@ -265,6 +304,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
           style={{ minHeight: '150px' }}
         />
       </div>
+<<<<<<< HEAD
 
       {/* Word Count / Progress and Drop status indicator */}
       <div className="flex items-center justify-between px-1">
@@ -363,6 +403,8 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
           </div>
         </div>
       )}
+=======
+>>>>>>> feat#24
     </div>
   );
 }
