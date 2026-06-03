@@ -68,7 +68,10 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
+  const [isDraggingEditor, setIsDraggingEditor] = useState(false);
+  const [isDraggingDropzone, setIsDraggingDropzone] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+
   const MAX_WORDS = 500;
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
   const progressPct = Math.min(100, Math.round((wordCount / MAX_WORDS) * 100));
@@ -76,8 +79,6 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   const isOverLimit = wordCount > MAX_WORDS;
   const barColor = isOverLimit ? 'bg-red-500' : isWarning ? 'bg-amber-400 dark:bg-amber-300' : 'bg-slate-400 dark:bg-slate-500';
   const textColor = isOverLimit ? 'text-red-500 dark:text-red-400' : isWarning ? 'text-amber-500 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400';
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
 
   const insertWrap = (before, after = before) => {
     const ta = textareaRef.current;
@@ -109,7 +110,18 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
 
   const uploadFile = async (file) => {
     if (!file) return;
-  const performUpload = async (file) => {
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload image files only.');
+      return;
+    }
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Only JPEG, PNG, GIF, and WebP images are allowed.');
+      return;
+    }
+
     setUploading(true);
     try {
       const res = await uploadImage(file);
@@ -125,50 +137,60 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    await uploadFile(file);
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    performUpload(file);
+    if (file) {
+      await uploadFile(file);
+    }
     e.target.value = '';
   };
 
-  const handleDragOver = (e) => {
+  const handleEditorDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(true);
+    if (!readOnly) setIsDraggingEditor(true);
   };
 
-  const handleDragLeave = (e) => {
+  const handleEditorDragLeave = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(false);
-    setIsDragging(true);
+    setIsDraggingEditor(false);
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e) => {
+  const handleEditorDrop = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragActive(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
-    await uploadFile(file);
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
+    setIsDraggingEditor(false);
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      alert('Only JPEG, PNG, GIF, and WebP images are allowed.');
-      return;
+    if (readOnly) return;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await uploadFile(files[0]);
     }
+  };
 
-    await performUpload(file);
+  const handleDropzoneDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!readOnly) setIsDraggingDropzone(true);
+  };
+
+  const handleDropzoneDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingDropzone(false);
+  };
+
+  const handleDropzoneDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingDropzone(false);
+
+    if (readOnly) return;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await uploadFile(files[0]);
+    }
   };
 
   const toolbarButtons = [
@@ -183,17 +205,18 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
   }
 
   return (
-    <div
-      className={`border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-200 transition-all ${dragActive ? 'border-primary-400 ring-2 ring-primary-200/60' : 'border-slate-300 dark:border-slate-600'}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      {/* Toolbar */}
-      <div className="flex items-center gap-1 px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
-        {toolbarButtons.map((btn) => (
     <div className="space-y-3">
-      <div className="border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary-200 focus-within:border-primary-400 transition-all">
+      {/* Editor border container */}
+      <div
+        onDragOver={handleEditorDragOver}
+        onDragLeave={handleEditorDragLeave}
+        onDrop={handleEditorDrop}
+        className={`border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary-200 focus-within:border-primary-400 transition-all duration-200 ${
+          isDraggingEditor
+            ? 'border-dashed border-primary-500 bg-primary-50/10 dark:bg-primary-950/10'
+            : 'border-slate-300 dark:border-slate-600'
+        }`}
+      >
         {/* Toolbar */}
         <div className="flex items-center gap-1 px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
           {toolbarButtons.map((btn) => (
@@ -238,12 +261,16 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-2.5 text-sm resize-none focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 leading-relaxed"
-          style={{ minHeight: '120px' }}
+          className="w-full px-3 py-2.5 text-sm resize-y focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 leading-relaxed"
+          style={{ minHeight: '150px' }}
         />
       </div>
 
-        <div className="flex-1" />
+      {/* Word Count / Progress and Drop status indicator */}
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs text-slate-400 dark:text-slate-500">
+          {isDraggingEditor ? 'Drop image here to insert' : ''}
+        </span>
         <div className="flex items-center gap-2">
           <div className="relative w-20 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
             <div
@@ -255,15 +282,16 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
             {wordCount}/{MAX_WORDS}
           </span>
         </div>
-        <span className="text-xs text-slate-400 dark:text-slate-500">Markdown enabled</span>
+      </div>
+
       {/* Dedicated Media Upload Box (Drag and Drop Card) */}
       <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDragOver={handleDropzoneDragOver}
+        onDragLeave={handleDropzoneDragLeave}
+        onDrop={handleDropzoneDrop}
         onClick={() => fileInputRef.current?.click()}
         className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-200 ${
-          isDragging
+          isDraggingDropzone
             ? 'border-primary-500 bg-primary-50/20 dark:bg-primary-950/10'
             : 'border-slate-200 dark:border-slate-700 hover:border-primary-400 hover:bg-slate-50 dark:hover:bg-slate-900/30'
         }`}
@@ -285,7 +313,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
 
       {/* Previews / Gallery of uploaded images in current session */}
       {uploadedFiles.length > 0 && (
-        <div className="bg-slate-50 dark:bg-[#191816]/30 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 space-y-3">
+        <div className="bg-slate-50 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 space-y-3">
           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider select-none">
             Uploaded Media ({uploadedFiles.length})
           </p>
@@ -293,7 +321,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
             {uploadedFiles.map((file, idx) => (
               <div
                 key={idx}
-                className="group relative border border-slate-200/60 dark:border-slate-800/80 rounded-xl overflow-hidden bg-white dark:bg-[#22211e] p-2 flex flex-col justify-between"
+                className="group relative border border-slate-200/60 dark:border-slate-800/80 rounded-xl overflow-hidden bg-white dark:bg-slate-900 p-2 flex flex-col justify-between"
               >
                 <div className="h-16 w-full overflow-hidden rounded-lg bg-slate-50 dark:bg-slate-950 flex items-center justify-center border border-slate-100 dark:border-slate-900">
                   <img
@@ -324,7 +352,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
                         navigator.clipboard.writeText(`![${file.name}](${file.url})`);
                         alert('Markdown link copied to clipboard!');
                       }}
-                      className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:underline font-bold"
+                      className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-350 hover:underline font-bold"
                     >
                       Copy Link
                     </button>

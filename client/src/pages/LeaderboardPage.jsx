@@ -8,8 +8,8 @@ export default function LeaderboardPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  // 👇 1. Added timeframe state to track toggle selection ('alltime' or 'weekly')
   const [timeframe, setTimeframe] = useState('alltime'); 
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState('global');
@@ -407,87 +407,7 @@ function CategoryContributorCard({ contributor, rank }) {
         <div className="mt-1 border-t border-slate-100 dark:border-slate-800/80 pt-1.5">
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{contributor.reputation || 0} Total Rep</span>
         </div>
-=======
-      {/* Render States */}
-      {loading ? (
-        <div className="flex justify-center py-16"><div className="spinner" /></div>
-      ) : users.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
-          <div className="text-5xl mb-3">🏆</div>
-          <p className="text-lg font-medium text-slate-600">No active rankings</p>
-          <p className="text-sm mt-1">
-            {timeframe === 'weekly' 
-              ? 'No contributions made yet within the current week.' 
-              : 'Be the first to earn reputation!'}
-          </p>
-          <Link to="/community" className="btn-primary mt-4 inline-block">Browse Community</Link>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {users.map((u, i) => (
-            <div key={u._id} className="card flex items-center gap-4">
-              {/* Rank Badge */}
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
-                i === 0 ? 'bg-amber-100 text-amber-700 border-2 border-amber-300' :
-                i === 1 ? 'bg-slate-100 text-slate-600 border-2 border-slate-300' :
-                i === 2 ? 'bg-orange-100 text-orange-700 border-2 border-orange-300' :
-                'bg-slate-50 text-slate-400 border border-slate-200'
-              }`}>
-                {i + 1}
-              </div>
-
-              {/* User Identity Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-slate-900 truncate">{u.name}</span>
-                  {getVolunteerLevel(u) && (
-                    <span className={`px-2 py-px rounded-full text-[9px] font-bold border uppercase tracking-wider select-none shrink-0 ${getVolunteerLevel(u).badgeClass}`} title={`${getVolunteerLevel(u).name} (Level ${getVolunteerLevel(u).level})`}>
-                      {getVolunteerLevel(u).icon} Lvl {getVolunteerLevel(u).level}
-                    </span>
-                  )}
-                  {u.role === 'admin' && (
-                    <span className="badge badge-red text-xs shrink-0">Admin</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                  <span>❓ {u.questionsAsked || 0} asked</span>
-                  <span>💬 {u.answersGiven || 0} answered</span>
-                </div>
-              </div>
-
-              {/* Score Display Box */}
-              <div className="text-right shrink-0">
-                <span className="text-xl font-bold text-primary-600">{u.reputation || 0}</span>
-                <span className="text-xs text-slate-400 block">rep</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Rules Footer Indicator */}
-      <div className="mt-8 bg-slate-50 rounded-xl p-4 text-sm text-slate-600">
-        <p className="font-medium text-slate-800 mb-2">How to earn reputation:</p>
-        <ul className="space-y-1.5">
-          <li className="flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            Submit an answer that gets accepted — <strong>+10</strong>
-          </li>
-          <li className="flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-            Your answer gets converted to a public FAQ — <strong>+10</strong>
-          </li>
-          <li className="flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
-            Your answer gets upvoted — <strong>+5</strong>
-          </li>
-          <li className="flex items-center gap-2">
-            <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
-            Your question gets upvoted — <strong>+2</strong>
-          </li>
-        </ul>
->>>>>>> feat#26
       </div>
     </div>
   );
-}
+}
