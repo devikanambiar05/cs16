@@ -1168,7 +1168,8 @@ function OverviewPanel({ stats, loading, auditLogs }) {
           <div key={s.label} style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-5 shadow-sm">
             <p className="text-3xl font-bold" style={{ color: adminTheme.text }}>{s.value}</p>
             <p className="text-sm mt-1 font-medium" style={{ color: adminTheme.muted }}>{s.label}</p>
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* Query Volume Chart */}
