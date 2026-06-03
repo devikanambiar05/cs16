@@ -7,6 +7,8 @@ import TagInput from '../components/TagInput';
 import FileUpload from '../components/FileUpload';
 
 const MAX_TAGS = 3;
+const MAX_WORDS = 500;
+const getWordCount = (text) => text?.trim() ? text.trim().split(/\s+/).length : 0;
 
 function RaiseQueryPage() {
   const [form, setForm] = useState({ title: '', description: '' });
@@ -175,6 +177,12 @@ function RaiseQueryPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const descriptionWordCount = getWordCount(form.description);
+    if (descriptionWordCount > MAX_WORDS) {
+      setError(`Description cannot exceed ${MAX_WORDS} words`);
+      return;
+    }
 
     if (!form.title.trim() || !form.description.trim()) {
       setError('Title and description are required');
@@ -408,6 +416,11 @@ function RaiseQueryPage() {
             onChange={val => setForm({ ...form, description: val })}
             placeholder="Provide more context — include course, semester, or any relevant details..."
           />
+          {getWordCount(form.description) > MAX_WORDS && (
+            <p className="text-xs text-red-500 mt-2">
+              Description exceeds the {MAX_WORDS}-word limit.
+            </p>
+          )}
         </div>
 
         {/* ── Attach Files ──────────────────────────────────────────────────── */}
@@ -496,7 +509,7 @@ function RaiseQueryPage() {
         <div className="flex items-center gap-3 pt-2">
           <button
             type="submit"
-            disabled={submitting || !form.title.trim() || !form.description.trim()}
+            disabled={submitting || !form.title.trim() || !form.description.trim() || getWordCount(form.description) > MAX_WORDS}
             className="btn-primary px-6 py-2.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting
