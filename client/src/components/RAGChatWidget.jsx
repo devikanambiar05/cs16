@@ -540,8 +540,7 @@ export default function RAGChatWidget() {
               </svg>
             </button>
           )}
-<<<<<<< HEAD
-        </form>
+        </div>
 
         {/* Samagama link — static, sits directly below the RAG chat input */}
         <p className="text-center mt-2 mb-2 text-xs text-slate-400 dark:text-slate-500">
@@ -555,12 +554,8 @@ export default function RAGChatWidget() {
             samagama.in
           </a>
         </p>
-      </div>
-=======
-        </div>
       </motion.div>
       )}
->>>>>>> a5fee93175f4495ff97a4815cbdff8f938f3e943
     </>
   );
 }
