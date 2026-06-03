@@ -90,6 +90,10 @@ export const getUsers = ({ page = 1, pageSize = 10, search = '' } = {}) =>
 // Admin: ban user — hits PATCH /api/users/:id/ban
 export const updateUserBan = (id, isBanned) => api.patch(`/api/users/${id}/ban`, { isBanned });
 
+// Admin: bulk ban/unban/promote — PATCH /api/admin/users/bulk
+export const bulkUserAction = (userIds, action) =>
+  api.patch('/api/admin/users/bulk', { userIds, action });
+
 // Queries
 export const getQueries = (params = {}) => {
   const normalizedParams = { ...params };
