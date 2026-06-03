@@ -94,6 +94,10 @@ export default function Layout() {
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
 
+  // Hide footer on FAQ/Wiki/Community — Samagama link lives in the RAG widget there
+  const hideFooter = ['/', '/wiki', '/community'].includes(location.pathname);
+  const isLeaderboard = location.pathname === '/leaderboard';
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* ── Navbar ── */}
@@ -346,28 +350,41 @@ export default function Layout() {
       </header>
 
       {/* ── Page content — rendered via React Router's <Outlet /> ── */}
-      <main className="flex-1">
+      {/* pb-24 on RAG-bar pages so fixed launcher never covers last content */}
+      <main className={`flex-1 ${hideFooter ? 'pb-24' : ''}`}>
         <Outlet />
       </main>
 
-      {/* ── Footer ── */}
-      <footer className="bg-white border-t border-slate-200 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-primary-600 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">G</span>
+      {/* ── Footer — hidden on FAQ/Wiki/Community ── */}
+      {!hideFooter && (
+        <footer className="bg-white border-t border-slate-200 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 bg-primary-600 rounded flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">G</span>
+                </div>
+                <span>Grantha</span>
               </div>
-              <span>Grantha</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link to="/" className="hover:text-primary-600 transition-colors">FAQs</Link>
-              <Link to="/community" className="hover:text-primary-600 transition-colors">Community</Link>
-              {user && <Link to="/leaderboard" className="hover:text-primary-600 transition-colors">Leaderboard</Link>}
+              <div className="flex items-center gap-4">
+                {isLeaderboard && (
+                  <a
+                    href="https://www.samagama.in/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary-600 transition-colors"
+                  >
+                    samagama.in
+                  </a>
+                )}
+                <Link to="/" className="hover:text-primary-600 transition-colors">FAQs</Link>
+                <Link to="/community" className="hover:text-primary-600 transition-colors">Community</Link>
+                {user && <Link to="/leaderboard" className="hover:text-primary-600 transition-colors">Leaderboard</Link>}
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }
