@@ -4,6 +4,7 @@ import { getPins } from '../services/api';
 export default function CommunityBoard() {
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
   const [selectedPin, setSelectedPin] = useState(null);
 
   useEffect(() => {
@@ -26,30 +27,41 @@ export default function CommunityBoard() {
     }
   };
 
+  const displayedAnnouncements = showAll ? announcements : announcements.slice(0, 3);
+
   return (
     <div className="mb-8">
       {/* Section header */}
-      <div className="flex items-center gap-2 mb-3 min-w-0">
-        <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center shrink-0">
-          <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-          </svg>
+      <div className="flex items-center justify-between mb-3 min-w-0">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center shrink-0">
+            <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+            </svg>
+          </div>
+          <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide truncate">
+            Latest Announcements
+          </h2>
         </div>
-        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide truncate">
-          Latest Announcements
-        </h2>
+        {announcements.length > 3 && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer focus:outline-none"
+          >
+            {showAll ? 'Show Less' : 'View All Announcements'}
+          </button>
+        )}
       </div>
 
       {/* Grid of announcements */}
-      <div className="grid grid-cols-1 gap-3">
-        {announcements.map(pin => {
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {displayedAnnouncements.map(pin => {
           const cfg = typeConfig.announcement;
           return (
             <div
               key={pin._id}
               onClick={() => setSelectedPin(pin)}
-              className={`relative rounded-2xl border ${cfg.border} bg-gradient-to-br ${cfg.bg} p-4 flex flex-col gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer select-none`}
-              style={{ minHeight: '140px' }}
+              className={`relative aspect-square rounded-2xl border ${cfg.border} bg-gradient-to-br ${cfg.bg} p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer select-none`}
             >
               {/* Type badge */}
               <div className="flex items-center">
@@ -60,13 +72,13 @@ export default function CommunityBoard() {
               </div>
 
               {/* Title */}
-              <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm leading-snug line-clamp-2 flex-1">
+              <h3 className="font-semibold text-slate-800 dark:text-slate-200 text-sm leading-snug line-clamp-2 mt-2">
                 {pin.title}
               </h3>
 
               {/* Content */}
               {pin.content ? (
-                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 whitespace-pre-wrap flex-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 whitespace-pre-wrap flex-1 mt-1">
                   {pin.content}
                 </p>
               ) : null}
