@@ -602,7 +602,7 @@ export default function AdminDashboard() {
   return (
     <div style={{ background: adminTheme.bg, minHeight: '100vh', color: adminTheme.text, transition: 'background-color 0.3s ease, color 0.3s ease' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-8 items-start lg:pr-20">
           {/* Main Content Area */}
           <div className="flex-1 w-full order-2 lg:order-1 space-y-6">
 
@@ -1357,7 +1357,7 @@ export default function AdminDashboard() {
           background: adminTheme.elevated,
           borderColor: adminTheme.border
         }}
-        className="w-full lg:w-16 lg:shrink-0 order-1 lg:order-2 lg:sticky lg:top-24 rounded-2xl p-2 lg:py-4 flex flex-row lg:flex-col items-center justify-start gap-2 lg:gap-4 overflow-x-auto lg:overflow-visible shadow-lg border"
+        className="w-full lg:w-14 lg:shrink-0 order-1 lg:order-2 lg:fixed lg:right-6 lg:top-24 rounded-2xl p-2 lg:py-3 flex flex-row lg:flex-col items-center justify-start gap-2 lg:gap-3 overflow-x-auto lg:overflow-visible shadow-lg border z-40"
       >
         {/* Control Station Tabs */}
         <div className="flex flex-row lg:flex-col gap-2">
@@ -1371,7 +1371,7 @@ export default function AdminDashboard() {
                     backgroundColor: isActive ? adminTheme.accent : 'transparent',
                     color: isActive ? '#ffffff' : adminTheme.muted,
                   }}
-                  className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none border-l-4 ${
+                  className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 focus:outline-none border-l-2 ${
                     isActive
                       ? 'border-white dark:border-slate-100 shadow-md scale-105'
                       : 'border-transparent hover:bg-slate-200/30 dark:hover:bg-slate-800/30'
@@ -1389,8 +1389,8 @@ export default function AdminDashboard() {
         </div>
 
         {/* Divider */}
-        <div className="h-[1px] w-8 bg-slate-200 dark:bg-slate-800 hidden lg:block my-2" />
-        <div className="w-[1px] h-8 bg-slate-200 dark:bg-slate-800 lg:hidden mx-2" />
+        <div className="h-[1px] w-6 bg-slate-200 dark:bg-slate-800 hidden lg:block my-2" />
+        <div className="w-[1px] h-6 bg-slate-200 dark:bg-slate-800 lg:hidden mx-2" />
 
         {/* Public Platform Tabs */}
         <div className="flex flex-row lg:flex-col gap-2">
@@ -1444,7 +1444,7 @@ export default function AdminDashboard() {
                     backgroundColor: isActive ? adminTheme.accent : 'transparent',
                     color: isActive ? '#ffffff' : adminTheme.muted,
                   }}
-                  className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none border-l-4 ${
+                  className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 focus:outline-none border-l-2 ${
                     isActive
                       ? 'border-white dark:border-slate-100 shadow-md scale-105'
                       : 'border-transparent hover:bg-slate-200/30 dark:hover:bg-slate-800/30'
