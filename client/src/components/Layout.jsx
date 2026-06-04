@@ -98,11 +98,26 @@ export default function Layout() {
   // Hide footer on FAQ/Wiki/Community — Samagama link lives in the RAG widget there
   const hideFooter = ['/', '/wiki', '/community'].includes(location.pathname);
   const isLeaderboard = location.pathname === '/leaderboard';
+  const isAdmin = location.pathname.startsWith('/admin');
+
+  // Stamp the body element so the global CSS can override body background on admin pages
+  useEffect(() => {
+    if (isAdmin) {
+      document.body.setAttribute('data-admin', 'true');
+    } else {
+      document.body.removeAttribute('data-admin');
+    }
+    return () => document.body.removeAttribute('data-admin');
+  }, [isAdmin]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className={`min-h-screen flex flex-col ${isAdmin ? 'admin-layout' : 'bg-slate-50'}`}>
       {/* ── Navbar ── */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+      <header className={`sticky top-0 z-30 shadow-sm ${
+        isAdmin
+          ? 'border-b'
+          : 'bg-white border-b border-slate-200'
+      }`} style={isAdmin ? { background: '#1c1a17', borderColor: '#332f27' } : {}}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
@@ -110,7 +125,7 @@ export default function Layout() {
               <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white text-sm font-bold">G</span>
               </div>
-              <span className="font-semibold text-slate-900 text-base hidden sm:block">Grantha</span>
+              <span className={`font-semibold text-base hidden sm:block ${isAdmin ? 'text-[#dca54c]' : 'text-slate-900'}`}>Grantha</span>
             </Link>
 
             {/* Desktop nav */}
@@ -120,9 +135,13 @@ export default function Layout() {
                   key={link.to}
                   to={link.to}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive(link.to)
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    isAdmin
+                      ? isActive(link.to)
+                        ? 'text-[#dca54c] bg-[#252320]'
+                        : 'text-[#9b9285] hover:text-[#f0ece4] hover:bg-[#252320]'
+                      : isActive(link.to)
+                        ? 'bg-primary-50 text-primary-700'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   {link.label}
@@ -135,7 +154,7 @@ export default function Layout() {
             {/* Theme toggle */}
               <button
                 onClick={toggle}
-                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                className={`p-2 rounded-lg transition-colors ${isAdmin ? 'text-[#9b9285] hover:bg-[#252320] hover:text-[#f0ece4]' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
                 title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {dark ? (
@@ -359,8 +378,8 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* ── Footer — hidden on FAQ/Wiki/Community ── */}
-      {!hideFooter && (
+      {/* ── Footer — hidden on FAQ/Wiki/Community and Admin ── */}
+      {!hideFooter && !isAdmin && (
         <footer className="bg-white border-t border-slate-200 mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">

@@ -260,7 +260,10 @@ export default function RAGChatWidget() {
     setError('');
   };
 
-  if (['/login', '/register', '/reset-password', '/verify-email', '/leaderboard', '/ask', '/profile'].includes(location.pathname)) {
+  if (
+    ['/login', '/register', '/reset-password', '/verify-email', '/leaderboard', '/ask', '/profile'].includes(location.pathname) ||
+    location.pathname.startsWith('/admin')
+  ) {
     return null;
   }
 

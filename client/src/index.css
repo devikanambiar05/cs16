@@ -61,6 +61,19 @@
   }
 }
 
+/* ── Admin layout wrapper — forces dark background on the page shell ─────── */
+/* Prevents the light-mode body/layout bg from bleeding through admin pages   */
+/* The body selector is overridden by a data attribute set on mount            */
+.admin-layout {
+  background-color: #141311 !important;
+}
+
+/* When admin route is active, body carries data-admin="true" (set in Layout) */
+body[data-admin='true'] {
+  background-color: #141311 !important;
+  color: #f0ece4 !important;
+}
+
 /* ── Admin Control Station Theme (Obsidian Shadow & Gold) ───────────────────── */
 /* Applied via .theme-admin-station wrapper on AdminDashboard root node          */
 /* Scoped so it only affects /admin and never bleeds into user-facing pages       */
