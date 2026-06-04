@@ -248,7 +248,7 @@ exports.getCategoryContributors = async (req, res) => {
 
     // Populate user info
     const userIds = topResponders.map(r => r._id);
-    const users = await User.find({ _id: { $in: userIds }, status: 'active' })
+    const users = await User.find({ _id: { $in: userIds }, status: 'active', email: { $ne: 'ragbot@faqapp.local' } })
       .select('name reputation role')
       .lean();
 
@@ -271,7 +271,8 @@ exports.getCategoryContributors = async (req, res) => {
       const generalActive = await User.find({
         _id: { $nin: populatedIds },
         status: 'active',
-        role: 'user'
+        role: 'user',
+        email: { $ne: 'ragbot@faqapp.local' }
       })
       .sort({ reputation: -1 })
       .limit(3 - populated.length)
