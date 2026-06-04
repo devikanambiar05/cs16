@@ -1173,15 +1173,25 @@ export default function AdminDashboard() {
 }
 
 function OverviewPanel({ stats, loading, auditLogs, loadingAuditLogs, auditLogsError, onRetry }) {
-  const adminTheme = {
-    bg: '#141311',
-    elevated: '#1c1a17',
-    elevated2: '#252320',
-    border: '#332f27',
+  const { dark } = useTheme();
+  const adminTheme = dark ? {
+    bg: '#191816',
+    elevated: '#22211e',
+    elevated2: '#2c2a26',
+    border: '#3e3b36',
     gold: '#dca54c',
-    text: '#f0ece4',
-    muted: '#9b9285',
-    faint: '#625c52',
+    text: '#e6e4df',
+    muted: '#b5b2aa',
+    faint: '#85827b',
+  } : {
+    bg: '#f9f6f0',
+    elevated: '#fbfaf7',
+    elevated2: '#eeeae2',
+    border: '#e6dfd3',
+    gold: '#b37719',
+    text: '#191919',
+    muted: '#69635b',
+    faint: '#857d73',
   };
 
   const dailyStats = stats?.dailyStats || [];
