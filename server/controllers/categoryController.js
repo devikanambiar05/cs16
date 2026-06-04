@@ -115,7 +115,7 @@ exports.getCategories = async (req, res) => {
 exports.getFAQsByCategory = async (req, res) => {
   try {
     const { tag } = req.params;
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, sort } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     let query;
@@ -139,10 +139,17 @@ exports.getFAQsByCategory = async (req, res) => {
       query = { status: 'resolved', tags: tag };
     }
 
+    let sortOption = {};
+    if (sort === 'popular') {
+      sortOption = { upvotes: -1, createdAt: -1 };
+    } else {
+      sortOption = { createdAt: -1 };
+    }
+
     const [faqs, total] = await Promise.all([
       FAQ.find(query)
         .populate('createdBy', 'name')
-        .sort({ upvotes: -1, createdAt: -1 })
+        .sort(sortOption)
         .skip(skip)
         .limit(parseInt(limit)),
       FAQ.countDocuments(query)

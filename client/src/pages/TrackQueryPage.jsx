@@ -18,9 +18,16 @@ export default function TrackQueryPage() {
 
   const highlightId = searchParams.get('highlight');
 
+  // Redirect admin users to admin dashboard
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, navigate]);
+
   // 1. Fetch user's queries on mount
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.role === 'admin') return;
 
     setLoadingList(true);
     // Fetch queries raised by current user

@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { saveChatSession } from '../services/api';
 import { motion, useDragControls } from 'framer-motion';
+import { marked } from 'marked';
+
+marked.setOptions({ breaks: true, gfm: true });
 
 const LOADING_PHASES = [
   "Anveshana (अन्वेषण) — Searching Grantha knowledge base...",
@@ -391,13 +394,13 @@ export default function RAGChatWidget() {
                           </span>
                         </div>
                       </div>
+                    ) : msg.role === 'user' ? (
+                      <p className="whitespace-pre-wrap">{msg.text}</p>
                     ) : (
-                      <>
-                        <p className="whitespace-pre-wrap">{msg.text}</p>
-                        {msg.streaming && (
-                          <span className="inline-block w-1.5 h-4 bg-slate-400 rounded animate-pulse ml-0.5 align-middle" />
-                        )}
-                      </>
+                      <div
+                        className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-100 prose-sm prose-p:leading-relaxed prose-pre:my-1 prose-pre:p-2 prose-pre:bg-slate-200 dark:prose-pre:bg-slate-900/60"
+                        dangerouslySetInnerHTML={{ __html: marked.parse(msg.text + (msg.streaming ? ' ▌' : '')) }}
+                      />
                     )}
 
                     {msg.role === 'assistant' && !msg.streaming && msg.sources?.length > 0 && (

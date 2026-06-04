@@ -93,14 +93,25 @@ function FAQsPage() {
   const [overview, setOverview] = useState(null);
   const [categoryContributors, setCategoryContributors] = useState([]);
   const [categoryContributorsLoading, setCategoryContributorsLoading] = useState(false);
+  const [sortBy, setSortBy] = useState('recent');
 
   // Load initial data
   useEffect(() => {
     loadCategories();
-    loadAllFAQs();
     loadPinnedFAQs();
     loadOverview();
   }, []);
+
+  // When sortBy changes, reload whatever list is currently active
+  useEffect(() => {
+    if (searchResults !== null) {
+      handleSearch(null, 1);
+    } else if (selectedCategory) {
+      loadCategoryFAQs(selectedCategory.tag, 1);
+    } else {
+      loadAllFAQs(1);
+    }
+  }, [sortBy]);
 
   const loadPinnedFAQs = async () => {
     try {
@@ -189,7 +200,7 @@ function FAQsPage() {
   const loadAllFAQs = async (page = 1) => {
     try {
       setLoading(true);
-      const res = await getFAQs({ page, limit: PAGE_SIZE });
+      const res = await getFAQs({ page, limit: PAGE_SIZE, sort: sortBy });
       setAllFAQs(res.data?.faqs || res.data || []);
       setAllTotal(res.data?.pagination?.total || 0);
       setAllPage(page);
@@ -203,7 +214,7 @@ function FAQsPage() {
   const loadCategoryFAQs = async (tag, page = 1) => {
     try {
       setLoading(true);
-      const res = await getFAQsByCategory(tag, { page, limit: PAGE_SIZE });
+      const res = await getFAQsByCategory(tag, { page, limit: PAGE_SIZE, sort: sortBy });
       setCategoryFAQs(res.data.faqs);
       setFaqTotal(res.data.pagination?.total || 0);
       setFaqPage(page);
@@ -222,7 +233,7 @@ function FAQsPage() {
     }
     setSearchLoading(true);
     try {
-      const res = await getFAQs({ search: searchQuery, page, pageSize: PAGE_SIZE });
+      const res = await getFAQs({ search: searchQuery, page, pageSize: PAGE_SIZE, sort: sortBy });
       setSearchResults(res.data.faqs);
       setSearchTotal(res.data.pagination?.total || 0);
       setSearchPage(page);
@@ -417,6 +428,22 @@ function FAQsPage() {
               {/* No category selected — show all FAQs */}
               {!selectedCategory && (
                 <section>
+                  <div className="flex items-center justify-between mb-4 border-b border-slate-200/50 dark:border-slate-800/50 pb-2 select-none">
+                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-350 uppercase tracking-wide">
+                      All FAQs
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Sort By:</span>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="bg-transparent text-xs font-semibold text-slate-650 dark:text-slate-300 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-slate-900"
+                      >
+                        <option value="recent">Recent</option>
+                        <option value="popular">Upvotes</option>
+                      </select>
+                    </div>
+                  </div>
                   {loading ? (
                     <div className="flex justify-center py-10"><div className="spinner" /></div>
                   ) : (
@@ -443,14 +470,27 @@ function FAQsPage() {
               {/* Category selected — show filtered FAQs */}
               {selectedCategory && (
                 <section>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-slate-900">
-                      {selectedCategory.name}
-                      <span className="font-normal text-slate-400 text-sm ml-2">({faqTotal} FAQs)</span>
+                  <div className="flex items-center justify-between mb-4 border-b border-slate-200/50 dark:border-slate-800/50 pb-2">
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                      <span>{selectedCategory.name}</span>
+                      <span className="font-normal text-slate-450 text-xs">({faqTotal} FAQs)</span>
                     </h2>
-                    <button onClick={() => setSelectedCategory(null)} className="btn-ghost text-sm text-slate-500">
-                      ✕ Back to all
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium select-none">Sort By:</span>
+                        <select
+                          value={sortBy}
+                          onChange={(e) => setSortBy(e.target.value)}
+                          className="bg-transparent text-xs font-semibold text-slate-655 dark:text-slate-300 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-slate-900"
+                        >
+                          <option value="recent">Recent</option>
+                          <option value="popular">Upvotes</option>
+                        </select>
+                      </div>
+                      <button onClick={() => setSelectedCategory(null)} className="text-xs font-bold text-slate-500 hover:text-slate-750 dark:hover:text-slate-250 select-none">
+                        ✕ Clear
+                      </button>
+                    </div>
                   </div>
                   {loading ? (
                     <div className="flex justify-center py-10"><div className="spinner" /></div>
@@ -478,12 +518,25 @@ function FAQsPage() {
           ) : (
             /* ── Search Results (replaces central content) ── */
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Search results for "{searchQuery}"
-                  <span className="font-normal text-slate-400 text-sm ml-2">({searchTotal} found)</span>
+              <div className="flex items-center justify-between mb-4 border-b border-slate-200/50 dark:border-slate-800/50 pb-2">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <span>Search results for "{searchQuery}"</span>
+                  <span className="font-normal text-slate-450 text-xs">({searchTotal} found)</span>
                 </h2>
-                <button onClick={clearSearch} className="btn-ghost text-sm text-slate-500">✕ Clear search</button>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400 dark:text-slate-500 font-medium select-none">Sort By:</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-transparent text-xs font-semibold text-slate-655 dark:text-slate-300 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-slate-900"
+                    >
+                      <option value="recent">Recent</option>
+                      <option value="popular">Upvotes</option>
+                    </select>
+                  </div>
+                  <button onClick={clearSearch} className="text-xs font-bold text-slate-500 hover:text-slate-750 dark:hover:text-slate-250 select-none">✕ Clear</button>
+                </div>
               </div>
               {searchLoading ? (
                 <div className="flex justify-center py-10"><div className="spinner" /></div>
