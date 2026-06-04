@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
 import { getBookmarks, toggleBookmark, getLikedFAQs, getChatSessions, getChatSessionDetails, logoutAllDevices } from '../services/api';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getVolunteerLevel, getUserBadges } from '../utils/gamificationHelper';
 import { getInitials, getAvatarColor } from '../utils/avatar';
 
 export default function ProfilePage() {
   const { user, setBookmarks, logout } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
   
   const [savedFaqs, setSavedFaqs] = useState([]);
@@ -32,8 +33,12 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
+    if (user && user.role === 'admin') {
+      navigate('/admin', { replace: true });
+      return;
+    }
     loadProfileData();
-  }, []);
+  }, [user, navigate]);
 
   const loadProfileData = async () => {
     try {

@@ -46,6 +46,7 @@ import {
   getAuditLogs
 } from '../services/api';
 import { useToast } from '../components/ToastProvider';
+import { useTheme } from '../context/ThemeContext';
 
 const TABS = ['Overview', 'Queries', 'Users', 'FAQ Requests', 'Manage FAQs', 'Pins'];
 const PAGE_SIZE = 10;
@@ -53,6 +54,7 @@ const PAGE_SIZE = 10;
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { dark } = useTheme();
   const [activeTab, setActiveTab] = useState('Overview');
   const [stats, setStats] = useState(null);
   const [queries, setQueries] = useState([]);
@@ -474,16 +476,25 @@ export default function AdminDashboard() {
     return matchesSearch && matchesFilter;
   });
 
-  // ── Admin theme tokens (Obsidian Shadow & Gold) ──────────────────────────
-  const adminTheme = {
-    bg: '#141311',  // deepest surface
-    elevated: '#1c1a17',  // card/panel surface
-    elevated2: '#252320',  // row hover / input bg
-    border: '#332f27',  // all borders
-    gold: '#dca54c',  // accent / active tab
-    text: '#f0ece4',  // primary text
-    muted: '#9b9285',  // secondary text
-    faint: '#625c52',  // placeholder / tertiary
+  // ── Admin theme tokens (dynamic based on global light/dark theme) ──────────
+  const adminTheme = dark ? {
+    bg: '#191816',        // deepest surface
+    elevated: '#22211e',  // card/panel surface
+    elevated2: '#2c2a26', // row hover / input bg
+    border: '#3e3b36',    // all borders
+    gold: '#dca54c',      // gold accent
+    text: '#e6e4df',      // primary text
+    muted: '#b5b2aa',     // secondary text
+    faint: '#85827b',     // placeholder / tertiary
+  } : {
+    bg: '#f9f6f0',        // light paper background
+    elevated: '#fbfaf7',  // white panel surface
+    elevated2: '#eeeae2', // light hover / input bg
+    border: '#e6dfd3',    // light borders
+    gold: '#b37719',      // premium amber/gold accent
+    text: '#191919',      // primary dark text
+    muted: '#69635b',     // secondary dark text
+    faint: '#857d73',     // placeholder
   };
 
   return (

@@ -100,24 +100,11 @@ export default function Layout() {
   const isLeaderboard = location.pathname === '/leaderboard';
   const isAdmin = location.pathname.startsWith('/admin');
 
-  // Stamp the body element so the global CSS can override body background on admin pages
-  useEffect(() => {
-    if (isAdmin) {
-      document.body.setAttribute('data-admin', 'true');
-    } else {
-      document.body.removeAttribute('data-admin');
-    }
-    return () => document.body.removeAttribute('data-admin');
-  }, [isAdmin]);
 
   return (
-    <div className={`min-h-screen flex flex-col ${isAdmin ? 'admin-layout' : 'bg-slate-50'}`}>
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#191816]">
       {/* ── Navbar ── */}
-      <header className={`sticky top-0 z-30 shadow-sm ${
-        isAdmin
-          ? 'border-b'
-          : 'bg-white border-b border-slate-200'
-      }`} style={isAdmin ? { background: '#1c1a17', borderColor: '#332f27' } : {}}>
+      <header className="sticky top-0 z-30 shadow-sm bg-white dark:bg-[#22211e] border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
@@ -125,23 +112,19 @@ export default function Layout() {
               <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center">
                 <span className="text-white text-sm font-bold">G</span>
               </div>
-              <span className={`font-semibold text-base hidden sm:block ${isAdmin ? 'text-[#dca54c]' : 'text-slate-900'}`}>Grantha</span>
+              <span className="font-semibold text-base hidden sm:block text-slate-900 dark:text-slate-100">Grantha</span>
             </Link>
 
             {/* Desktop nav */}
             <nav className="hidden sm:flex items-center gap-1">
-              {navLinks.map(link => (
+              {!isAdmin && navLinks.map(link => (
                 <Link
                   key={link.to}
                   to={link.to}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    isAdmin
-                      ? isActive(link.to)
-                        ? 'text-[#dca54c] bg-[#252320]'
-                        : 'text-[#9b9285] hover:text-[#f0ece4] hover:bg-[#252320]'
-                      : isActive(link.to)
-                        ? 'bg-primary-50 text-primary-700'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    isActive(link.to)
+                      ? 'bg-primary-50 dark:bg-primary-950/20 text-primary-700 dark:text-primary-400'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                 >
                   {link.label}
@@ -154,7 +137,7 @@ export default function Layout() {
             {/* Theme toggle */}
               <button
                 onClick={toggle}
-                className={`p-2 rounded-lg transition-colors ${isAdmin ? 'text-[#9b9285] hover:bg-[#252320] hover:text-[#f0ece4]' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
+                className="p-2 rounded-lg transition-colors text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
                 title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {dark ? (
@@ -289,9 +272,11 @@ export default function Layout() {
                         <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
                         <p className="text-xs text-slate-500 truncate">{user.email}</p>
                       </div>
-                      <Link to="/profile" className="block px-3 py-2 text-sm text-slate-650 hover:bg-slate-50 hover:text-primary-600">
-                        My Profile
-                      </Link>
+                      {user.role !== 'admin' && (
+                        <Link to="/profile" className="block px-3 py-2 text-sm text-slate-655 hover:bg-slate-50 hover:text-primary-600">
+                          My Profile
+                        </Link>
+                      )}
                       {user.role !== 'admin' && (
                         <Link to="/track-query" className="block px-3 py-2 text-sm text-slate-650 hover:bg-slate-50 hover:text-primary-600">
                           Track Query
@@ -346,7 +331,7 @@ export default function Layout() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="sm:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1">
-            {navLinks.map(link => (
+            {!isAdmin && navLinks.map(link => (
               <Link
                 key={link.to}
                 to={link.to}
