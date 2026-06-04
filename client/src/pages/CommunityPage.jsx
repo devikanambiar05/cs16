@@ -247,7 +247,7 @@ function getConfidenceInfo(score) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-function CommunityPage() {
+function CommunityPage({ propHighlightId, onClearHighlight }) {
   const { user, updateUser } = useAuth();
   const toast = useToast();
   const location = useLocation();
@@ -258,26 +258,31 @@ function CommunityPage() {
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
-    const highlightId = queryParams.get('highlight');
+    const highlightId = propHighlightId || queryParams.get('highlight');
     if (highlightId) {
       setHighlightedQueryId(highlightId);
       setExpandedQuery(highlightId);
-
-      // Smooth scroll to card
-      setTimeout(() => {
-        const element = document.getElementById(`query-card-${highlightId}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 300);
-
-      // Dismiss highlight after 2 seconds
-      const timer = setTimeout(() => {
-        setHighlightedQueryId(null);
-      }, 2000);
-      return () => clearTimeout(timer);
     }
-  }, [location.search]);
+  }, [location.search, propHighlightId]);
+
+  useEffect(() => {
+    if (highlightedQueryId && queries.length > 0) {
+      const element = document.getElementById(`query-card-${highlightedQueryId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Dismiss highlight after 2 seconds
+        const timer = setTimeout(() => {
+          setHighlightedQueryId(null);
+          if (onClearHighlight) {
+            onClearHighlight();
+          }
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [queries, highlightedQueryId, onClearHighlight]);
+
   const [expandedQuery, setExpandedQuery] = useState(null);
   const [answerContent, setAnswerContent] = useState(() => {
     const initial = {};
@@ -327,7 +332,7 @@ function CommunityPage() {
     fetchQueries();
     fetchLeaderboard();
     fetchStats();
-  }, [filter, sort, page, searchQuery]);
+  }, [filter, sort, page, searchQuery, propHighlightId]);
 
   const fetchStats = async () => {
     try {
@@ -380,6 +385,24 @@ function CommunityPage() {
       } else if (filter === 'all') {
         // By default, hide closed queries in the active feed so it remains focused on action items
         list = list.filter(q => q.status !== 'closed');
+      }
+
+      // Ensure the highlighted query is in the list
+      const queryParams = new URLSearchParams(location.search);
+      const highlightId = propHighlightId || queryParams.get('highlight');
+      if (highlightId) {
+        const alreadyInList = list.some(q => q._id === highlightId);
+        if (!alreadyInList) {
+          try {
+            const hRes = await getQueryById(highlightId);
+            if (hRes?.data?.query) {
+              const hQuery = { ...hRes.data.query, answers: hRes.data.answers };
+              list = [hQuery, ...list];
+            }
+          } catch (err) {
+            console.warn('Failed to fetch highlighted query', err);
+          }
+        }
       }
       
       setQueries(list);

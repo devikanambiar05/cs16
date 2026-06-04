@@ -49,8 +49,14 @@ import {
 } from '../services/api';
 import { useToast } from '../components/ToastProvider';
 import { useTheme } from '../context/ThemeContext';
+import FAQsPage from './FAQsPage';
+import WikiTagsPage from './WikiTagsPage';
+import CommunityPage from './CommunityPage';
+import LeaderboardPage from './LeaderboardPage';
 
-const TABS = ['Overview', 'Queries', 'Users', 'Moderation & Audit', 'Manage FAQs', 'Pins'];
+const CONTROL_STATION_TABS = ['Overview', 'Queries', 'Users', 'Moderation & Audit', 'Manage FAQs', 'Pins'];
+const PUBLIC_PLATFORM_TABS = ['FAQs', 'Wiki', 'Community', 'Leaderboard'];
+const TABS = [...CONTROL_STATION_TABS, ...PUBLIC_PLATFORM_TABS];
 const PAGE_SIZE = 10;
 
 export default function AdminDashboard() {
@@ -112,6 +118,7 @@ export default function AdminDashboard() {
   const [mergeLoading, setMergeLoading] = useState(false);
   const [mergeFaqSearchResults, setMergeFaqSearchResults] = useState([]);
   const [loadingMergeSearch, setLoadingMergeSearch] = useState(false);
+  const [adminHighlightQueryId, setAdminHighlightQueryId] = useState(null);
 
   useEffect(() => {
     loadStats();
@@ -607,7 +614,16 @@ export default function AdminDashboard() {
                         {q.expiresAt ? new Date(q.expiresAt).toLocaleDateString() : '—'}
                       </td>
                       <td className="py-3 flex gap-2">
-                        <button onClick={() => navigate(`/community?highlight=${q._id}`)} style={{ color: adminTheme.gold }} className="hover:underline text-xs">View</button>
+                        <button
+                          onClick={() => {
+                            setAdminHighlightQueryId(q._id);
+                            setActiveTab('Community');
+                          }}
+                          style={{ color: adminTheme.gold }}
+                          className="hover:underline text-xs"
+                        >
+                          View
+                        </button>
                         <button onClick={() => handleClose(q._id)} className="text-red-400 hover:underline text-xs">Close</button>
                         <button onClick={() => handleDeleteQuery(q._id)} className="text-red-400 hover:underline text-xs">Delete</button>
                       </td>
@@ -831,7 +847,10 @@ export default function AdminDashboard() {
                                 Close Query
                               </button>
                               <button
-                                onClick={() => navigate(`/community?highlight=${q._id}`)}
+                                onClick={() => {
+                                  setAdminHighlightQueryId(q._id);
+                                  setActiveTab('Community');
+                                }}
                                 style={{ border: `1px solid ${adminTheme.border}`, color: adminTheme.gold }}
                                 className="px-3 py-1 rounded-lg text-xs font-semibold hover:bg-slate-500/10 active:scale-95 transition-all shadow-sm"
                               >
@@ -1281,65 +1300,115 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+
           </div>
         )}
+
+        {/* Public Embedded Tabs */}
+        {activeTab === 'FAQs' && <FAQsPage />}
+        {activeTab === 'Wiki' && <WikiTagsPage />}
+        {activeTab === 'Community' && (
+          <CommunityPage
+            propHighlightId={adminHighlightQueryId}
+            onClearHighlight={() => setAdminHighlightQueryId(null)}
+          />
+        )}
+        {activeTab === 'Leaderboard' && <LeaderboardPage />}
+      </div>
+
+        {/* Right Navigation Panel */}
+        <div className="col-span-12 lg:col-span-3 order-1 lg:order-2 lg:sticky lg:top-20 space-y-4">
+          <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-4 shadow-md space-y-3">
+            <div className="border-b pb-2 select-none" style={{ borderBottomColor: adminTheme.border }}>
+              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: adminTheme.gold }}>Control Station</h3>
+              <p className="text-[10px] mt-0.5" style={{ color: adminTheme.muted }}>Manage Grantha Platform</p>
+            </div>
+            <nav className="flex flex-row lg:flex-col flex-wrap gap-1 w-full">
+              {CONTROL_STATION_TABS.map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    color: activeTab === tab ? adminTheme.gold : adminTheme.muted,
+                    background: activeTab === tab ? adminTheme.elevated2 : 'transparent',
+                  }}
+                  className={`px-4 py-2.5 text-xs md:text-sm font-semibold tracking-wide hover:opacity-85 transition-all text-left flex-1 lg:flex-none rounded-lg lg:rounded-l-none lg:rounded-r-lg border-b-2 lg:border-b-0 lg:border-l-[3px] focus:outline-none ${
+                    activeTab === tab
+                      ? 'border-[#dca54c]'
+                      : 'border-transparent'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </nav>
           </div>
 
-          {/* Right Navigation Panel */}
-          <div className="col-span-12 lg:col-span-3 order-1 lg:order-2 lg:sticky lg:top-20 space-y-4">
-            <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-4 shadow-md space-y-3">
-              <div className="border-b pb-2 select-none" style={{ borderBottomColor: adminTheme.border }}>
-                <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: adminTheme.gold }}>Control Station</h3>
-                <p className="text-[10px] mt-0.5" style={{ color: adminTheme.muted }}>Manage Grantha Platform</p>
-              </div>
-              <nav className="flex flex-row lg:flex-col flex-wrap gap-1 w-full">
-                {TABS.map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    style={{
-                      color: activeTab === tab ? adminTheme.gold : adminTheme.muted,
-                      background: activeTab === tab ? adminTheme.elevated2 : 'transparent',
-                    }}
-                    className={`px-4 py-2.5 text-xs md:text-sm font-semibold tracking-wide hover:opacity-85 transition-all text-left flex-1 lg:flex-none rounded-lg lg:rounded-l-none lg:rounded-r-lg border-b-2 lg:border-b-0 lg:border-l-[3px] focus:outline-none ${
-                      activeTab === tab
-                        ? 'border-[#dca54c]'
-                        : 'border-transparent'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </nav>
+          <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-4 shadow-md space-y-3">
+            <div className="border-b pb-2 select-none" style={{ borderBottomColor: adminTheme.border }}>
+              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: adminTheme.gold }}>Public Platform</h3>
+              <p className="text-[10px] mt-0.5" style={{ color: adminTheme.muted }}>Go to user-facing pages</p>
             </div>
-
-            <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-4 shadow-md space-y-3">
-              <div className="border-b pb-2 select-none" style={{ borderBottomColor: adminTheme.border }}>
-                <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: adminTheme.gold }}>Public Platform</h3>
-                <p className="text-[10px] mt-0.5" style={{ color: adminTheme.muted }}>Go to user-facing pages</p>
-              </div>
-              <nav className="flex flex-row lg:flex-col flex-wrap gap-1 w-full">
-                {[
-                  { to: '/', label: 'FAQs' },
-                  { to: '/wiki', label: 'Wiki' },
-                  { to: '/community', label: 'Community' },
-                  { to: '/leaderboard', label: 'Leaderboard' }
-                ].map(link => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    style={{
-                      color: adminTheme.muted,
-                    }}
-                    className="px-4 py-2.5 text-xs md:text-sm font-semibold tracking-wide hover:opacity-85 hover:bg-[#252320] transition-all text-left flex-1 lg:flex-none rounded-lg lg:rounded-l-none lg:rounded-r-lg border-b-2 lg:border-b-0 lg:border-l-[3px] border-transparent focus:outline-none"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
-            </div>
+            <nav className="flex flex-row gap-2 justify-between w-full">
+              {[
+                {
+                  id: 'FAQs',
+                  label: 'FAQs',
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                    </svg>
+                  )
+                },
+                {
+                  id: 'Wiki',
+                  label: 'Wiki',
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-16.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-16.25v16.25" />
+                    </svg>
+                  )
+                },
+                {
+                  id: 'Community',
+                  label: 'Community',
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  )
+                },
+                {
+                  id: 'Leaderboard',
+                  label: 'Leaderboard',
+                  icon: (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V17M10 21H14M12 15C15 15 17 13 17 10V5H7V10C7 13 9 15 12 15ZM17 7H19.5C20.5 7 21 8 21 9V10C21 11 20 12 19 12H17ZM7 7H4.5C3.5 7 3 8 3 9V10C3 11 4 12 5 12H7" />
+                    </svg>
+                  )
+                }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setAdminHighlightQueryId(null);
+                    setActiveTab(tab.id);
+                  }}
+                  title={tab.label}
+                  style={{
+                    color: activeTab === tab.id ? adminTheme.gold : adminTheme.muted,
+                    background: activeTab === tab.id ? adminTheme.elevated2 : 'transparent',
+                    border: `1px solid ${activeTab === tab.id ? adminTheme.gold : 'transparent'}`
+                  }}
+                  className="flex-1 flex items-center justify-center p-3 rounded-xl hover:opacity-85 hover:bg-[#252320]/25 transition-all focus:outline-none"
+                >
+                  {tab.icon}
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
+      </div>
 
         {/* Edit FAQ Modal */}
         {editingFaq && (

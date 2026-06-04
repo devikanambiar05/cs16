@@ -23,7 +23,13 @@ export default function RAGChatWidget() {
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [showProbe, setShowProbe] = useState(false);
-  const [isMinimised, setIsMinimised] = useState(false);
+  const [isMinimised, setIsMinimised] = useState(() => {
+    return localStorage.getItem('rag-widget-minimised') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('rag-widget-minimised', isMinimised);
+  }, [isMinimised]);
 
   const bottomRef = useRef(null);
   const dialogTextareaRef = useRef(null);
@@ -263,13 +269,10 @@ export default function RAGChatWidget() {
     setError('');
   };
 
-  if (
+  const isLauncherExcludedPage =
     ['/login', '/register', '/reset-password', '/verify-email', '/ask', '/profile'].includes(location.pathname) ||
     location.pathname.startsWith('/admin') ||
-    location.pathname.startsWith('/leaderboard')
-  ) {
-    return null;
-  }
+    location.pathname.startsWith('/leaderboard');
 
   return (
     <>
@@ -277,7 +280,7 @@ export default function RAGChatWidget() {
       <div ref={viewportRef} className="fixed inset-0 z-0 pointer-events-none" />
 
       {/* ── Dialog ── */}
-      {dialogOpen && (
+      {dialogOpen && !isMinimised && (
         <div className="fixed inset-0 z-50 pointer-events-none">
           {/* Backdrop */}
           <div
@@ -293,10 +296,8 @@ export default function RAGChatWidget() {
             dragMomentum={false}
             dragElastic={0}
             dragConstraints={viewportRef}
-            className="absolute bottom-24 left-0 right-0 mx-auto w-[min(calc(100vw-2rem),32rem)] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
-            style={{ maxHeight: isMinimised ? '48px' : 'min(65vh, 560px)' }}
-            animate={{ maxHeight: isMinimised ? 48 : 560 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="absolute bottom-24 right-6 w-[min(calc(100vw-2rem),24rem)] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
+            style={{ maxHeight: 'min(65vh, 560px)' }}
           >
             {/* Drag handle bar */}
             <div
@@ -306,12 +307,8 @@ export default function RAGChatWidget() {
               }}
               className="flex items-center justify-between px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 shrink-0 cursor-grab active:cursor-grabbing select-none"
             >
-              {/* Title — also acts as restore trigger when minimised */}
-              <button
-                type="button"
-                onClick={() => isMinimised && setIsMinimised(false)}
-                className={`flex items-center gap-2 ${isMinimised ? 'cursor-pointer' : 'cursor-default'}`}
-              >
+              {/* Title */}
+              <div className="flex items-center gap-2 cursor-default">
                 <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -321,40 +318,23 @@ export default function RAGChatWidget() {
                     ({messages.filter(m => m.role === 'assistant').length})
                   </span>
                 )}
-                {isMinimised && loading && (
-                  <span className="flex gap-0.5 ml-1">
-                    <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" />
-                    <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '200ms' }} />
-                    <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '400ms' }} />
-                  </span>
-                )}
-              </button>
+              </div>
               <div className="flex items-center gap-2">
-                {!isMinimised && (
-                  <button
-                    onClick={clearChat}
-                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    Clear
-                  </button>
-                )}
-                {/* Minimize / restore button */}
                 <button
-                  onClick={() => setIsMinimised(v => !v)}
-                  title={isMinimised ? 'Restore chat' : 'Minimise chat'}
+                  onClick={clearChat}
+                  className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Clear
+                </button>
+                {/* Minimize button */}
+                <button
+                  onClick={() => setIsMinimised(true)}
+                  title="Minimise chat"
                   className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  {isMinimised ? (
-                    /* Restore — chevron up */
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  ) : (
-                    /* Minimise — minus/dash */
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                    </svg>
-                  )}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                  </svg>
                 </button>
                 <button
                   onClick={closeDialog}
@@ -496,7 +476,9 @@ export default function RAGChatWidget() {
       )}
 
       {/* Viewport bottom gradient mask */}
-      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent dark:from-[#0d1117] dark:via-[#0d1117]/80 pointer-events-none z-30" />
+      {!isLauncherExcludedPage && !isMinimised && !dialogOpen && (
+        <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent dark:from-[#0d1117] dark:via-[#0d1117]/80 pointer-events-none z-30" />
+      )}
 
       {/* ── Tooltip Probe ── */}
       {showProbe && (
@@ -522,83 +504,102 @@ export default function RAGChatWidget() {
         </div>
       )}
 
-      {/* ── Launcher Bar — hidden when dialog is open ── */}
-      {!dialogOpen && (
-        <motion.div
-          ref={launcherRef}
-          drag
-          dragMomentum={false}
-          dragElastic={0}
-          dragConstraints={viewportRef}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4 cursor-grab active:cursor-grabbing"
-        >
-        <div className="relative" onClick={(e) => e.stopPropagation()}>
-          {/* Drag handle icon */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 text-slate-300 dark:text-slate-600 select-none pointer-events-none">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </div>
-
-          <input
-            type="text"
-            className="w-full pl-10 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl
-                       focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500
-                       placeholder-slate-400 dark:placeholder-slate-500 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md
-                       shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
-                       hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all dark:text-slate-100 cursor-text"
-            placeholder="Ask the FAQ assistant..."
-            value={input}
-            onChange={e => {
-              setInput(e.target.value);
-              if (e.target.value.trim()) setDialogOpen(true);
-              if (showProbe) dismissProbe();
-            }}
-            onFocus={() => {
-              openDialog();
-            }}
+      {/* ── Launcher ── */}
+      {(!dialogOpen || isMinimised) && (
+        isMinimised || isLauncherExcludedPage ? (
+          <motion.button
+            drag
+            dragMomentum={false}
+            dragElastic={0}
+            dragConstraints={viewportRef}
             onClick={() => {
-              openDialog();
+              setDialogOpen(true);
+              setIsMinimised(false);
             }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onKeyDown={handleKeyDown}
-            disabled={loading}
-          />
-
-          {loading ? (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
-              <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" />
-              <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '200ms' }} />
-              <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '400ms' }} />
-            </div>
-          ) : (
-            <button
-              type="button"
-              disabled={!input.trim() || loading}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); sendMessage(e); }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-all pointer-events-auto"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {/* Samagama link — static, sits directly below the RAG chat input */}
-        <p className="text-center mt-2 mb-2 text-xs text-slate-400 dark:text-slate-500">
-          Need more details? Visit{' '}
-          <a
-            href="https://www.samagama.in/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors underline-offset-2 hover:underline"
+            className="fixed bottom-6 right-6 z-55 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-600 dark:to-amber-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-grab active:cursor-grabbing focus:outline-none pointer-events-auto"
+            title="FAQ Assistant"
           >
-            samagama.in
-          </a>
-        </p>
-      </motion.div>
+            <svg className="w-6 h-6 select-none pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </motion.button>
+        ) : (
+          <motion.div
+            ref={launcherRef}
+            drag
+            dragMomentum={false}
+            dragElastic={0}
+            dragConstraints={viewportRef}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4 cursor-grab active:cursor-grabbing"
+          >
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              {/* Drag handle icon */}
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 text-slate-300 dark:text-slate-600 select-none pointer-events-none">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </div>
+
+              <input
+                type="text"
+                className="w-full pl-10 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl
+                           focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500
+                           placeholder-slate-400 dark:placeholder-slate-500 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md
+                           shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
+                           hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all dark:text-slate-100 cursor-text"
+                placeholder="Ask the FAQ assistant..."
+                value={input}
+                onChange={e => {
+                  setInput(e.target.value);
+                  if (e.target.value.trim()) setDialogOpen(true);
+                  if (showProbe) dismissProbe();
+                }}
+                onFocus={() => {
+                  openDialog();
+                }}
+                onClick={() => {
+                  openDialog();
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+              />
+
+              {loading ? (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-0.5 pointer-events-none">
+                  <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" />
+                  <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '200ms' }} />
+                  <span className="w-1 h-1 bg-primary-500 rounded-full animate-pulse-dot" style={{ animationDelay: '400ms' }} />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={!input.trim() || loading}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); sendMessage(e); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-all pointer-events-auto"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Samagama link — static, sits directly below the RAG chat input */}
+            <p className="text-center mt-2 mb-2 text-xs text-slate-400 dark:text-slate-500">
+              Need more details? Visit{' '}
+              <a
+                href="https://www.samagama.in/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors underline-offset-2 hover:underline"
+              >
+                samagama.in
+              </a>
+            </p>
+          </motion.div>
+        )
       )}
     </>
   );
