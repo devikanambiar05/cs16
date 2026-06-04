@@ -174,6 +174,7 @@ export const deleteFAQ = (id) => api.patch(`/api/admin/faqs/${id}`, { status: 'd
 export const getModerationQueue = () => api.get('/api/admin/moderation');
 export const approveAnswer = (id) => api.post(`/api/admin/answers/${id}/approve`);
 export const rejectAnswer = (id) => api.post(`/api/admin/answers/${id}/reject`);
+export const mergeFAQs = (sourceId, targetId) => api.post('/api/admin/faqs/merge', { sourceId, targetId });
 
 // Categories
 export const getCategories = (params) => api.get('/api/categories', params);

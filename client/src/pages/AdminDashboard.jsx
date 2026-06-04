@@ -43,17 +43,19 @@ import {
   createPin,
   updatePin,
   deletePin,
-  getAuditLogs
+  getAuditLogs,
+  getModerationQueue,
+  mergeFAQs
 } from '../services/api';
 import { useToast } from '../components/ToastProvider';
 import { useTheme } from '../context/ThemeContext';
 
-const TABS = ['Overview', 'Queries', 'Users', 'FAQ Requests', 'Manage FAQs', 'Pins'];
+const TABS = ['Overview', 'Queries', 'Users', 'Moderation & Audit', 'Manage FAQs', 'Pins'];
 const PAGE_SIZE = 10;
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const toast = useToast();
   const { dark } = useTheme();
   const [activeTab, setActiveTab] = useState('Overview');
   const [stats, setStats] = useState(null);
@@ -96,6 +98,21 @@ export default function AdminDashboard() {
   const [pinFaqId, setPinFaqId] = useState('');
   const [pinOrder, setPinOrder] = useState(0);
 
+  // Moderation & Audit state
+  const [moderationLoading, setModerationLoading] = useState(false);
+  const [pendingFAQRequests, setPendingFAQRequests] = useState([]);
+  const [slabreachedQueries, setSlabreachedQueries] = useState([]);
+  const [recentEdits, setRecentEdits] = useState([]);
+
+  // FAQ Merging state
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeSourceFaq, setMergeSourceFaq] = useState(null);
+  const [mergeTargetFaqId, setMergeTargetFaqId] = useState('');
+  const [mergeSearchText, setMergeSearchText] = useState('');
+  const [mergeLoading, setMergeLoading] = useState(false);
+  const [mergeFaqSearchResults, setMergeFaqSearchResults] = useState([]);
+  const [loadingMergeSearch, setLoadingMergeSearch] = useState(false);
+
   useEffect(() => {
     loadStats();
     loadQueries();
@@ -106,7 +123,7 @@ export default function AdminDashboard() {
     if (activeTab === 'Overview') loadStats();
     if (activeTab === 'Queries') loadQueries();
     if (activeTab === 'Users') loadUsers();
-    if (activeTab === 'FAQ Requests') loadFAQRequests();
+    if (activeTab === 'Moderation & Audit') loadModerationQueue();
     if (activeTab === 'Pins') loadAdminPins();
   }, [activeTab]);
 
@@ -126,6 +143,26 @@ export default function AdminDashboard() {
     }, 500);
     return () => clearTimeout(timer);
   }, [faqSearchInput]);
+
+  useEffect(() => {
+    if (!showMergeModal || !mergeSearchText.trim()) {
+      setMergeFaqSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setLoadingMergeSearch(true);
+      try {
+        const res = await getAdminFaqs({ search: mergeSearchText.trim(), limit: 10 });
+        const filtered = (res.data.faqs || res.data || []).filter(f => f._id !== mergeSourceFaq?._id);
+        setMergeFaqSearchResults(filtered);
+      } catch (err) {
+        console.error('Failed to search merge target FAQs', err);
+      } finally {
+        setLoadingMergeSearch(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [mergeSearchText, showMergeModal, mergeSourceFaq]);
 
   async function loadStats() {
     setLoadingStats(true);
@@ -156,7 +193,7 @@ export default function AdminDashboard() {
       // API returns { logs: [...] } — extract the array
       setAuditLogs(auditLogsRes.data || []);
     } catch (err) {
-      showToast('Failed to load stats', 'error');
+      toast.error('Failed to load stats');
       setAuditLogsError('Failed to load recent activity log.');
     } finally {
       setLoadingStats(false);
@@ -170,7 +207,7 @@ export default function AdminDashboard() {
       const res = await getQueries({ page: queryPage, pageSize: PAGE_SIZE });
       setQueries(res.data.queries || []);
     } catch (err) {
-      showToast('Failed to load queries', 'error');
+      toast.error('Failed to load queries');
     } finally {
       setLoadingQueries(false);
     }
@@ -182,21 +219,44 @@ export default function AdminDashboard() {
       const res = await getUsers({ page: userPage, pageSize: PAGE_SIZE });
       setUsers(res.data.users || []);
     } catch (err) {
-      showToast('Failed to load users', 'error');
+      toast.error('Failed to load users');
     } finally {
       setLoadingUser(false);
     }
   }
 
-  async function loadFAQRequests() {
-    setFaqLoading(true);
+  async function loadModerationQueue() {
+    setModerationLoading(true);
     try {
-      const res = await getFAQRequests({ page: faqPage });
-      setFaqRequests(res.data?.requests || res.data || []);
+      const res = await getModerationQueue();
+      setPendingFAQRequests(res.data?.pendingFAQRequests || []);
+      setSlabreachedQueries(res.data?.slabreachedQueries || []);
+      setRecentEdits(res.data?.recentEdits || []);
     } catch (err) {
-      showToast('Failed to load FAQ requests', 'error');
+      toast.error('Failed to load moderation queue');
     } finally {
-      setFaqLoading(false);
+      setModerationLoading(false);
+    }
+  }
+
+  async function handleMergeFAQs() {
+    if (!mergeSourceFaq || !mergeTargetFaqId) {
+      toast.error('Source and target FAQs are required');
+      return;
+    }
+    setMergeLoading(true);
+    try {
+      await mergeFAQs(mergeSourceFaq._id, mergeTargetFaqId);
+      toast.success('FAQs merged successfully');
+      setShowMergeModal(false);
+      setMergeSourceFaq(null);
+      setMergeTargetFaqId('');
+      setMergeSearchText('');
+      loadAdminFaqs();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to merge FAQs');
+    } finally {
+      setMergeLoading(false);
     }
   }
 
@@ -217,7 +277,7 @@ export default function AdminDashboard() {
         setFaqManageTotalPages(res.data.pagination.pages || 1);
       }
     } catch (err) {
-      showToast('Failed to load FAQs', 'error');
+      toast.error('Failed to load FAQs');
     } finally {
       setFaqLoading(false);
     }
@@ -229,7 +289,7 @@ export default function AdminDashboard() {
       const res = await getAdminPins();
       setPins(res.data || []);
     } catch (err) {
-      showToast('Failed to load pins', 'error');
+      toast.error('Failed to load pins');
     } finally {
       setPinsLoading(false);
     }
@@ -241,11 +301,11 @@ export default function AdminDashboard() {
 
     if (pinType === 'faq') {
       if (!pinFaqId || !pinFaqId.trim()) {
-        showToast('FAQ ID is required for pins of type FAQ', 'error');
+        toast.error('FAQ ID is required for pins of type FAQ');
         return;
       }
       if (!/^[0-9a-fA-F]{24}$/.test(pinFaqId.trim())) {
-        showToast('Please enter a valid 24-character MongoDB ObjectId for the FAQ ID', 'error');
+        toast.error('Please enter a valid 24-character MongoDB ObjectId for the FAQ ID');
         return;
       }
     }
@@ -259,7 +319,7 @@ export default function AdminDashboard() {
           order: Number(pinOrder),
           type: pinType
         });
-        showToast('Pin updated', 'success');
+        toast.success('Pin updated');
       } else {
         await createPin({
           type: pinType,
@@ -268,7 +328,7 @@ export default function AdminDashboard() {
           faqId: pinType === 'faq' ? pinFaqId.trim() : null,
           order: Number(pinOrder)
         });
-        showToast('Pin created', 'success');
+        toast.success('Pin created');
       }
       setShowPinForm(false);
       setEditingPin(null);
@@ -278,7 +338,7 @@ export default function AdminDashboard() {
       setPinOrder(0);
       loadAdminPins();
     } catch (err) {
-      showToast(editingPin ? 'Failed to update pin' : 'Failed to create pin', 'error');
+      toast.error(editingPin ? 'Failed to update pin' : 'Failed to create pin');
     }
   }
 
@@ -286,10 +346,10 @@ export default function AdminDashboard() {
     if (!confirm('Remove this pin?')) return;
     try {
       await deletePin(id);
-      showToast('Pin removed', 'success');
+      toast.success('Pin removed');
       loadAdminPins();
     } catch (err) {
-      showToast('Failed to remove pin', 'error');
+      toast.error('Failed to remove pin');
     }
   }
 
@@ -316,10 +376,10 @@ export default function AdminDashboard() {
   async function handleClose(queryId) {
     try {
       await closeQuery(queryId);
-      showToast('Query closed', 'success');
+      toast.success('Query closed');
       loadQueries();
     } catch (err) {
-      showToast('Failed to close query', 'error');
+      toast.error('Failed to close query');
     }
   }
 
@@ -327,20 +387,20 @@ export default function AdminDashboard() {
     if (!window.confirm('Delete this query permanently?')) return;
     try {
       await deleteQuery(queryId);
-      showToast('Query deleted', 'success');
+      toast.success('Query deleted');
       loadQueries();
     } catch (err) {
-      showToast('Failed to delete query', 'error');
+      toast.error('Failed to delete query');
     }
   }
 
   async function handleResolve(faqReqId) {
     try {
       await resolveFAQRequest(faqReqId);
-      showToast('FAQ request resolved', 'success');
-      loadFAQRequests();
+      toast.success('FAQ request resolved');
+      loadModerationQueue();
     } catch (err) {
-      showToast('Failed to resolve FAQ request', 'error');
+      toast.error('Failed to resolve FAQ request');
     }
   }
 
@@ -358,18 +418,18 @@ export default function AdminDashboard() {
 
   async function handleConfirmRejectFAQ() {
     if (!rejectionReason.trim()) {
-      showToast('Please provide a rejection reason', 'error');
+      toast.error('Please provide a rejection reason');
       return;
     }
 
     setRejectLoading(true);
     try {
       await rejectFAQRequest(rejectingFaqRequestId, { rejectionReason: rejectionReason.trim() });
-      showToast('FAQ request rejected', 'success');
-      loadFAQRequests();
+      toast.success('FAQ request rejected');
+      loadModerationQueue();
       closeRejectModal();
     } catch (err) {
-      showToast('Failed to reject FAQ request', 'error');
+      toast.error('Failed to reject FAQ request');
     } finally {
       setRejectLoading(false);
     }
@@ -385,9 +445,9 @@ export default function AdminDashboard() {
       setUsers(prev => prev.map(u =>
         u._id === userId ? { ...u, status: isCurrentlyBanned ? 'active' : 'banned' } : u
       ));
-      showToast(`User ${action}ned successfully`, 'success');
+      toast.success(`User ${action}ned successfully`);
     } catch (err) {
-      showToast('Failed to update user', 'error');
+      toast.error('Failed to update user');
     } finally {
       setUserStatus(prev => ({ ...prev, [userId]: null }));
     }
@@ -424,9 +484,9 @@ export default function AdminDashboard() {
         return u;
       }));
       setSelectedUserIds(new Set());
-      showToast(res.data.message, 'success');
+      toast.success(res.data.message);
     } catch (err) {
-      showToast(`Failed to ${action} selected users`, 'error');
+      toast.error(`Failed to ${action} selected users`);
     } finally {
       setBulkLoading(false);
     }
@@ -435,31 +495,31 @@ export default function AdminDashboard() {
   async function handleTogglePin(faqId, currentlyPinned) {
     try {
       await pinFaq(faqId);
-      showToast(currentlyPinned ? 'FAQ unpinned' : 'FAQ pinned', 'success');
+      toast.success(currentlyPinned ? 'FAQ unpinned' : 'FAQ pinned');
       loadAdminFaqs();
     } catch (err) {
-      showToast('Failed to update pin status', 'error');
+      toast.error('Failed to update pin status');
     }
   }
 
   async function handleSoftDeleteRestore(faqId, currentDeleted) {
     try {
       await patchFaq(faqId, { deletedAt: currentDeleted ? null : new Date() });
-      showToast(currentDeleted ? 'FAQ restored' : 'FAQ soft-deleted', 'success');
+      toast.success(currentDeleted ? 'FAQ restored' : 'FAQ soft-deleted');
       loadAdminFaqs();
     } catch (err) {
-      showToast('Failed to update FAQ', 'error');
+      toast.error('Failed to update FAQ');
     }
   }
 
   async function handleEditSave(faqId, newAnswer) {
     try {
       await patchFaq(faqId, { finalAnswer: newAnswer });
-      showToast('FAQ updated', 'success');
+      toast.success('FAQ updated');
       setEditingFaq(null);
       loadAdminFaqs();
     } catch (err) {
-      showToast('Failed to update FAQ', 'error');
+      toast.error('Failed to update FAQ');
     }
   }
 
@@ -678,42 +738,174 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* FAQ Requests */}
-        {activeTab === 'FAQ Requests' && (
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">FAQ Requests</h2>
-            {faqLoading ? (
-              <p className="text-slate-500">Loading...</p>
-            ) : faqRequests.length === 0 ? (
-              <p className="text-slate-500 dark:text-slate-400">No pending FAQ requests.</p>
+        {/* Moderation & Audit */}
+        {activeTab === 'Moderation & Audit' && (
+          <div className="space-y-6">
+            <div className="border-b pb-4" style={{ borderColor: adminTheme.border }}>
+              <h2 className="text-xl font-bold font-serif" style={{ color: adminTheme.gold }}>Moderation & Audit Control Station</h2>
+              <p className="text-xs mt-1" style={{ color: adminTheme.muted }}>
+                Approve or reject FAQ requests, resolve SLA breaches, and inspect recent FAQ revision histories.
+              </p>
+            </div>
+
+            {moderationLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="spinner animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: adminTheme.gold }} />
+              </div>
             ) : (
-              <div className="space-y-4">
-                {faqRequests.map(req => (
-                  <div key={req._id} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-                    <div className="mb-2">
-                      <span className={`badge ${req.status === 'pending' ? 'badge-yellow' : req.status === 'approved' ? 'badge-green' : 'badge-red'}`}>
-                        {req.status}
-                      </span>
-                      {req.submittedBy && (
-                        <span className="text-xs text-slate-400 ml-2">by {req.submittedBy.name || 'unknown'}</span>
-                      )}
-                      {req.queryId && (
-                        <span className="text-xs text-slate-400 ml-2">on: {typeof req.queryId === 'object' ? req.queryId.title : req.queryId}</span>
-                      )}
-                    </div>
-                    <p className="font-medium text-slate-900 dark:text-slate-100 mb-1">Q: {req.proposedQuestion}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-3">A: {req.proposedAnswer}</p>
-                    {req.proposedTags && req.proposedTags.length > 0 && (
-                      <p className="text-xs text-slate-400 mb-2">Tags: {req.proposedTags.join(', ')}</p>
-                    )}
-                    {req.status === 'pending' && (
-                      <div className="flex gap-2">
-                        <button onClick={() => handleResolve(req._id)} className="btn-primary text-sm">Approve</button>
-                        <button onClick={() => openRejectModal(req._id)} className="btn-secondary text-sm">Reject</button>
+              <div className="space-y-6">
+                {/* Upper Two-Column Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  
+                  {/* Left Column: Pending FAQ Requests */}
+                  <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-5 shadow-sm space-y-4">
+                    <h3 className="text-md font-semibold flex items-center gap-2" style={{ color: adminTheme.text }}>
+                      <span>📥</span> Pending FAQ Requests
+                      <span className="badge badge-yellow text-xs ml-auto">{pendingFAQRequests.length}</span>
+                    </h3>
+                    {pendingFAQRequests.length === 0 ? (
+                      <p className="text-sm py-4" style={{ color: adminTheme.muted }}>No pending FAQ requests.</p>
+                    ) : (
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                        {pendingFAQRequests.map(req => (
+                          <div key={req._id} style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-4 space-y-3">
+                            <div className="flex items-center justify-between text-[10px] font-bold" style={{ color: adminTheme.muted }}>
+                              <span>By: {req.submittedBy?.name || 'Unknown'}</span>
+                              <span>Source: {req.queryId?.title || 'Unknown Query'}</span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-xs" style={{ color: adminTheme.text }}>Q: {req.proposedQuestion}</p>
+                              <p className="text-xs mt-1 line-clamp-3" style={{ color: adminTheme.muted }}>A: {req.proposedAnswer}</p>
+                            </div>
+                            {req.proposedTags && req.proposedTags.length > 0 && (
+                              <p className="text-[10px]" style={{ color: adminTheme.faint }}>Tags: {req.proposedTags.join(', ')}</p>
+                            )}
+                            <div className="flex gap-2 justify-end pt-1">
+                              <button
+                                onClick={() => openRejectModal(req._id)}
+                                className="px-3 py-1 rounded-lg text-xs font-semibold hover:opacity-80 transition-all text-red-500 hover:bg-red-500/10"
+                              >
+                                Reject
+                              </button>
+                              <button
+                                onClick={() => handleResolve(req._id)}
+                                style={{ background: adminTheme.gold, color: dark ? '#000' : '#fff' }}
+                                className="px-3 py-1 rounded-lg text-xs font-semibold hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                              >
+                                Approve
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
-                ))}
+
+                  {/* Right Column: SLA-Breached Queries */}
+                  <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-5 shadow-sm space-y-4">
+                    <h3 className="text-md font-semibold flex items-center gap-2" style={{ color: adminTheme.text }}>
+                      <span>⚡</span> SLA-Breached Queries
+                      <span className="badge badge-red text-xs ml-auto">{slabreachedQueries.length}</span>
+                    </h3>
+                    {slabreachedQueries.length === 0 ? (
+                      <p className="text-sm py-4" style={{ color: adminTheme.muted }}>No SLA-breached queries found.</p>
+                    ) : (
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                        {slabreachedQueries.map(q => (
+                          <div key={q._id} style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-4 flex flex-col justify-between space-y-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-red-500">EXPIRED</span>
+                                <span className="text-[10px] font-medium" style={{ color: adminTheme.faint }}>
+                                  Expired: {new Date(q.expiresAt).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="font-semibold text-xs" style={{ color: adminTheme.text }}>{q.title}</p>
+                              <p className="text-[10px]" style={{ color: adminTheme.muted }}>Created by: {q.createdBy?.name || 'Unknown User'}</p>
+                            </div>
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => handleClose(q._id)}
+                                className="px-3 py-1 rounded-lg text-xs font-semibold hover:opacity-80 transition-all text-red-455 hover:bg-red-500/10"
+                              >
+                                Close Query
+                              </button>
+                              <button
+                                onClick={() => navigate(`/community?highlight=${q._id}`)}
+                                style={{ border: `1px solid ${adminTheme.border}`, color: adminTheme.gold }}
+                                className="px-3 py-1 rounded-lg text-xs font-semibold hover:bg-slate-500/10 active:scale-95 transition-all shadow-sm"
+                              >
+                                View/Resolve
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom: FAQ Audit Trails & Revisions */}
+                <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-5 shadow-sm space-y-4">
+                  <h3 className="text-md font-semibold flex items-center gap-2" style={{ color: adminTheme.text }}>
+                    <span>📜</span> FAQ Revision History (Last 7 Days)
+                  </h3>
+                  {recentEdits.length === 0 ? (
+                    <p className="text-sm py-4" style={{ color: adminTheme.muted }}>No edits logged in the past week.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left">
+                        <thead>
+                          <tr className="border-b" style={{ borderColor: adminTheme.border, color: adminTheme.muted }}>
+                            <th className="pb-3 font-semibold">FAQ Document</th>
+                            <th className="pb-3 font-semibold">Edited By</th>
+                            <th className="pb-3 font-semibold">Changes</th>
+                            <th className="pb-3 font-semibold">Reason for Edit</th>
+                            <th className="pb-3 font-semibold">Timestamp</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {recentEdits.map(edit => {
+                            const changes = [];
+                            if (edit.previousTitle !== edit.newTitle) changes.push('Title');
+                            if (edit.previousDescription !== edit.newDescription) changes.push('Description');
+                            if (edit.previousFinalAnswer !== edit.newFinalAnswer) changes.push('Answer');
+                            if (JSON.stringify(edit.previousTags) !== JSON.stringify(edit.newTags)) changes.push('Tags');
+
+                            return (
+                              <tr key={edit._id} className="border-b last:border-none" style={{ borderColor: adminTheme.border }}>
+                                <td className="py-3 font-medium max-w-xs truncate" style={{ color: adminTheme.text }}>
+                                  {edit.faq?.title || 'Unknown/Deleted FAQ'}
+                                  <span className="block text-[10px] font-mono text-slate-400">ID: {edit.faq?._id || edit.faq}</span>
+                                </td>
+                                <td className="py-3" style={{ color: adminTheme.text }}>
+                                  {edit.editedBy?.name || 'Admin'}
+                                </td>
+                                <td className="py-3">
+                                  <div className="flex flex-wrap gap-1">
+                                    {changes.length === 0 ? (
+                                      <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Metadata</span>
+                                    ) : (
+                                      changes.map(c => (
+                                        <span key={c} className="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded font-semibold">{c}</span>
+                                      ))
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-3 italic" style={{ color: adminTheme.muted }}>
+                                  {edit.reason || 'No reason provided'}
+                                </td>
+                                <td className="py-3" style={{ color: adminTheme.muted }}>
+                                  {new Date(edit.createdAt).toLocaleString()}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -864,6 +1056,17 @@ export default function AdminDashboard() {
                             className={`text-xs hover:underline whitespace-nowrap ${faq.pinned ? 'text-amber-600' : ''}`}
                           >
                             {faq.pinned ? 'Unpin' : 'Pin'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setMergeSourceFaq(faq);
+                              setMergeTargetFaqId('');
+                              setMergeSearchText('');
+                              setShowMergeModal(true);
+                            }}
+                            className="text-xs text-amber-600 dark:text-[#dca54c] hover:underline whitespace-nowrap"
+                          >
+                            Merge
                           </button>
                         </td>
                       </tr>
@@ -1162,6 +1365,117 @@ export default function AdminDashboard() {
                   className="btn-primary"
                 >
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Merge FAQ Modal */}
+        {showMergeModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 font-serif">Merge FAQ</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Select a target FAQ to merge the source FAQ into. The source FAQ will be marked as a duplicate and soft-deleted.
+                  </p>
+                </div>
+                <button onClick={() => setShowMergeModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-250 transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Source FAQ Info */}
+                <div className="p-4 rounded-xl bg-amber-50/20 dark:bg-amber-950/10 border border-amber-200/30 dark:border-amber-900/20">
+                  <p className="text-[10px] font-bold text-amber-555 dark:text-amber-500 uppercase tracking-wider mb-1">Source FAQ (to be merged)</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    {mergeSourceFaq?.title}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-mono">ID: {mergeSourceFaq?._id}</p>
+                </div>
+
+                {/* Target FAQ Search */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1" htmlFor="mergeSearchText">
+                    Search Target FAQ
+                  </label>
+                  <input
+                    id="mergeSearchText"
+                    type="text"
+                    placeholder="Type to search active FAQs..."
+                    value={mergeSearchText}
+                    onChange={e => setMergeSearchText(e.target.value)}
+                    className="input w-full py-2.5 text-sm"
+                  />
+                </div>
+
+                {/* Target FAQ search results */}
+                {mergeSearchText.trim() && (
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                    {loadingMergeSearch ? (
+                      <p className="p-3 text-xs text-slate-500">Searching...</p>
+                    ) : mergeFaqSearchResults.length === 0 ? (
+                      <p className="p-3 text-xs text-slate-500">No active FAQs found.</p>
+                    ) : (
+                      mergeFaqSearchResults.map(faq => (
+                        <button
+                          key={faq._id}
+                          type="button"
+                          onClick={() => setMergeTargetFaqId(faq._id)}
+                          className={`w-full text-left p-3 text-xs border-b border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-start gap-2 ${
+                            mergeTargetFaqId === faq._id ? 'bg-primary-50/50 dark:bg-primary-950/20' : ''
+                          }`}
+                        >
+                          <span className="mt-0.5">📄</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{faq.title}</p>
+                            <p className="text-[10px] text-slate-400 font-mono truncate">ID: {faq._id}</p>
+                          </div>
+                          {mergeTargetFaqId === faq._id && (
+                            <span className="text-primary-500 font-bold shrink-0">✓ Selected</span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* Manual Target ID Input */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1" htmlFor="mergeTargetFaqId">
+                    Target FAQ ID (Mongoose ObjectId)
+                  </label>
+                  <input
+                    id="mergeTargetFaqId"
+                    type="text"
+                    placeholder="Enter 24-character target FAQ ID or select from search results"
+                    value={mergeTargetFaqId}
+                    onChange={e => setMergeTargetFaqId(e.target.value)}
+                    className="input w-full py-2.5 text-sm font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowMergeModal(false)}
+                  className="btn-outline px-4 py-2 text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMergeFAQs}
+                  disabled={mergeLoading || !mergeTargetFaqId || mergeTargetFaqId.trim().length !== 24}
+                  className="btn-primary px-5 py-2 text-sm disabled:opacity-40"
+                >
+                  {mergeLoading ? 'Merging...' : 'Confirm Merge'}
                 </button>
               </div>
             </div>

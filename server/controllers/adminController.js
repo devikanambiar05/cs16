@@ -654,6 +654,7 @@ exports.getModerationQueue = async (req, res) => {
         .limit(20),
       FAQHistory.find({ createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } })
         .populate('editedBy', 'name')
+        .populate('faq', 'title')
         .sort({ createdAt: -1 })
         .limit(20)
     ]);
