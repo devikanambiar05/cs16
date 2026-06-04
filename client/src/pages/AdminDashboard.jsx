@@ -488,25 +488,10 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ background: adminTheme.bg, minHeight: '100vh', color: adminTheme.text }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        {/* Tabs */}
-        <div style={{ borderBottom: `1px solid ${adminTheme.border}` }}>
-          <nav className="flex flex-wrap gap-1 -mb-px">
-            {TABS.map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  borderBottomColor: activeTab === tab ? adminTheme.gold : 'transparent',
-                  color: activeTab === tab ? adminTheme.gold : adminTheme.muted,
-                }}
-                className="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors focus:outline-none hover:opacity-90"
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-12 gap-8 items-start">
+          {/* Main Content Area */}
+          <div className="col-span-12 lg:col-span-9 order-2 lg:order-1 space-y-6">
 
         {/* Overview */}
         {activeTab === 'Overview' && (stats || loadingAuditLogs || auditLogsError) && (
@@ -1084,6 +1069,37 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+          </div>
+
+          {/* Right Navigation Panel */}
+          <div className="col-span-12 lg:col-span-3 order-1 lg:order-2 lg:sticky lg:top-20">
+            <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-4 shadow-md space-y-3">
+              <div className="border-b pb-2 select-none" style={{ borderBottomColor: adminTheme.border }}>
+                <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: adminTheme.gold }}>Control Station</h3>
+                <p className="text-[10px] mt-0.5" style={{ color: adminTheme.muted }}>Manage Grantha Platform</p>
+              </div>
+              <nav className="flex flex-row lg:flex-col flex-wrap gap-1 w-full">
+                {TABS.map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    style={{
+                      color: activeTab === tab ? adminTheme.gold : adminTheme.muted,
+                      background: activeTab === tab ? adminTheme.elevated2 : 'transparent',
+                    }}
+                    className={`px-4 py-2.5 text-xs md:text-sm font-semibold tracking-wide hover:opacity-85 transition-all text-left flex-1 lg:flex-none rounded-lg lg:rounded-l-none lg:rounded-r-lg border-b-2 lg:border-b-0 lg:border-l-[3px] focus:outline-none ${
+                      activeTab === tab
+                        ? 'border-[#dca54c]'
+                        : 'border-transparent'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+        </div>
 
         {/* Edit FAQ Modal */}
         {editingFaq && (
@@ -1094,7 +1110,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-slate-500 truncate max-w-xs">{editingFaq.title}</p>
               </div>
               <div className="p-6">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Answer</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-350 mb-2">Answer</label>
                 <textarea
                   rows={8}
                   className="input w-full font-mono text-sm"

@@ -264,8 +264,9 @@ export default function RAGChatWidget() {
   };
 
   if (
-    ['/login', '/register', '/reset-password', '/verify-email', '/leaderboard', '/ask', '/profile'].includes(location.pathname) ||
-    location.pathname.startsWith('/admin')
+    ['/login', '/register', '/reset-password', '/verify-email', '/ask', '/profile'].includes(location.pathname) ||
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/leaderboard')
   ) {
     return null;
   }
