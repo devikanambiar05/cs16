@@ -59,6 +59,39 @@ const PUBLIC_PLATFORM_TABS = ['FAQs', 'Wiki', 'Community', 'Leaderboard'];
 const TABS = [...CONTROL_STATION_TABS, ...PUBLIC_PLATFORM_TABS];
 const PAGE_SIZE = 10;
 
+const TAB_ICONS = {
+  'Overview': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  ),
+  'Queries': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+    </svg>
+  ),
+  'Users': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  'Moderation & Audit': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751A11.959 11.959 0 0112 2.714z" />
+    </svg>
+  ),
+  'Manage FAQs': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+  ),
+  'Pins': (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2" />
+    </svg>
+  )
+};
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -545,31 +578,33 @@ export default function AdminDashboard() {
 
   // ── Admin theme tokens (dynamic based on global light/dark theme) ──────────
   const adminTheme = dark ? {
-    bg: '#191816',        // deepest surface
-    elevated: '#22211e',  // card/panel surface
-    elevated2: '#2c2a26', // row hover / input bg
-    border: '#3e3b36',    // all borders
-    gold: '#dca54c',      // gold accent
-    text: '#e6e4df',      // primary text
-    muted: '#b5b2aa',     // secondary text
-    faint: '#85827b',     // placeholder / tertiary
+    bg: '#0f1117',        // deep midnight
+    elevated: '#161a26',  // dark navy panel
+    elevated2: '#1e2433', // navy hover
+    border: '#2a3147',    // slate-blue border
+    accent: '#6366f1',    // indigo accent
+    accentMuted: '#818cf8', // indigo muted for hover
+    text: '#e2e8f0',      // cool slate-200
+    muted: '#94a3b8',     // slate-400
+    faint: '#64748b',     // slate-500
   } : {
-    bg: '#f9f6f0',        // light paper background
-    elevated: '#fbfaf7',  // white panel surface
-    elevated2: '#eeeae2', // light hover / input bg
-    border: '#e6dfd3',    // light borders
-    gold: '#b37719',      // premium amber/gold accent
-    text: '#191919',      // primary dark text
-    muted: '#69635b',     // secondary dark text
-    faint: '#857d73',     // placeholder
+    bg: '#f8fafc',        // cool slate-50
+    elevated: '#ffffff',  // pure white
+    elevated2: '#f1f5f9', // slate-100
+    border: '#e2e8f0',    // slate-200
+    accent: '#4f46e5',    // indigo accent
+    accentMuted: '#6366f1', // indigo muted
+    text: '#0f172a',      // slate-900
+    muted: '#64748b',     // slate-500
+    faint: '#94a3b8',     // slate-400
   };
 
   return (
-    <div style={{ background: adminTheme.bg, minHeight: '100vh', color: adminTheme.text }}>
+    <div style={{ background: adminTheme.bg, minHeight: '100vh', color: adminTheme.text, transition: 'background-color 0.3s ease, color 0.3s ease' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="grid grid-cols-12 gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* Main Content Area */}
-          <div className="col-span-12 lg:col-span-9 order-2 lg:order-1 space-y-6">
+          <div className="flex-1 w-full order-2 lg:order-1 space-y-6">
 
         {/* Overview */}
         {activeTab === 'Overview' && (stats || loadingAuditLogs || auditLogsError) && (
@@ -586,7 +621,7 @@ export default function AdminDashboard() {
         {/* Queries */}
         {activeTab === 'Queries' && (
           <div>
-            <h2 style={{ color: adminTheme.gold }} className="text-lg font-semibold mb-4">Community Queries</h2>
+            <h2 style={{ color: adminTheme.accent }} className="text-lg font-semibold mb-4">Community Queries</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -619,7 +654,7 @@ export default function AdminDashboard() {
                             setAdminHighlightQueryId(q._id);
                             setActiveTab('Community');
                           }}
-                          style={{ color: adminTheme.gold }}
+                          style={{ color: adminTheme.accent }}
                           className="hover:underline text-xs"
                         >
                           View
@@ -758,7 +793,7 @@ export default function AdminDashboard() {
         {activeTab === 'Moderation & Audit' && (
           <div className="space-y-6">
             <div className="border-b pb-4" style={{ borderColor: adminTheme.border }}>
-              <h2 className="text-xl font-bold font-serif" style={{ color: adminTheme.gold }}>Moderation & Audit Control Station</h2>
+              <h2 className="text-xl font-bold font-serif" style={{ color: adminTheme.accent }}>Moderation & Audit Control Station</h2>
               <p className="text-xs mt-1" style={{ color: adminTheme.muted }}>
                 Approve or reject FAQ requests, resolve SLA breaches, and inspect recent FAQ revision histories.
               </p>
@@ -766,7 +801,7 @@ export default function AdminDashboard() {
 
             {moderationLoading ? (
               <div className="flex justify-center py-12">
-                <div className="spinner animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: adminTheme.gold }} />
+                <div className="spinner animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: adminTheme.accent }} />
               </div>
             ) : (
               <div className="space-y-6">
@@ -799,13 +834,13 @@ export default function AdminDashboard() {
                             <div className="flex gap-2 justify-end pt-1">
                               <button
                                 onClick={() => openRejectModal(req._id)}
-                                className="px-3 py-1 rounded-lg text-xs font-semibold hover:opacity-80 transition-all text-red-500 hover:bg-red-500/10"
+                                className="px-3 py-1 rounded-lg text-xs font-semibold hover:opacity-85 transition-all text-red-500 hover:bg-red-500/10"
                               >
                                 Reject
                               </button>
                               <button
                                 onClick={() => handleResolve(req._id)}
-                                style={{ background: adminTheme.gold, color: dark ? '#000' : '#fff' }}
+                                style={{ background: adminTheme.accent, color: '#fff' }}
                                 className="px-3 py-1 rounded-lg text-xs font-semibold hover:opacity-90 active:scale-95 transition-all shadow-sm"
                               >
                                 Approve
@@ -851,7 +886,7 @@ export default function AdminDashboard() {
                                   setAdminHighlightQueryId(q._id);
                                   setActiveTab('Community');
                                 }}
-                                style={{ border: `1px solid ${adminTheme.border}`, color: adminTheme.gold }}
+                                style={{ border: `1px solid ${adminTheme.border}`, color: adminTheme.accent }}
                                 className="px-3 py-1 rounded-lg text-xs font-semibold hover:bg-slate-500/10 active:scale-95 transition-all shadow-sm"
                               >
                                 View/Resolve
@@ -1316,99 +1351,117 @@ export default function AdminDashboard() {
         {activeTab === 'Leaderboard' && <LeaderboardPage />}
       </div>
 
-        {/* Right Navigation Panel */}
-        <div className="col-span-12 lg:col-span-3 order-1 lg:order-2 lg:sticky lg:top-20 space-y-4">
-          <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-4 shadow-md space-y-3">
-            <div className="border-b pb-2 select-none" style={{ borderBottomColor: adminTheme.border }}>
-              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: adminTheme.gold }}>Control Station</h3>
-              <p className="text-[10px] mt-0.5" style={{ color: adminTheme.muted }}>Manage Grantha Platform</p>
-            </div>
-            <nav className="flex flex-row lg:flex-col flex-wrap gap-1 w-full">
-              {CONTROL_STATION_TABS.map(tab => (
+      {/* Right Sidebar Rail */}
+      <aside
+        style={{
+          background: adminTheme.elevated,
+          borderColor: adminTheme.border
+        }}
+        className="w-full lg:w-16 lg:shrink-0 order-1 lg:order-2 lg:sticky lg:top-24 rounded-2xl p-2 lg:py-4 flex flex-row lg:flex-col items-center justify-start gap-2 lg:gap-4 overflow-x-auto lg:overflow-visible shadow-lg border"
+      >
+        {/* Control Station Tabs */}
+        <div className="flex flex-row lg:flex-col gap-2">
+          {CONTROL_STATION_TABS.map(tab => {
+            const isActive = activeTab === tab;
+            return (
+              <div key={tab} className="relative group">
                 <button
-                  key={tab}
                   onClick={() => setActiveTab(tab)}
                   style={{
-                    color: activeTab === tab ? adminTheme.gold : adminTheme.muted,
-                    background: activeTab === tab ? adminTheme.elevated2 : 'transparent',
+                    backgroundColor: isActive ? adminTheme.accent : 'transparent',
+                    color: isActive ? '#ffffff' : adminTheme.muted,
                   }}
-                  className={`px-4 py-2.5 text-xs md:text-sm font-semibold tracking-wide hover:opacity-85 transition-all text-left flex-1 lg:flex-none rounded-lg lg:rounded-l-none lg:rounded-r-lg border-b-2 lg:border-b-0 lg:border-l-[3px] focus:outline-none ${
-                    activeTab === tab
-                      ? 'border-[#dca54c]'
-                      : 'border-transparent'
+                  className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none border-l-4 ${
+                    isActive
+                      ? 'border-white dark:border-slate-100 shadow-md scale-105'
+                      : 'border-transparent hover:bg-slate-200/30 dark:hover:bg-slate-800/30'
                   }`}
                 >
-                  {tab}
+                  {TAB_ICONS[tab]}
                 </button>
-              ))}
-            </nav>
-          </div>
+                {/* Tooltip */}
+                <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-150 origin-right bg-slate-900 dark:bg-slate-800 text-white text-xs font-semibold px-2 py-1.5 rounded-lg shadow-xl pointer-events-none hidden lg:block whitespace-nowrap z-50">
+                  {tab}
+                </span>
+              </div>
+            );
+          })}
+        </div>
 
-          <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-2xl p-4 shadow-md space-y-3">
-            <div className="border-b pb-2 select-none" style={{ borderBottomColor: adminTheme.border }}>
-              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: adminTheme.gold }}>Public Platform</h3>
-              <p className="text-[10px] mt-0.5" style={{ color: adminTheme.muted }}>Go to user-facing pages</p>
-            </div>
-            <nav className="flex flex-row gap-2 justify-between w-full">
-              {[
-                {
-                  id: 'FAQs',
-                  label: 'FAQs',
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-                    </svg>
-                  )
-                },
-                {
-                  id: 'Wiki',
-                  label: 'Wiki',
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-16.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-16.25v16.25" />
-                    </svg>
-                  )
-                },
-                {
-                  id: 'Community',
-                  label: 'Community',
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  )
-                },
-                {
-                  id: 'Leaderboard',
-                  label: 'Leaderboard',
-                  icon: (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V17M10 21H14M12 15C15 15 17 13 17 10V5H7V10C7 13 9 15 12 15ZM17 7H19.5C20.5 7 21 8 21 9V10C21 11 20 12 19 12H17ZM7 7H4.5C3.5 7 3 8 3 9V10C3 11 4 12 5 12H7" />
-                    </svg>
-                  )
-                }
-              ].map(tab => (
+        {/* Divider */}
+        <div className="h-[1px] w-8 bg-slate-200 dark:bg-slate-800 hidden lg:block my-2" />
+        <div className="w-[1px] h-8 bg-slate-200 dark:bg-slate-800 lg:hidden mx-2" />
+
+        {/* Public Platform Tabs */}
+        <div className="flex flex-row lg:flex-col gap-2">
+          {[
+            {
+              id: 'FAQs',
+              label: 'FAQs',
+              icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                </svg>
+              )
+            },
+            {
+              id: 'Wiki',
+              label: 'Wiki',
+              icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-16.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-16.25v16.25" />
+                </svg>
+              )
+            },
+            {
+              id: 'Community',
+              label: 'Community',
+              icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              )
+            },
+            {
+              id: 'Leaderboard',
+              label: 'Leaderboard',
+              icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V17M10 21H14M12 15C15 15 17 13 17 10V5H7V10C7 13 9 15 12 15ZM17 7H19.5C20.5 7 21 8 21 9V10C21 11 20 12 19 12H17ZM7 7H4.5C3.5 7 3 8 3 9V10C3 11 4 12 5 12H7" />
+                </svg>
+              )
+            }
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <div key={tab.id} className="relative group">
                 <button
-                  key={tab.id}
                   onClick={() => {
                     setAdminHighlightQueryId(null);
                     setActiveTab(tab.id);
                   }}
-                  title={tab.label}
                   style={{
-                    color: activeTab === tab.id ? adminTheme.gold : adminTheme.muted,
-                    background: activeTab === tab.id ? adminTheme.elevated2 : 'transparent',
-                    border: `1px solid ${activeTab === tab.id ? adminTheme.gold : 'transparent'}`
+                    backgroundColor: isActive ? adminTheme.accent : 'transparent',
+                    color: isActive ? '#ffffff' : adminTheme.muted,
                   }}
-                  className="flex-1 flex items-center justify-center p-3 rounded-xl hover:opacity-85 hover:bg-[#252320]/25 transition-all focus:outline-none"
+                  className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none border-l-4 ${
+                    isActive
+                      ? 'border-white dark:border-slate-100 shadow-md scale-105'
+                      : 'border-transparent hover:bg-slate-200/30 dark:hover:bg-slate-800/30'
+                  }`}
                 >
                   {tab.icon}
                 </button>
-              ))}
-            </nav>
-          </div>
+                {/* Tooltip */}
+                <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 scale-75 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-150 origin-right bg-slate-900 dark:bg-slate-800 text-white text-xs font-semibold px-2 py-1.5 rounded-lg shadow-xl pointer-events-none hidden lg:block whitespace-nowrap z-50">
+                  {tab.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      </aside>
+    </div>
 
         {/* Edit FAQ Modal */}
         {editingFaq && (
@@ -1558,23 +1611,23 @@ export default function AdminDashboard() {
 function OverviewPanel({ stats, loading, auditLogs, loadingAuditLogs, auditLogsError, onRetry }) {
   const { dark } = useTheme();
   const adminTheme = dark ? {
-    bg: '#191816',
-    elevated: '#22211e',
-    elevated2: '#2c2a26',
-    border: '#3e3b36',
-    gold: '#dca54c',
-    text: '#e6e4df',
-    muted: '#b5b2aa',
-    faint: '#85827b',
+    bg: '#0f1117',
+    elevated: '#161a26',
+    elevated2: '#1e2433',
+    border: '#2a3147',
+    accent: '#6366f1',
+    text: '#e2e8f0',
+    muted: '#94a3b8',
+    faint: '#64748b',
   } : {
-    bg: '#f9f6f0',
-    elevated: '#fbfaf7',
-    elevated2: '#eeeae2',
-    border: '#e6dfd3',
-    gold: '#b37719',
-    text: '#191919',
-    muted: '#69635b',
-    faint: '#857d73',
+    bg: '#f8fafc',
+    elevated: '#ffffff',
+    elevated2: '#f1f5f9',
+    border: '#e2e8f0',
+    accent: '#4f46e5',
+    text: '#0f172a',
+    muted: '#64748b',
+    faint: '#94a3b8',
   };
 
   const dailyStats = stats?.dailyStats || [];
@@ -1583,12 +1636,12 @@ function OverviewPanel({ stats, loading, auditLogs, loadingAuditLogs, auditLogsE
     datasets: [{
       label: 'Queries',
       data: dailyStats.slice(-7).map(s => s.queries),
-      borderColor: adminTheme.gold,
-      backgroundColor: 'rgba(220,165,76,0.12)',
+      borderColor: adminTheme.accent,
+      backgroundColor: 'rgba(99,102,241,0.12)', // indigo glow
       fill: true,
       tension: 0.4,
       pointRadius: 3,
-      pointBackgroundColor: adminTheme.gold
+      pointBackgroundColor: adminTheme.accent
     }]
   };
 
@@ -1679,14 +1732,14 @@ function OverviewPanel({ stats, loading, auditLogs, loadingAuditLogs, auditLogsE
       <div style={{ background: adminTheme.elevated, border: `1px solid ${adminTheme.border}` }} className="rounded-xl p-6 shadow-md flex flex-col">
         <div className="border-b pb-3 mb-4 flex items-center justify-between" style={{ borderBottomColor: adminTheme.border }}>
           <div>
-            <h3 className="text-md font-semibold font-serif uppercase tracking-wider" style={{ color: adminTheme.gold }}>
+            <h3 className="text-md font-semibold font-serif uppercase tracking-wider" style={{ color: adminTheme.accent }}>
               Recent Moderator Activity
             </h3>
             <p className="text-xs mt-1" style={{ color: adminTheme.muted }}>
               Recent administrative events and moderation logs recorded on the platform.
             </p>
           </div>
-          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: adminTheme.border, color: adminTheme.gold }}>
+          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: adminTheme.border, color: adminTheme.accent }}>
             Live Feed
           </span>
         </div>
@@ -1697,7 +1750,7 @@ function OverviewPanel({ stats, loading, auditLogs, loadingAuditLogs, auditLogsE
             <div className="flex flex-col items-center justify-center py-16 space-y-3">
               <div
                 className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
-                style={{ borderColor: `${adminTheme.gold} transparent ${adminTheme.gold} transparent` }}
+                style={{ borderColor: `${adminTheme.accent} transparent ${adminTheme.accent} transparent` }}
               />
               <p className="text-sm font-medium" style={{ color: adminTheme.muted }}>Loading activities...</p>
             </div>
@@ -1707,7 +1760,7 @@ function OverviewPanel({ stats, loading, auditLogs, loadingAuditLogs, auditLogsE
               <p className="text-sm mt-2 font-medium text-red-400">{auditLogsError}</p>
               <button
                 onClick={onRetry}
-                style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color: adminTheme.gold }}
+                style={{ background: adminTheme.elevated2, border: `1px solid ${adminTheme.border}`, color: adminTheme.accent }}
                 className="mt-4 px-4 py-2 rounded-lg text-xs font-semibold hover:opacity-90 active:scale-95 transition-all"
               >
                 Retry Loading
@@ -1721,7 +1774,7 @@ function OverviewPanel({ stats, loading, auditLogs, loadingAuditLogs, auditLogsE
           ) : (
             <div className="relative border-l pl-4 ml-2 space-y-5" style={{ borderLeftColor: adminTheme.border }}>
               {auditLogs.map((log) => {
-                let color = adminTheme.gold;
+                let color = adminTheme.accent;
                 let dotIcon = '●';
                 if (log.action.includes('delete') || log.action === 'deleted pin') {
                   color = '#ef4444';

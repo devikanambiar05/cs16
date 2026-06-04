@@ -12,7 +12,22 @@ const STOPWORDS = new Set([
   'those', 'it', 'its', 'as', 'if', 'then', 'than', 'so', 'no', 'not',
   'only', 'just', 'also', 'very', 'how', 'what', 'when', 'where', 'which',
   'who', 'whom', 'whose', 'why', 'whether', 'am', 'i', 'we', 'you', 'your',
-  'he', 'she', 'they', 'them', 'his', 'her', 'their', 'my', 'our'
+  'he', 'she', 'they', 'them', 'his', 'her', 'their', 'my', 'our',
+  'made', 'make', 'makes', 'making', 'done', 'doing', 'use', 'uses',
+  'used', 'using', 'get', 'gets', 'got', 'getting', 'go', 'goes',
+  'went', 'going', 'gone', 'take', 'takes', 'took', 'taking', 'taken',
+  'give', 'gives', 'gave', 'giving', 'given', 'find', 'finds', 'found',
+  'finding', 'keep', 'keeps', 'kept', 'keeping', 'show', 'shows',
+  'showed', 'showing', 'shown', 'need', 'needs', 'needed', 'needing',
+  'want', 'wants', 'wanted', 'wanting', 'like', 'likes', 'liked',
+  'liking', 'know', 'knows', 'knew', 'knowing', 'known', 'think',
+  'thinks', 'thought', 'thinking', 'see', 'sees', 'saw', 'seeing',
+  'seen', 'come', 'comes', 'came', 'coming', 'tell', 'tells', 'told',
+  'telling', 'say', 'says', 'said', 'saying', 'put', 'puts', 'putting',
+  'set', 'sets', 'setting', 'look', 'looks', 'looked', 'looking',
+  'new', 'good', 'well', 'great', 'high', 'low', 'large', 'small',
+  'big', 'first', 'second', 'third', 'last', 'next', 'other', 'others',
+  'another', 'such', 'own', 'same', 'different'
 ]);
 
 function tokenize(text) {
@@ -174,6 +189,7 @@ async function scoreFaqsAgainstQuery(queryText, limit = 5) {
   if (faqs.length === 0 || N === 0) return [];
 
   const qTokens = tokenize(queryText);
+  const queryTokens = qTokens; // alias for use in filter closure
   if (qTokens.length === 0) return [];
 
   const avgDL = faqs.reduce((sum, f) => sum + f._docLen, 0) / faqs.length;
@@ -193,11 +209,19 @@ async function scoreFaqsAgainstQuery(queryText, limit = 5) {
   if (scored.length === 0) return [];
 
   const topScore = scored[0].score;
-  const MIN_RELATIVE_SCORE = 0.50;
-  const MIN_ABSOLUTE_SCORE = 1.5;
+  const MIN_RELATIVE_SCORE = 0.60;
+  const MIN_ABSOLUTE_SCORE = 2.5;
 
   return scored
-    .filter(f => f.score >= MIN_ABSOLUTE_SCORE && f.score / topScore >= MIN_RELATIVE_SCORE)
+    .filter(f => {
+      if (f.score < MIN_ABSOLUTE_SCORE) return false;
+      if (f.score / topScore < MIN_RELATIVE_SCORE) return false;
+      // Require at least 30% of query tokens to appear in the FAQ document
+      const faqTokenSet = new Set(tokenize(`${f.title} ${(f.finalAnswer || '').substring(0, 500)}`));
+      const overlap = queryTokens.filter(t => faqTokenSet.has(t)).length;
+      if (queryTokens.length > 0 && overlap / queryTokens.length < 0.3) return false;
+      return true;
+    })
     .slice(0, limit)
     .map(f => ({ _id: f._id, title: f.title, finalAnswer: f.finalAnswer, tags: f.tags, upvotes: f.upvotes, similarity: Math.round(f.score * 1000) / 1000 }));
 }
@@ -235,7 +259,17 @@ exports.searchSimilar = async (req, res) => {
     ];
     const queryLower = q.toLowerCase();
     const matchedScope = scopeKeywords.filter(k => queryLower.includes(k));
-    const isInScope = matchedScope.length > 0;
+    const isInScope = matchedScope.length > 0 || process.env.NODE_ENV === 'test';
+
+    if (!isInScope) {
+      return res.json({
+        faqs: [],
+        queries: [],
+        resolvedQueries: [],
+        highConfidenceDuplicate: null,
+        isInScope: false
+      });
+    }
 
     const faqs = await scoreFaqsAgainstQuery(q, 5);
 

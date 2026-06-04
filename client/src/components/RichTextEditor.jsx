@@ -319,33 +319,6 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
         </div>
       </div>
 
-      {/* Dedicated Media Upload Box (Drag and Drop Card) */}
-      <div
-        onDragOver={handleDropzoneDragOver}
-        onDragLeave={handleDropzoneDragLeave}
-        onDrop={handleDropzoneDrop}
-        onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all duration-200 ${
-          isDraggingDropzone
-            ? 'border-primary-500 bg-primary-50/20 dark:bg-primary-950/10'
-            : 'border-slate-200 dark:border-slate-700 hover:border-primary-400 hover:bg-slate-50 dark:hover:bg-slate-900/30'
-        }`}
-      >
-        <div className="flex flex-col items-center justify-center space-y-2 select-none">
-          <span className="text-2xl text-slate-400 dark:text-slate-500">
-            {uploading ? '⏳' : '📥'}
-          </span>
-          <p className="text-xs font-semibold text-slate-650 dark:text-slate-350">
-            {uploading
-              ? 'Uploading media, please wait...'
-              : 'Drag & drop image here, or click to upload media'}
-          </p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500">
-            Supports JPG, PNG, GIF, WebP (Max. 5MB)
-          </p>
-        </div>
-      </div>
-
       {/* Previews / Gallery of uploaded images in current session */}
       {uploadedFiles.length > 0 && (
         <div className="bg-slate-50 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-800/80 rounded-xl p-4 space-y-3">

@@ -12,7 +12,22 @@ const STOPWORDS = new Set([
   'those', 'it', 'its', 'as', 'if', 'then', 'than', 'so', 'no', 'not',
   'only', 'just', 'also', 'very', 'how', 'what', 'when', 'where', 'which',
   'who', 'whom', 'whose', 'why', 'whether', 'am', 'i', 'we', 'you', 'your',
-  'he', 'she', 'they', 'them', 'his', 'her', 'their', 'my', 'our'
+  'he', 'she', 'they', 'them', 'his', 'her', 'their', 'my', 'our',
+  'made', 'make', 'makes', 'making', 'done', 'doing', 'use', 'uses',
+  'used', 'using', 'get', 'gets', 'got', 'getting', 'go', 'goes',
+  'went', 'going', 'gone', 'take', 'takes', 'took', 'taking', 'taken',
+  'give', 'gives', 'gave', 'giving', 'given', 'find', 'finds', 'found',
+  'finding', 'keep', 'keeps', 'kept', 'keeping', 'show', 'shows',
+  'showed', 'showing', 'shown', 'need', 'needs', 'needed', 'needing',
+  'want', 'wants', 'wanted', 'wanting', 'like', 'likes', 'liked',
+  'liking', 'know', 'knows', 'knew', 'knowing', 'known', 'think',
+  'thinks', 'thought', 'thinking', 'see', 'sees', 'saw', 'seeing',
+  'seen', 'come', 'comes', 'came', 'coming', 'tell', 'tells', 'told',
+  'telling', 'say', 'says', 'said', 'saying', 'put', 'puts', 'putting',
+  'set', 'sets', 'setting', 'look', 'looks', 'looked', 'looking',
+  'new', 'good', 'well', 'great', 'high', 'low', 'large', 'small',
+  'big', 'first', 'second', 'third', 'last', 'next', 'other', 'others',
+  'another', 'such', 'own', 'same', 'different'
 ]);
 
 function tokenize(text) {

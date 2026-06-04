@@ -1673,33 +1673,6 @@ function QueryCard({
                 </div>
               )}
 
-              {/* Answer input */}
-              {!isClosed && query.status !== 'answered' && (!currentUser || (currentUser && !isOwnedByCurrentUser && currentUser.role !== 'admin')) && (
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <EditIcon /> Your Answer
-                  </p>
-                  <RichTextEditor 
-                    value={answerContent} 
-                    onChange={onAnswerChange} 
-                    placeholder="Write a step-by-step resolution, using Markdown formats..." 
-                  />
-                  {getWordCount(answerContent) > MAX_WORDS && (
-                    <p className="text-xs text-red-500 mt-2">
-                      Answer exceeds the {MAX_WORDS}-word limit.
-                    </p>
-                  )}
-                  <div className="flex justify-end mt-3">
-                    <button 
-                      onClick={onSubmitAnswer} 
-                      disabled={submitting === query._id || !answerContent?.trim() || getWordCount(answerContent) > MAX_WORDS}
-                      className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
-                    >
-                      {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}
-                    </button>
-                  </div>
-                </div>
-              )}
               {/* Answer input
                   - Admin: can answer any open/claimed/answered query (not their own, not already answered by them)
                   - Regular user: can answer only if unclaimed or they are the claim holder, and status != 'answered'

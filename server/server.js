@@ -31,6 +31,27 @@ async function bootstrap() {
         isEmailVerified: true
       });
       console.log('Created RAG Assistant bot user');
+    } else {
+      // Clean up any legacy RAG bot answers that were auto-posted
+      const Answer = require('./models/Answer');
+      const deleteResult = await Answer.deleteMany({ userId: ragBot._id });
+      if (deleteResult.deletedCount > 0) {
+        console.log(`[RAG Cleanup] Cleaned up ${deleteResult.deletedCount} legacy RAG Assistant answers`);
+        // Recalculate answerCount and status for affected queries
+        const affectedQueries = await Answer.distinct('queryId');
+        const Query = require('./models/Query');
+        for (const qId of affectedQueries) {
+          const q = await Query.findById(qId);
+          if (q) {
+            const count = await Answer.countDocuments({ queryId: q._id, deletedAt: null });
+            q.answerCount = count;
+            if (count === 0 && q.status === 'answered') {
+              q.status = 'open';
+            }
+            await q.save();
+          }
+        }
+      }
     }
   } catch (err) {
     console.error('Database connection or seeding failed:', err.message);

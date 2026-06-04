@@ -67,7 +67,7 @@ router.put('/:id', protect, updateQuery);
 // Close query (owner or admin)
 router.patch('/:id/close', protect, closeQuery);
 
-// Delete query (owner only)
-router.delete('/:id', protect, deleteQuery);
+// Delete query (admin only)
+router.delete('/:id', protect, adminOnly, deleteQuery);
 
 module.exports = router;

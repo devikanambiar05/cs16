@@ -298,7 +298,7 @@ exports.createQuery = async (req, res) => {
       notifyTaggedUsers(query, taggedUsers).catch(err => console.error('Failed to notify tagged users:', err));
     }
 
-    // Trigger RAG auto-answer and semantic linkage in the background
+    // Trigger semantic linkage in the background
     setImmediate(async () => {
       // 1. Semantic Linkage & Knowledge Graph Suggestion
       try {
@@ -306,43 +306,6 @@ exports.createQuery = async (req, res) => {
         await linkQuerySemanticGraph(query._id);
       } catch (err) {
         console.error('[Semantic Graph] Failed background linkage:', err);
-      }
-
-      // 2. RAG Auto-Answer
-      try {
-        const { generateRagAnswerText } = require('./ragController');
-        const Answer = require('../models/Answer');
-        const User = require('../models/User');
-
-        let botUser = await User.findOne({ email: 'ragbot@faqapp.local' });
-        if (!botUser) {
-          botUser = await User.create({
-            name: 'RAG Assistant',
-            email: 'ragbot@faqapp.local',
-            password: 'ragbot_secure_password_random_123',
-            role: 'user',
-            isVolunteer: true,
-            reputation: 9999,
-            isEmailVerified: true
-          });
-        }
-
-        const answerText = await generateRagAnswerText(query.title);
-        
-        // Post the answer
-        const newAnswer = await Answer.create({
-          content: answerText,
-          queryId: query._id,
-          userId: botUser._id,
-          isVetted: true
-        });
-
-        // Increment answer count on query
-        await Query.findByIdAndUpdate(query._id, { $inc: { answerCount: 1 } });
-        
-        console.log(`[RAG Auto-Answer] Successfully answered query "${query.title}" with Answer ${newAnswer._id}`);
-      } catch (err) {
-        console.error('[RAG Auto-Answer] Failed to generate background auto-answer:', err);
       }
     });
 
