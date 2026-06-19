@@ -7,7 +7,7 @@ This document outlines the product vision, core features, gamification design, a
 ## 1. Product Vision
 
 The platform is a community-driven knowledge ecosystem designed specifically for cohort-based programs, internships, and structured learning paths (such as the **Grantha** internship, **VINS**, and **ViBe LMS** tracks). It bridges the gap between static documentation and real-time chat support by combining:
-1. **An SLA-Driven Q&A Board** where users ask technical/programmatic questions and volunteers resolve them.
+1. **A Response-Driven Q&A Board** where users ask technical/programmatic questions and volunteers resolve them.
 2. **A Peer-Vetted Wiki & FAQ Database** that automatically surfaces high-quality community answers.
 3. **A Local AI (RAG) Assistant** that instantly resolves incoming questions by running vector semantic search over the FAQ database.
 
@@ -17,7 +17,7 @@ The platform is a community-driven knowledge ecosystem designed specifically for
 
 * **Redundant Questions (Duplicate Overhead):** Cohorts often ask the same questions repeatedly. The platform detects duplicates at submission time using **Jaccard Similarity** (for title overlap) and **BM25 Search** (for content indexing), blocking duplicate posts and pointing users directly to existing answers.
 * **Out-of-Scope Noise:** Filters out completely off-topic questions (e.g., general knowledge, personal queries) at submission using a keyword scope filter, keeping the platform focused strictly on program guidelines and technical tracks.
-* **Slow Query Resolution:** Enforces a **24-Hour SLA** (Service Level Agreement). Volunteers claim queries to work on them. If a claim is inactive for 48 hours without a response, the platform automatically releases it back to the community and alerts the volunteer.
+* **Slow Query Resolution:** Enforces a **24-Hour Response Window**. Volunteers claim queries to work on them. If a claim is inactive for 48 hours without a response, the platform automatically releases it back to the community and alerts the volunteer.
 * **Quality Assurance & Trust:** Avoids spam and incorrect advice by tying publishing privileges to a **Trust-Based Gamification** system. Highly reputable users (reputation $\ge$ 50) and admins have their responses auto-vetted, while newer users' answers require manual vetting by peer volunteers.
 
 ---
@@ -44,8 +44,8 @@ The platform is a community-driven knowledge ecosystem designed specifically for
 
 ### 🛡️ Admin Control Station (Midnight Command Center)
 * **Vertical Navigation Sidebar:** A fixed navigation rail positioned on the rightmost edge of the viewport containing icon buttons for fast tab switching.
-* **Live Activity Audit Feed:** A chronological timeline displaying administrative actions (soft-deletes, restores, SLA breach resolutions) with color-coded badges.
-* **Moderation Queue:** Centralized interface for approving/rejecting FAQ promotion requests and resolving SLA breaches.
+* **Live Activity Audit Feed:** A chronological timeline displaying administrative actions (soft-deletes, restores, response breach resolutions) with color-coded badges.
+* **Moderation Queue:** Centralized interface for approving/rejecting FAQ promotion requests and resolving response breaches.
 * **Pin Administration:** Create and manage sticky overview banners, cohort announcements, or spotlight FAQs pinned to the top of pages.
 
 ---
@@ -62,10 +62,10 @@ graph TD
   E -- Yes --> F[Block submission & show accepted answer]
   E -- No --> G{FAQ duplicate exists? Jaccard >= 0.80}
   G -- Yes --> H[Block submission & show FAQ answer]
-  G -- No --> I[Save Query & start 24hr SLA timer]
+  G -- No --> I[Save Query & start 24hr response timer]
 ```
 
-### 2. SLA Claim Lifecycle
+### 2. Response Claim Lifecycle
 ```mermaid
 graph TD
   A[Open Query] --> B[Volunteer Claims Query]
@@ -74,7 +74,7 @@ graph TD
   C -- No --> E[Volunteer submits answer]
   E --> F[Query status updated to 'answered']
   F --> G[Owner accepts answer]
-  G --> H[Query status 'closed' & SLA stops]
+  G --> H[Query status 'closed' & timer stops]
 ```
 
 ### 3. Collaborative FAQ Promotion

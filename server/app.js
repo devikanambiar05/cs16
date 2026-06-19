@@ -76,6 +76,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Grantha API is running' });
 });
 
+// ── Production static file serving ──────────────────────────────────────────
+// When built via Dockerfile.prod, the Vite client dist is copied to ./public.
+// This serves the SPA and handles client-side routing via the catch-all below.
+if (process.env.NODE_ENV === 'production') {
+  const clientBuildPath = path.join(__dirname, 'public');
+  app.use(express.static(clientBuildPath));
+  // SPA fallback — serve index.html for any non-API route
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+}
+
 // Global error handlers — MUST be registered after all routes
 app.use(notFoundHandler);
 app.use(errorHandler);

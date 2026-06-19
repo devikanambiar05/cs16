@@ -18,7 +18,10 @@ exports.getQueries = async (req, res) => {
     else if (status === 'closed') query.status = 'closed';
 
     if (tag) query.tags = tag.toLowerCase();
-    if (claimed === 'true') query.assignedTo = { $ne: null };
+    if (claimed === 'true') {
+      query.assignedTo = { $ne: null };
+      query.status = { $ne: 'closed' };
+    }
     if (q) query.$text = { $search: q };
     if (req.query.createdBy) {
       const mongoose = require('mongoose');
@@ -447,8 +450,12 @@ exports.takeQuery = async (req, res) => {
     query.claimedAt = new Date();
     query.status = 'claimed';
     query.expiresAt = new Date(Date.now() + SLA_24HR);
-    query.escalationCount += 1;
-    query.escalatedAt = query.escalatedAt || new Date();
+    // Only mark as escalated if SLA was actually breached
+    const isSlaBreached = query.expiresAt < new Date();
+    if (isSlaBreached) {
+      query.escalationCount += 1;
+      query.escalatedAt = query.escalatedAt || new Date();
+    }
     await query.save();
 
     const populated = await Query.findById(query._id)

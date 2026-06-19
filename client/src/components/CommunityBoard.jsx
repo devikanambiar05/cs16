@@ -20,9 +20,9 @@ export default function CommunityBoard() {
 
   const typeConfig = {
     announcement: {
-      bg: 'from-amber-50 to-white dark:from-amber-950/20 dark:to-slate-900',
-      border: 'border-amber-200 dark:border-amber-900/30',
-      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
+      bg: 'bg-white dark:bg-[#22211e]/40',
+      border: 'border-slate-200/60 dark:border-slate-800/80',
+      badge: 'badge-primary',
       label: 'Announcement',
     }
   };
@@ -34,8 +34,8 @@ export default function CommunityBoard() {
       {/* Section header */}
       <div className="flex items-center justify-between mb-3 min-w-0">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-amber-100 dark:bg-amber-950/40 rounded flex items-center justify-center shrink-0">
-            <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+          <div className="w-6 h-6 bg-primary-100 dark:bg-primary-950/40 rounded flex items-center justify-center shrink-0">
+            <svg className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
             </svg>
           </div>
@@ -46,7 +46,7 @@ export default function CommunityBoard() {
         {announcements.length > 3 && (
           <button
             onClick={() => setShowAll(!showAll)}
-            className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer focus:outline-none"
+            className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer focus:outline-none"
           >
             {showAll ? 'Show Less' : 'View All Announcements'}
           </button>
@@ -61,7 +61,7 @@ export default function CommunityBoard() {
             <div
               key={pin._id}
               onClick={() => setSelectedPin(pin)}
-              className={`relative aspect-square rounded-2xl border ${cfg.border} bg-gradient-to-br ${cfg.bg} p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer select-none`}
+              className={`relative aspect-square rounded-2xl border ${cfg.border} ${cfg.bg} p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer select-none`}
             >
               {/* Type badge */}
               <div className="flex items-center">

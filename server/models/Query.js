@@ -94,6 +94,10 @@ const querySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  communityScore: {
+    type: Number,
+    default: 0
+  },
   // Files attached when the query was raised (images, PDFs, DOC/DOCX)
   attachments: [{
     url:      { type: String, required: true }, // served path, e.g. /uploads/xxx.pdf
@@ -114,7 +118,7 @@ const querySchema = new mongoose.Schema({
   },
   relatedQueries: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Query'
+    ref: 'FAQ'
   }]
 }, {
   timestamps: true

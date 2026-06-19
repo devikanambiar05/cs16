@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getCategories, getFAQs, getFAQsByCategory, upvoteFAQ, pinFaq, getPins, toggleBookmark, getCategoryContributors } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastProvider';
@@ -73,6 +74,8 @@ function Pagination({ page, totalPages, onPage }) {
 
 function FAQsPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParamVal = searchParams.get('search') || searchParams.get('q') || '';
 
   const [categories, setCategories] = useState([]);
   const [recentCategories, setRecentCategories] = useState([]);
@@ -95,6 +98,21 @@ function FAQsPage() {
   const [categoryContributorsLoading, setCategoryContributorsLoading] = useState(false);
   const [sortBy, setSortBy] = useState('recent');
 
+  const performSearch = async (queryText, page = 1) => {
+    setSearchLoading(true);
+    try {
+      const res = await getFAQs({ search: queryText, page, pageSize: PAGE_SIZE, sort: sortBy });
+      setSearchResults(res.data?.faqs || res.data || []);
+      setSearchTotal(res.data?.pagination?.total || 0);
+      setSearchPage(page);
+      setSelectedCategory(null);
+    } catch (err) {
+      console.error('Search failed:', err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   // Load initial data
   useEffect(() => {
     loadCategories();
@@ -102,16 +120,21 @@ function FAQsPage() {
     loadOverview();
   }, []);
 
-  // When sortBy changes, reload whatever list is currently active
+  // When sortBy or searchParamVal changes, reload the active list/search
   useEffect(() => {
-    if (searchResults !== null) {
-      handleSearch(null, 1);
-    } else if (selectedCategory) {
-      loadCategoryFAQs(selectedCategory.tag, 1);
+    if (searchParamVal.trim()) {
+      setSearchQuery(searchParamVal);
+      performSearch(searchParamVal, 1);
     } else {
-      loadAllFAQs(1);
+      setSearchQuery('');
+      setSearchResults(null);
+      if (selectedCategory) {
+        loadCategoryFAQs(selectedCategory.tag, 1);
+      } else {
+        loadAllFAQs(1);
+      }
     }
-  }, [sortBy]);
+  }, [searchParamVal, sortBy]);
 
   const loadPinnedFAQs = async () => {
     try {
@@ -229,25 +252,16 @@ function FAQsPage() {
     e?.preventDefault();
     if (!searchQuery.trim()) {
       setSearchResults(null);
+      setSearchParams({});
       return;
     }
-    setSearchLoading(true);
-    try {
-      const res = await getFAQs({ search: searchQuery, page, pageSize: PAGE_SIZE, sort: sortBy });
-      setSearchResults(res.data.faqs);
-      setSearchTotal(res.data.pagination?.total || 0);
-      setSearchPage(page);
-      setSelectedCategory(null);
-    } catch (err) {
-      console.error('Search failed:', err);
-    } finally {
-      setSearchLoading(false);
-    }
+    setSearchParams({ search: searchQuery });
   };
 
   const clearSearch = () => {
     setSearchQuery('');
     setSearchResults(null);
+    setSearchParams({});
   };
 
   const handleUpvote = async (faqId) => {
@@ -481,7 +495,7 @@ function FAQsPage() {
                         <select
                           value={sortBy}
                           onChange={(e) => setSortBy(e.target.value)}
-                          className="bg-transparent text-xs font-semibold text-slate-655 dark:text-slate-300 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-slate-900"
+                          className="bg-transparent text-xs font-semibold text-slate-600 dark:text-slate-300 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-slate-900"
                         >
                           <option value="recent">Recent</option>
                           <option value="popular">Upvotes</option>
@@ -529,7 +543,7 @@ function FAQsPage() {
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="bg-transparent text-xs font-semibold text-slate-655 dark:text-slate-300 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-slate-900"
+                      className="bg-transparent text-xs font-semibold text-slate-600 dark:text-slate-300 focus:outline-none cursor-pointer border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1 hover:border-slate-300 dark:hover:border-slate-700 transition-all bg-white dark:bg-slate-900"
                     >
                       <option value="recent">Recent</option>
                       <option value="popular">Upvotes</option>
@@ -553,7 +567,7 @@ function FAQsPage() {
                 <Pagination
                   page={searchPage}
                   totalPages={Math.ceil(searchTotal / PAGE_SIZE)}
-                  onPage={(p) => handleSearch(null, p)}
+                  onPage={(p) => performSearch(searchQuery, p)}
                 />
               )}
             </section>
@@ -578,7 +592,10 @@ function FAQsPage() {
                   value={searchQuery}
                   onChange={e => {
                     setSearchQuery(e.target.value);
-                    if (!e.target.value) setSearchResults(null);
+                    if (!e.target.value) {
+                      setSearchResults(null);
+                      setSearchParams({});
+                    }
                   }}
                 />
               </div>

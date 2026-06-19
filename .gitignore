@@ -14,5 +14,12 @@ server/data/
 RAG_INFERENCE_EXPERIMENTS.md
 team-wiki-pages
 server/.mongodb/
-presentation.md
+
+
+
+# Temp/Backup/Debug/Build files
+*.bak
+*.tmp
+server/db_check.js
+server/test_endpoint.js
 

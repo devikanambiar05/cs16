@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getVolunteerLevel, getUserBadges } from '../utils/gamificationHelper';
 import { 
@@ -206,11 +206,11 @@ function SlaWarningBanner({ expiresAt, status }) {
     }`}>
       {slaStatus.urgency === 'warning' ? (
         <>
-          <WarningIcon /> This query needs an answer soon — SLA deadline approaching
+          <WarningIcon /> This query needs an answer soon — response deadline approaching
         </>
       ) : (
         <>
-          <CriticalIcon /> SLA breached! Answer immediately or claim will be released
+          <CriticalIcon /> Response overdue! Answer immediately or claim will be released
         </>
       )}
     </div>
@@ -243,6 +243,46 @@ function getConfidenceInfo(score) {
   if (score >= 30) return { label: 'Moderate', pct, color: 'bg-blue-500', textColor: 'text-blue-700 dark:text-blue-400', barBg: 'bg-blue-50 dark:bg-blue-950' };
   if (score >= 10) return { label: 'Growing', pct, color: 'bg-amber-500', textColor: 'text-amber-700 dark:text-amber-400', barBg: 'bg-amber-50 dark:bg-amber-950' };
   return { label: 'New', pct: Math.max(5, pct), color: 'bg-slate-300 dark:bg-slate-700', textColor: 'text-slate-400 dark:text-slate-500', barBg: 'bg-slate-50 dark:bg-slate-900' };
+}
+
+function LevelBadgeWithPopover({ user }) {
+  const levelDetails = getVolunteerLevel(user);
+  if (!levelDetails) return null;
+
+  const reqs = {
+    1: ["Default baseline level for volunteers"],
+    2: ["Reputation ≥ 100", "Accepted Answers ≥ 3"],
+    3: ["Reputation ≥ 300", "Accepted Answers ≥ 10"],
+    4: ["Reputation ≥ 800", "Accepted Answers ≥ 25"]
+  };
+
+  return (
+    <div className="relative inline-block group">
+      <span className={`px-1.5 py-px rounded-full text-[8px] font-bold border uppercase tracking-wider select-none cursor-help ${levelDetails.badgeClass}`}>
+        {levelDetails.icon} Lvl {levelDetails.level}
+      </span>
+      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-52 bg-slate-900 dark:bg-slate-950 text-white text-[11px] p-3 rounded-xl shadow-2xl border border-slate-700/60 dark:border-slate-800 z-[100] pointer-events-none text-left">
+        <div className="font-bold text-xs border-b border-slate-700/50 pb-1 mb-1.5 flex items-center gap-1.5">
+          <span>{levelDetails.icon}</span>
+          <span>{levelDetails.name} (Level {levelDetails.level})</span>
+        </div>
+        <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Requirements:</p>
+        <ul className="space-y-0.5 list-disc pl-3 text-slate-300">
+          {reqs[levelDetails.level].map((r, idx) => (
+            <li key={idx}>{r}</li>
+          ))}
+        </ul>
+        {levelDetails.nextThreshold && (
+          <div className="mt-2 pt-1.5 border-t border-slate-700/30 text-[10px] text-slate-400">
+            Next Rank: <span className="text-amber-400 font-semibold">{levelDetails.nextThreshold.label}</span>
+            <div className="mt-0.5 text-[9px] text-slate-500">
+              (Rep ≥ {levelDetails.nextThreshold.reputation}, Accepted ≥ {levelDetails.nextThreshold.accepted})
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -328,7 +368,16 @@ function CommunityPage({ propHighlightId, onClearHighlight }) {
 
   const PAGE_SIZE = 10;
 
+  const lastHighlightIdRef = useRef(propHighlightId);
+
   useEffect(() => {
+    if (propHighlightId !== lastHighlightIdRef.current) {
+      const prevId = lastHighlightIdRef.current;
+      lastHighlightIdRef.current = propHighlightId;
+      if (!propHighlightId && prevId) {
+        return;
+      }
+    }
     fetchQueries();
     fetchLeaderboard();
     fetchStats();
@@ -378,7 +427,7 @@ function CommunityPage({ propHighlightId, onClearHighlight }) {
         list = list.filter(q => {
           const claimantId = q.assignedTo?._id || q.assignedTo;
           const currentUserId = user?._id || user?.id;
-          return claimantId && currentUserId && claimantId === currentUserId;
+          return claimantId && currentUserId && claimantId === currentUserId && q.status !== 'closed';
         });
       } else if (filter === 'unclaimed-sla') {
         list = list.filter(q => !q.assignedTo);
@@ -624,7 +673,7 @@ function CommunityPage({ propHighlightId, onClearHighlight }) {
       }
       const claimRes = await claimQuery(available._id);
       const assignedQuery = claimRes.data.query || available;
-      toast.success(`🎯 Claimed: "${assignedQuery.title}" — 24hr SLA started!`);
+      toast.success(`🎯 Claimed: "${assignedQuery.title}" — 24hr response timer started!`);
       setExpandedQuery(assignedQuery._id);
       setTimeout(() => {
         const el = document.getElementById(`query-card-${assignedQuery._id}`);
@@ -750,7 +799,7 @@ function CommunityPage({ propHighlightId, onClearHighlight }) {
                 {[
                   { id: 'all', label: 'All Queries' },
                   ...(user && user.role !== 'admin' ? [{ id: 'my-claims', label: 'My Claims' }] : []),
-                  { id: 'unclaimed-sla', label: 'Unclaimed SLA' },
+                  { id: 'unclaimed-sla', label: 'Unclaimed Queries' },
                   { id: 'closed', label: 'Closed' }
                 ].map(tab => (
                   <button
@@ -771,7 +820,7 @@ function CommunityPage({ propHighlightId, onClearHighlight }) {
                 <select
                   value={sort}
                   onChange={e => { setSort(e.target.value); setPage(1); }}
-                  className="text-[11px] md:text-xs border border-slate-205 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-slate-650 dark:text-slate-400 focus:outline-none focus:border-primary-400 dark:bg-[#191816]"
+                  className="text-[11px] md:text-xs border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1.5 text-slate-600 dark:text-slate-400 focus:outline-none focus:border-primary-400 dark:bg-[#191816]"
                 >
                   <option value="recent">Most Recent</option>
                   <option value="trending">Trending</option>
@@ -901,17 +950,17 @@ function CommunityPage({ propHighlightId, onClearHighlight }) {
 
           {/* Generic Community Statistics Card */}
           <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm select-none">
-            <h4 className="font-serif font-bold text-slate-850 dark:text-slate-205 text-lg mb-4 flex items-center gap-2">
+            <h4 className="font-serif font-bold text-slate-800 dark:text-slate-200 text-lg mb-4 flex items-center gap-2">
               <StatsIcon /> Community Statistics
             </h4>
             <div className="grid grid-cols-2 gap-3.5">
-              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-805">
+              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-800">
                 <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Open Queries</span>
-                <span className="text-2xl font-bold text-slate-850 dark:text-slate-105 mt-0.5 block">{stats.open}</span>
+                <span className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-0.5 block">{stats.open}</span>
               </div>
               <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-3 border border-slate-100 dark:border-slate-850">
                 <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Resolved Queries</span>
-                <span className="text-2xl font-bold text-emerald-605 dark:text-emerald-450 mt-0.5 block">{stats.answered}</span>
+                <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-450 mt-0.5 block">{stats.answered}</span>
               </div>
             </div>
           </div>
@@ -981,7 +1030,7 @@ function CommunityPage({ propHighlightId, onClearHighlight }) {
           />
           
           {/* Modal Content */}
-          <div className="relative w-full max-w-md bg-white dark:bg-[#22211e] rounded-2xl border border-slate-205 dark:border-slate-800 p-6 shadow-2xl z-10 animate-fade-in flex flex-col overflow-hidden max-h-[90vh]">
+          <div className="relative w-full max-w-md bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl z-10 animate-fade-in flex flex-col overflow-hidden max-h-[90vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-serif font-bold text-lg text-slate-850 dark:text-slate-100 flex items-center gap-2">
                 <svg className="w-5 h-5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -1292,11 +1341,7 @@ function QueryCard({
             ))}
             <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5 flex-wrap">
               by <span className="font-medium text-slate-500 dark:text-slate-400">{query.createdBy?.name || 'Unknown'}</span>
-              {getVolunteerLevel(query.createdBy) && (
-                <span className={`px-1.5 py-px rounded-full text-[8px] font-bold border uppercase tracking-wider select-none ${getVolunteerLevel(query.createdBy).badgeClass}`} title={`${getVolunteerLevel(query.createdBy).name} (Level ${getVolunteerLevel(query.createdBy).level})`}>
-                  {getVolunteerLevel(query.createdBy).icon} Lvl {getVolunteerLevel(query.createdBy).level}
-                </span>
-              )}
+              <LevelBadgeWithPopover user={query.createdBy} />
             </span>
             <span className="text-xs text-slate-400 dark:text-slate-500">·</span>
             <span className="text-xs text-slate-400 dark:text-slate-500">
@@ -1317,7 +1362,7 @@ function QueryCard({
                       ? 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:bg-amber-600/20 dark:text-amber-400 dark:border-amber-550/30'
                       : (isOwnedByCurrentUser || currentUser?.role === 'admin')
                       ? 'bg-slate-100 dark:bg-[#191816] border-slate-200/50 dark:border-slate-800/50 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
-                      : 'bg-slate-50 border-slate-205 text-slate-650 hover:bg-slate-100 hover:border-slate-350 dark:bg-[#191816] dark:border-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-800'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-350 dark:bg-[#191816] dark:border-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-800'
                   }`}
                   title={
                     !currentUser 
@@ -1481,33 +1526,35 @@ function QueryCard({
                 </div>
               )}
 
-              {/* Related Knowledge Graph (Semantic Tag Linkage) */}
-              {query.relatedQueries && query.relatedQueries.length > 0 && (
-                <div className="mb-6 bg-blue-50/20 dark:bg-blue-950/10 rounded-xl p-4 border border-blue-100/50 dark:border-slate-800/40 animate-fade-in">
-                  <p className="text-xs font-semibold text-blue-650 dark:text-blue-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-serif">
-                    <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              {/* Related FAQs (Tag Linkage) */}
+              {query.relatedQueries && query.relatedQueries.filter(Boolean).length > 0 && (
+                <div className="mb-6 bg-primary-50/20 dark:bg-primary-950/10 rounded-xl p-4 border border-primary-100/40 dark:border-slate-800/40 animate-fade-in">
+                  <p className="text-xs font-semibold text-primary-750 dark:text-primary-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-sans">
+                    <svg className="w-3.5 h-3.5 text-primary-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                     </svg>
-                    Semantic Knowledge Graph: Related Queries
+                    Related FAQs
                   </p>
                   <div className="space-y-2">
-                    {query.relatedQueries.map(rel => (
-                      <div key={rel._id} className="text-xs flex items-center justify-between gap-3 p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-all">
-                        <span className="text-slate-700 dark:text-slate-350 font-medium truncate">
+                    {query.relatedQueries.filter(Boolean).map(rel => (
+                      <Link 
+                        key={rel._id} 
+                        to={`/?search=${encodeURIComponent(rel.title)}`}
+                        className="text-xs flex items-center justify-between gap-3 p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-all cursor-pointer block"
+                      >
+                        <span className="text-slate-700 dark:text-slate-350 font-medium truncate hover:text-primary-600 dark:hover:text-primary-400 hover:underline">
                           🔗 {rel.title}
                         </span>
                         <span className={`badge shrink-0 text-[9px] ${
-                          rel.status === 'open' 
-                            ? 'badge-blue' 
-                            : rel.status === 'claimed' 
-                            ? 'badge-yellow' 
-                            : rel.status === 'answered' 
+                          rel.status === 'resolved' 
                             ? 'badge-green' 
+                            : rel.status === 'pending' 
+                            ? 'badge-yellow' 
                             : 'badge-gray'
                         }`}>
-                          {rel.status}
+                          {rel.status || 'resolved'}
                         </span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -1579,11 +1626,7 @@ function QueryCard({
                                 <span className="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-100">
                                   {answer.userId?.name || 'Anonymous User'}
                                 </span>
-                                {getVolunteerLevel(answer.userId) && (
-                                  <span className={`px-1.5 py-px rounded-full text-[8px] font-bold border uppercase tracking-wider select-none ${getVolunteerLevel(answer.userId).badgeClass}`} title={`${getVolunteerLevel(answer.userId).name} (Level ${getVolunteerLevel(answer.userId).level})`}>
-                                    {getVolunteerLevel(answer.userId).icon} Lvl {getVolunteerLevel(answer.userId).level}
-                                  </span>
-                                )}
+                                <LevelBadgeWithPopover user={answer.userId} />
                                 <span className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold px-2 py-0.5 bg-slate-50 dark:bg-[#191816] rounded-md border border-slate-100 dark:border-slate-850 select-none">
                                   {answer.userId?.reputation || 0} Rep
                                 </span>
@@ -1727,6 +1770,11 @@ function QueryCard({
                         onChange={onAnswerChange}
                         placeholder="Write a step-by-step resolution, using Markdown formats..."
                       />
+                      {getWordCount(answerContent) > MAX_WORDS && (
+                        <p className="text-xs text-red-500 mt-2">
+                          Answer exceeds the {MAX_WORDS}-word limit.
+                        </p>
+                      )}
                       <div className="flex justify-end gap-2.5 mt-3">
                         <button
                           type="button"
@@ -1738,7 +1786,7 @@ function QueryCard({
                         </button>
                         <button
                           onClick={onSubmitAnswer}
-                          disabled={submitting === query._id || !answerContent?.trim()}
+                          disabled={submitting === query._id || !answerContent?.trim() || getWordCount(answerContent) > MAX_WORDS}
                           className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all duration-150"
                         >
                           {submitting === query._id ? 'Submitting Answer...' : 'Submit Answer'}

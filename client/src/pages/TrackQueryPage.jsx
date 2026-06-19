@@ -95,7 +95,7 @@ export default function TrackQueryPage() {
       {/* Header */}
       <div className="mb-8 select-none">
         <h1 className="text-3xl font-serif font-bold text-slate-900 dark:text-slate-100 mb-2">Track Queries</h1>
-        <p className="text-slate-600 dark:text-slate-400">Monitor resolution progress and SLA status for queries you have raised.</p>
+        <p className="text-slate-600 dark:text-slate-400">Monitor resolution progress for queries you have raised.</p>
       </div>
 
       <div className="grid grid-cols-12 gap-8 items-start">
@@ -125,8 +125,8 @@ export default function TrackQueryPage() {
                       onClick={() => setSelectedQuery(q)}
                       className={`w-full text-left px-3.5 py-3 rounded-xl transition-all duration-150 flex flex-col gap-1 border ${
                         isActive
-                          ? 'bg-primary-50/70 dark:bg-primary-950/20 text-primary-700 dark:text-primary-400 border-primary-200/50 dark:border-primary-900/20'
-                          : 'border-transparent text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-900/40'
+                          ? 'bg-primary-50/35 dark:bg-primary-950/15 text-primary-700 dark:text-primary-400 border-primary-100/50 dark:border-primary-900/20'
+                          : 'border-transparent text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-[#1f1e1b]'
                       }`}
                     >
                       <span className="font-semibold text-sm line-clamp-1">{q.title}</span>
@@ -137,7 +137,7 @@ export default function TrackQueryPage() {
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400'
                             : q.status === 'claimed'
                               ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/30 dark:text-blue-400'
-                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-405'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-400'
                         }`}>
                           {q.status}
                         </span>
@@ -186,7 +186,7 @@ export default function TrackQueryPage() {
                     
                     {/* Step 1: Created */}
                     <div className="relative">
-                      <div className="absolute -left-[41px] top-0.5 w-6 h-6 rounded-full bg-emerald-100 border-4 border-white dark:border-[#22211e] flex items-center justify-center text-emerald-605">
+                      <div className="absolute -left-[41px] top-0.5 w-6 h-6 rounded-full bg-emerald-100 border-4 border-white dark:border-[#22211e] flex items-center justify-center text-emerald-600">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                       </div>
                       <div>
@@ -219,17 +219,17 @@ export default function TrackQueryPage() {
                         }`} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">SLA Response Window</h4>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Response Window</h4>
                         <p className="text-xs text-slate-500 dark:text-slate-450 mt-0.5">
                           {queryDetails.query.status === 'closed'
-                            ? 'Resolved within the target response SLA window.'
+                            ? 'Resolved within the target response window.'
                             : new Date(queryDetails.query.expiresAt) < new Date()
-                              ? 'SLA breached. Admins and senior responders have been notified to expedite this query.'
-                              : 'Active SLA: Responders target query claim and resolution window.'}
+                              ? 'Response window overdue. Admins and senior responders have been notified to expedite this query.'
+                              : 'Active: Responders target query claim and resolution window.'}
                         </p>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-1 block">
                           {queryDetails.query.status === 'closed'
-                            ? 'SLA Fulfilled'
+                            ? 'Resolution Target Met'
                             : `Deadline: ${formatDate(queryDetails.query.expiresAt)}`}
                         </span>
                       </div>

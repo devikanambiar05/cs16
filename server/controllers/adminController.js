@@ -145,6 +145,15 @@ exports.pinFAQ = async (req, res) => {
     faq.pinned = faq.pinned ? false : true;
     await faq.save();
 
+    // Log Pin action to AuditLog
+    await AuditLog.create({
+      action: faq.pinned ? 'pinned faq' : 'unpinned faq',
+      performedBy: req.user._id,
+      targetModel: 'FAQ',
+      targetId: faq._id,
+      targetName: faq.title
+    });
+
     res.json({ message: faq.pinned ? 'FAQ pinned' : 'FAQ unpinned', pinned: faq.pinned });
   } catch (error) {
     res.status(500).json({ error: 'Failed to pin FAQ' });
@@ -409,8 +418,13 @@ exports.bulkUserAction = async (req, res) => {
     if (action === 'unban')   update = { status: 'active' };
     if (action === 'promote') update = { role: 'admin' };
 
+    const query = { _id: { $in: userIds } };
+    if (action === 'ban') {
+      query.role = { $ne: 'admin' };
+    }
+
     const result = await User.updateMany(
-      { _id: { $in: userIds } },
+      query,
       { $set: update }
     );
 
@@ -769,7 +783,7 @@ exports.deletePin = async (req, res) => {
 
 exports.getAdminFaqs = async (req, res) => {
   try {
-    const { page = 1, limit = 20, status, search, tag } = req.query;
+    const { page = 1, limit = 20, status, search, tag, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
     const query = {};
     if (status && status !== 'all') {
       query.status = status;
@@ -781,11 +795,22 @@ exports.getAdminFaqs = async (req, res) => {
       query.tags = tag.toLowerCase().trim();
     }
 
+    // Determine sorting configuration
+    let sortConfig = {};
+    const sortDirection = sortOrder === 'asc' ? 1 : -1;
+    if (sortBy === 'section') {
+      sortConfig = { tags: sortDirection, createdAt: -1 };
+    } else if (sortBy === 'upvotes') {
+      sortConfig = { upvotes: sortDirection, createdAt: -1 };
+    } else {
+      sortConfig = { createdAt: sortDirection };
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [faqs, total] = await Promise.all([
       FAQ.find(query)
         .populate('createdBy', 'name')
-        .sort({ createdAt: -1 })
+        .sort(sortConfig)
         .skip(skip)
         .limit(parseInt(limit)),
       FAQ.countDocuments(query)

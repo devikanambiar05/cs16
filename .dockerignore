@@ -1,0 +1,23 @@
+node_modules
+**/node_modules
+.env
+**/.env
+*.log
+**/*.log
+dist
+build
+.cache
+server/data
+server/.mongodb
+server/mongod.log
+.git
+.gitignore
+.github
+.vscode
+
+*.bak
+*.tmp
+server/db_check.js
+server/test_endpoint.js
+project-report.html
+FAQ report.pdf

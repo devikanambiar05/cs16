@@ -68,21 +68,10 @@ async function seed() {
     const pins = [
       {
         type: 'announcement',
+        title: 'Welcome to the FAQ Community!',
         content: 'Welcome to the FAQ Community!',
-        createdBy: admin._id,
+        pinnedBy: admin._id,
         order: 1
-      },
-      {
-        type: 'overview',
-        content: `${faqs.length} FAQs available`,
-        createdBy: admin._id,
-        order: 2
-      },
-      {
-        type: 'faq',
-        faqId: insertedFAQs[0]?._id,
-        createdBy: admin._id,
-        order: 3
       }
     ];
 

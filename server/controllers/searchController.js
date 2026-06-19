@@ -300,7 +300,8 @@ exports.searchSimilar = async (req, res) => {
         const s = bm25ScoreTf(qTokens, rTf, rdl, avgQL || rdl, qdf, qN);
         if (s >= 0.5) scoreMap[r._id.toString()] = s;
       }
-      const topScore = Object.values(scoreMap)[0] || 0;
+      const scores = Object.values(scoreMap);
+      const topScore = scores.length > 0 ? Math.max(...scores) : 0;
       const MIN_RELATIVE = 0.35;
       topRawQueries = allRawQueries
         .filter(r => {
@@ -385,8 +386,8 @@ exports.getTagSuggestions = async (req, res) => {
 };
 
 exports.detectTags = async (req, res) => {
+  const { text = '' } = req.query; // destructured here so catch block can access it
   try {
-    const { text = '' } = req.query;
     if (!text || text.length < 10) return res.json({ detectedTags: [], confidence: [] });
 
     // Harvest all known tags from FAQs AND queries (case-insensitive)

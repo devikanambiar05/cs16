@@ -70,7 +70,7 @@ export function getUserBadges(user) {
       id: 'fast_responder',
       name: 'Fast Responder',
       icon: '⚡',
-      desc: 'Contributed 3+ answers in the community board under SLA claiming rules.',
+      desc: 'Contributed 3+ answers in the community board under claim-and-answer rules.',
       colorClass: 'bg-yellow-50 text-yellow-700 border-yellow-250 dark:bg-yellow-950/40 dark:text-yellow-400 dark:border-yellow-900/30'
     });
   }
@@ -99,14 +99,14 @@ export function getUserBadges(user) {
     });
   }
   
-  // 4. SLA Champion 🏆
+  // 4. Response Champion 🏆
   // Unlocked for elite volunteers with high reputation and high accepted answers
   if (isVolunteer && rep >= 200 && accepted >= 5) {
     badges.push({
-      id: 'sla_champion',
-      name: 'SLA Champion',
+      id: 'response_champion',
+      name: 'Response Champion',
       icon: '🏆',
-      desc: 'Maintained excellent SLA stats with high reputation and multiple accepted answers.',
+      desc: 'Maintained excellent response speed with high reputation and multiple accepted answers.',
       colorClass: 'bg-purple-50 text-purple-700 border-purple-250 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-900/30'
     });
   }

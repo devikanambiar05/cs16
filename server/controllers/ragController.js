@@ -540,13 +540,22 @@ exports.ragChat = async (req, res) => {
           const vectorScore = sim > 0 ? sim * 5.0 : 0;
           return { ...faq, score: vectorScore, similarity: sim };
         })
-        .filter(f => f.score >= 1.2)
+        .filter(f => f.score >= 3.5)
         .sort((a, b) => b.score - a.score)
         .slice(0, 5);
     } else {
       scored = faqs
-        .map(faq => ({ ...faq, score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N) }))
-        .filter(f => f.score >= 1.2)
+        .map(faq => {
+          const baseScore = bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N);
+          const titleTokens = tokenize(faq.title);
+          let titleMatches = 0;
+          for (const token of qTokens) {
+            if (titleTokens.includes(token)) titleMatches++;
+          }
+          const boost = qTokens.length > 0 ? (titleMatches / qTokens.length) * 3.0 : 0;
+          return { ...faq, score: baseScore + boost };
+        })
+        .filter(f => f.score >= 3.5)
         .sort((a, b) => b.score - a.score)
         .slice(0, 5);
     }
@@ -720,13 +729,22 @@ async function generateRagAnswerText(question) {
           const vectorScore = sim > 0 ? sim * 5.0 : 0;
           return { ...faq, score: vectorScore, similarity: sim };
         })
-        .filter(f => f.score >= 1.2)
+        .filter(f => f.score >= 3.5)
         .sort((a, b) => b.score - a.score)
         .slice(0, 5);
     } else {
       scored = faqs
-        .map(faq => ({ ...faq, score: bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N) }))
-        .filter(f => f.score >= 1.2)
+        .map(faq => {
+          const baseScore = bm25Score(qTokens, faq._tokens, faq._docLen, avgDL, df, N);
+          const titleTokens = tokenize(faq.title);
+          let titleMatches = 0;
+          for (const token of qTokens) {
+            if (titleTokens.includes(token)) titleMatches++;
+          }
+          const boost = qTokens.length > 0 ? (titleMatches / qTokens.length) * 3.0 : 0;
+          return { ...faq, score: baseScore + boost };
+        })
+        .filter(f => f.score >= 3.5)
         .sort((a, b) => b.score - a.score)
         .slice(0, 5);
     }

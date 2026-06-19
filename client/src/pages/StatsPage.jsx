@@ -78,7 +78,7 @@ export default function StatsPage() {
               Volunteer Analytics Dashboard
             </h1>
             <p className="text-slate-650 dark:text-slate-400 max-w-xl text-sm leading-relaxed">
-              Track SLA compliance matrices, active community claims, and your personal gamified performance benchmarks as a registered Grantha responder.
+              Track your contribution analytics, active community claims, and your personal performance benchmarks as a registered responder.
             </p>
           </div>
           <div className="bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl px-4 py-2.5 text-xs font-semibold flex items-center gap-1.5 shrink-0 self-start md:self-center">
@@ -92,29 +92,29 @@ export default function StatsPage() {
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <div className="bg-white dark:bg-[#22211e] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
             <h3 className="font-serif font-bold text-slate-900 dark:text-slate-200 text-lg mb-5 flex items-center gap-1">
-              <StatsIcon /> Community Board SLA Metrics
+              <StatsIcon /> Community Board Metrics
             </h3>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 border border-slate-100 dark:border-slate-805">
+              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 border border-slate-100 dark:border-slate-800">
                 <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Open Queries</span>
                 <span className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1 block">{stats.open}</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">Awaiting expert resolution claims</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">Awaiting responder claims</span>
               </div>
 
-              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 border border-slate-100 dark:border-slate-805">
+              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 border border-slate-100 dark:border-slate-800">
                 <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Claims</span>
                 <span className="text-3xl font-bold text-amber-600 dark:text-amber-450 mt-1 block">{stats.claimed}</span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">Queries currently locked in 24h SLA</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">Queries currently claimed by responders</span>
               </div>
 
-              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 border border-slate-100 dark:border-slate-805">
-                <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">SLA Breached</span>
+              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 border border-slate-100 dark:border-slate-800">
+                <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Response Overdue</span>
                 <span className="text-3xl font-bold text-red-650 dark:text-red-400 mt-1 block">{stats.breached}</span>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">Overdue claims without submissions</span>
               </div>
 
-              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 border border-slate-100 dark:border-slate-805">
+              <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 border border-slate-100 dark:border-slate-800">
                 <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Resolved</span>
                 <span className="text-3xl font-bold text-emerald-650 dark:text-emerald-450 mt-1 block">{stats.answered}</span>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block">Queries successfully answered and closed</span>
@@ -180,7 +180,7 @@ export default function StatsPage() {
                 <div className="bg-slate-50 dark:bg-[#191816] rounded-xl p-4 border border-slate-100 dark:border-slate-800/50 text-center">
                   <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Volunteer Badge</span>
                   <span className="inline-block px-3 py-1 bg-amber-500 text-white dark:bg-amber-600 rounded-full text-xs font-bold shadow-sm">
-                    🎓 SLA Responder
+                    🎓 Community Responder
                   </span>
                 </div>
               </div>

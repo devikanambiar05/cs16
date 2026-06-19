@@ -444,3 +444,61 @@ describe('Community Query Endpoints', () => {
     });
   });
 });
+
+describe('Admin Ban Protection', () => {
+  let adminToken, userToken, adminUser, regularUser;
+
+  beforeAll(async () => {
+    const adminEmail = `admin-ban-test-${Date.now()}@test.com`;
+    const resAdmin = await request(app).post('/api/auth/register').send({
+      name: 'Admin Ban Test',
+      email: adminEmail,
+      password: 'password123'
+    });
+    adminToken = resAdmin.body.token;
+    adminUser = await User.findOne({ email: adminEmail });
+    adminUser.role = 'admin';
+    await adminUser.save();
+
+    const userEmail = `user-ban-test-${Date.now()}@test.com`;
+    const resUser = await request(app).post('/api/auth/register').send({
+      name: 'User Ban Test',
+      email: userEmail,
+      password: 'password123'
+    });
+    userToken = resUser.body.token;
+    regularUser = await User.findOne({ email: userEmail });
+  });
+
+  it('should prevent banning an admin individually via /api/users/:id/ban', async () => {
+    const res = await request(app)
+      .patch(`/api/users/${adminUser._id}/ban`)
+      .set('x-auth-token', adminToken)
+      .send({ isBanned: true });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Cannot ban an admin');
+
+    const checkUser = await User.findById(adminUser._id);
+    expect(checkUser.status).toBe('active');
+  });
+
+  it('should prevent banning an admin in bulk via /api/admin/users/bulk', async () => {
+    const res = await request(app)
+      .patch('/api/admin/users/bulk')
+      .set('x-auth-token', adminToken)
+      .send({
+        userIds: [regularUser._id, adminUser._id],
+        action: 'ban'
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.modifiedCount).toBe(1);
+
+    const checkAdmin = await User.findById(adminUser._id);
+    expect(checkAdmin.status).toBe('active');
+
+    const checkUser = await User.findById(regularUser._id);
+    expect(checkUser.status).toBe('banned');
+  });
+});

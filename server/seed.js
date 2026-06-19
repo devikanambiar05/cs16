@@ -193,24 +193,6 @@ async function seed(force = false) {
       pinnedBy: admin._id,
       order: 0
     });
-
-    const overviewPin = await Pin.create({
-      type: 'overview',
-      title: 'Overview',
-      content: 'Grantha is your student-driven community knowledge base. Search existing resolved FAQs first before raising new queries. Help peers by answering open queries in the forum!',
-      pinnedBy: admin._id,
-      order: 1
-    });
-
-    if (inserted.length > 0) {
-      await Pin.create({
-        type: 'faq',
-        title: `Pinned FAQ: ${inserted[0].title}`,
-        faqId: inserted[0]._id,
-        pinnedBy: admin._id,
-        order: 2
-      });
-    }
     console.log('Created default community board pins');
 
     // ── Seed active forum queries and responses ────────────────────────────

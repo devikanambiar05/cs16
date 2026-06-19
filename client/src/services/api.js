@@ -68,8 +68,8 @@ export const api = {
 export const login = (email, password) => api.post('/api/auth/login', { email, password });
 export const register = (data) => api.post('/api/auth/register', data);
 export const verifyEmail = (token) => api.get(`/api/auth/verify-email?token=${token}`);
-export const requestPasswordReset = (email) => api.post('/api/auth/forgot-password', { email });
 export const forgotPassword = (email) => api.post('/api/auth/forgot-password', { email });
+export const requestPasswordReset = forgotPassword; // alias
 export const resetPassword = (token, password) => api.post('/api/auth/reset-password', { token, password });
 export const resendVerification = () => api.post('/api/auth/resend-verification', {});
 export const logoutAllDevices = () => api.post('/api/auth/logout-all', {});
@@ -115,13 +115,12 @@ export const claimQuery = (id) => api.post(`/api/queries/${id}/claim`);
 export const unclaimQuery = (id) => api.delete(`/api/queries/${id}/claim`);
 export const releaseQuery = (id) => api.post(`/api/queries/${id}/release`);
 export const takeQuery = (id) => api.post(`/api/queries/${id}/take`);
-export const closeQuery = (id) => api.patch(`/api/queries/${id}`, { status: 'closed' });
+export const closeQuery = (id) => api.patch(`/api/queries/${id}/close`);
 export const deleteQuery = (id) => api.delete(`/api/queries/${id}`);
 export const updateQuery = (id, data) => api.put(`/api/queries/${id}`, data);
 export const getSimilarQueries = (title, excludeId) =>
   api.get('/api/search/similar', { q: title })
     .then(({ data }) => (data.queries || []).filter(q => q._id !== excludeId).slice(0, 3));
-export const submitAnswer = (queryId, content) => api.post(`/api/queries/${queryId}/answers`, { content });
 export const createAnswer = (queryId, content) => api.post('/api/answers', { queryId, content });
 export const upvoteAnswer = (answerId) => api.post(`/api/answers/${answerId}/upvote`);
 export const acceptAnswer = (answerId) => api.post(`/api/answers/${answerId}/accept`);
@@ -131,7 +130,8 @@ export const toggleFacingQuery = (id) => api.post(`/api/queries/${id}/facing`);
 
 // Answers
 export const postAnswer = (queryId, data) => api.post(`/api/queries/${queryId}/answers`, data);
-export const voteAnswer = (answerId) => api.post(`/api/answers/${answerId}/vote`);
+// voteAnswer is an alias for upvoteAnswer (correct route)
+export const voteAnswer = (answerId) => api.post(`/api/answers/${answerId}/upvote`);
 export const deleteAnswer = (id) => api.delete(`/api/answers/${id}`);
 
 // FAQs
@@ -162,8 +162,8 @@ export const rejectFAQRequest = (id, data = {}) => api.post(`/api/faq-requests/$
 
 // Admin: FAQ management
 // getAdminFaqs maps page/pageSize -> page/limit for the controller
-export const getAdminFaqs = ({ page = 1, limit = 20, status, search, tag } = {}) =>
-  api.get('/api/admin/faqs', { page, limit, status, search, tag });
+export const getAdminFaqs = ({ page = 1, limit = 20, status, search, tag, sortBy, sortOrder } = {}) =>
+  api.get('/api/admin/faqs', { page, limit, status, search, tag, sortBy, sortOrder });
 
 export const patchFaq = (id, data) => api.patch(`/api/admin/faqs/${id}`, data);
 export const pinFaq = (id) => api.patch(`/api/admin/faqs/${id}/pin`);

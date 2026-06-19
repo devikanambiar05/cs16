@@ -236,4 +236,70 @@ describe('Trust-Based Gamification & Anti-Collusion Tests', () => {
       expect(res3.status).toBe(200);
     });
   });
+
+  describe('Claimant Answer Deletion Status Reversion', () => {
+    let claimantUser;
+    let queryToTest;
+    let ans1, ans2;
+
+    beforeAll(async () => {
+      claimantUser = userAdmin;
+      
+      // Create query
+      const qRes = await request(app)
+        .post('/api/queries')
+        .set('x-auth-token', userLowRep.token)
+        .send({
+          title: 'GameTest: Deletion query reversion test',
+          description: 'Testing if status goes back to claimed or remains answered',
+          tags: ['test']
+        });
+      queryToTest = qRes.body.query;
+
+      // Claimant claims the query
+      await request(app)
+        .post(`/api/queries/${queryToTest._id}/claim`)
+        .set('x-auth-token', claimantUser.token);
+      
+      // Claimant submits first answer
+      const a1Res = await request(app)
+        .post('/api/answers')
+        .set('x-auth-token', claimantUser.token)
+        .send({ queryId: queryToTest._id, content: 'First claimant answer' });
+      ans1 = a1Res.body.answer;
+
+      // Claimant submits second answer
+      const a2Res = await request(app)
+        .post('/api/answers')
+        .set('x-auth-token', claimantUser.token)
+        .send({ queryId: queryToTest._id, content: 'Second claimant answer' });
+      ans2 = a2Res.body.answer;
+    });
+
+    it('should keep query status as answered when claimant has multiple answers and deletes one', async () => {
+      // Deleting first answer
+      const delRes = await request(app)
+        .delete(`/api/answers/${ans1._id}`)
+        .set('x-auth-token', claimantUser.token);
+      
+      expect(delRes.status).toBe(200);
+
+      // Query status should still be answered because claimant still has ans2
+      const q = await Query.findById(queryToTest._id);
+      expect(q.status).toBe('answered');
+    });
+
+    it('should revert query status to claimed when claimant deletes their last remaining answer', async () => {
+      // Deleting second answer (the last one)
+      const delRes = await request(app)
+        .delete(`/api/answers/${ans2._id}`)
+        .set('x-auth-token', claimantUser.token);
+      
+      expect(delRes.status).toBe(200);
+
+      // Query status should now revert to claimed because claimant has 0 answers left
+      const q = await Query.findById(queryToTest._id);
+      expect(q.status).toBe('claimed');
+    });
+  });
 });

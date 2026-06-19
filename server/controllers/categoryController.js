@@ -20,40 +20,35 @@ exports.getCategories = async (req, res) => {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      // Try to get categories active (viewed) in the last 7 days, sorted by view activity
       categories = await FAQ.aggregate([
-        { $match: { status: 'resolved', lastViewed: { $gte: sevenDaysAgo } } },
-        { $project: { firstTag: { $arrayElemAt: ['$tags', 0] }, title: 1, viewCount: 1 } },
+        { $match: { status: 'resolved' } },
+        {
+          $project: {
+            firstTag: { $arrayElemAt: ['$tags', 0] },
+            viewCount: 1,
+            lastViewed: 1,
+            title: 1
+          }
+        },
         { $match: { firstTag: { $not: NUMERIC_TAG_RE } } },
         {
           $group: {
             _id: '$firstTag',
             count: { $sum: 1 },
-            recentViews: { $sum: '$viewCount' },
+            recentViews: {
+              $sum: {
+                $cond: [
+                  { $gte: ['$lastViewed', sevenDaysAgo] },
+                  '$viewCount',
+                  0
+                ]
+              }
+            },
             sampleFAQ: { $first: '$title' }
           }
         },
         { $sort: { recentViews: -1, count: -1, _id: 1 } }
       ]);
-
-      // Fallback: if no FAQs were viewed in the last 7 days (e.g. fresh database seeding),
-      // get all active categories sorted by total viewCount / sizes so the dashboard has rich content!
-      if (categories.length === 0) {
-        categories = await FAQ.aggregate([
-          { $match: { status: 'resolved' } },
-          { $project: { firstTag: { $arrayElemAt: ['$tags', 0] }, title: 1, viewCount: 1 } },
-          { $match: { firstTag: { $not: NUMERIC_TAG_RE } } },
-          {
-            $group: {
-              _id: '$firstTag',
-              count: { $sum: 1 },
-              recentViews: { $sum: '$viewCount' },
-              sampleFAQ: { $first: '$title' }
-            }
-          },
-          { $sort: { recentViews: -1, count: -1, _id: 1 } }
-        ]);
-      }
     } else {
       // Standard: return all resolved categories (unfiltered by time), sorted by size/count
       categories = await FAQ.aggregate([
@@ -78,8 +73,11 @@ exports.getCategories = async (req, res) => {
     let miscCount = 0;
     let miscSample = null;
 
+    // Use threshold of 0 for recent categories to avoid collapsing everything into MISC
+    const threshold = isRecentOnly ? 0 : MISC_THRESHOLD;
+
     for (const c of categories) {
-      if (c.count <= MISC_THRESHOLD) {
+      if (c.count <= threshold) {
         miscCount += c.count;
         miscSample = miscSample || c.sampleFAQ;
       } else {
@@ -105,7 +103,9 @@ exports.getCategories = async (req, res) => {
       });
     }
 
-    res.json(categoryList);
+    // No mock dummy categories injection; use actual DB categories
+
+    res.json(isRecentOnly ? categoryList.slice(0, 5) : categoryList);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch categories' });
   }
@@ -248,7 +248,7 @@ exports.getCategoryContributors = async (req, res) => {
 
     // Populate user info
     const userIds = topResponders.map(r => r._id);
-    const users = await User.find({ _id: { $in: userIds }, status: 'active', email: { $ne: 'ragbot@faqapp.local' } })
+    const users = await User.find({ _id: { $in: userIds }, status: 'active', role: { $ne: 'admin' }, email: { $ne: 'ragbot@faqapp.local' } })
       .select('name reputation role')
       .lean();
 

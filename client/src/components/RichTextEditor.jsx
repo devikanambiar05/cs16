@@ -287,7 +287,40 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
           </button>
 
           <div className="flex-1" />
-          <span className="text-xs text-slate-400 dark:text-slate-500">Markdown enabled</span>
+          {(() => {
+            const radius = 6;
+            const circumference = 2 * Math.PI * radius;
+            const strokeDashoffset = circumference - (progressPct / 100) * circumference;
+            return (
+              <div className="flex items-center gap-2 select-none">
+                <span className="text-xs text-slate-400 dark:text-slate-500">Markdown enabled</span>
+                <div className="relative flex items-center justify-center" title={`${wordCount}/${MAX_WORDS} words`}>
+                  <svg className="w-3.5 h-3.5 transform -rotate-90">
+                    <circle
+                      cx="7"
+                      cy="7"
+                      r={radius}
+                      className="stroke-slate-200 dark:stroke-slate-700"
+                      strokeWidth="2"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="7"
+                      cy="7"
+                      r={radius}
+                      className={`transition-all duration-300 ${
+                        isOverLimit ? 'stroke-red-500' : isWarning ? 'stroke-amber-500' : 'stroke-slate-400 dark:stroke-slate-500'
+                      }`}
+                      strokeWidth="2"
+                      fill="transparent"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                    />
+                  </svg>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Textarea */}
@@ -339,7 +372,7 @@ export default function RichTextEditor({ value, onChange, placeholder, readOnly 
                   />
                 </div>
                 <div className="mt-2 flex flex-col">
-                  <span className="text-[10px] font-semibold text-slate-655 dark:text-slate-450 truncate" title={file.name}>
+                  <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-450 truncate" title={file.name}>
                     {file.name}
                   </span>
                   <div className="flex gap-2.5 mt-1 pt-1.5 border-t border-slate-50 dark:border-slate-850">

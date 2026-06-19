@@ -80,7 +80,7 @@ exports.getAnswers = async (req, res) => {
   queryId: req.params.queryId,
   deletedAt: null
 })
-      .populate('userId', 'name reputation tags')
+      .populate('userId', 'name reputation')
       .sort({ upvotes: -1, createdAt: 1 });
     res.json({ answers });
   } catch (error) {
@@ -324,12 +324,22 @@ exports.deleteAnswer = async (req, res) => {
     // Decrement answer count on query
     const query = await Query.findById(answer.queryId);
     if (query) {
-      // Revert answered status back to claimed if this was the claim-holder's first answer
+      // Revert answered status back to claimed if this was the claim-holder's ONLY active answer
       if (query.status === 'answered' && answer.userId.toString() === query.assignedTo?.toString()) {
-        query.status = 'claimed';
+        const remainingClaimantAnswersCount = await Answer.countDocuments({
+          queryId: query._id,
+          userId: answer.userId,
+          deletedAt: null,
+          _id: { $ne: answer._id }
+        });
+        if (remainingClaimantAnswersCount === 0) {
+          query.status = 'claimed';
+        }
       }
       query.answerCount = Math.max(0, query.answerCount - 1);
-      if (query.answerCount === 0) query.status = 'open';
+      if (query.answerCount === 0) {
+        query.status = query.assignedTo ? 'claimed' : 'open';
+      }
       await query.save();
     }
 
@@ -346,10 +356,10 @@ exports.deleteAnswer = async (req, res) => {
       await User.findByIdAndUpdate(answer.userId, { $inc: { acceptedAnswersCount: -1 } });
     }
 
-    // Reverse vetted answer rep bonus (anti-abuse patch)
-    if (answer.isVetted) {
-      const repToDeduct = answer.vettedRepAwarded || 5;
-      await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: -repToDeduct } });
+    // Reverse vetted answer rep bonus — only if a bonus was actually awarded
+    // (answers start with isVetted=true but vettedRepAwarded=0, so guard on the amount)
+    if (answer.isVetted && answer.vettedRepAwarded > 0) {
+      await User.findByIdAndUpdate(answer.userId, { $inc: { reputation: -answer.vettedRepAwarded } });
     }
 
     // Reverse upvote community score (+3 per upvote that was removed on answer)

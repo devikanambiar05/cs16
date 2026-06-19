@@ -1,0 +1,54 @@
+# ── docker-compose.prod.yml — Production ──────────────────────────────────────
+# Two-container stack: MongoDB + Express (serves built static client files)
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up --build -d
+#   docker compose -f docker-compose.prod.yml down
+#
+# Before running:
+#   1. Set a strong JWT_SECRET in server/.env
+#   2. Set SMTP_URL for email delivery (or leave empty to log to console)
+
+services:
+
+  # ── MongoDB ────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7-jammy
+    container_name: cs16_mongo_prod
+    restart: always
+    # Do NOT expose port 27017 in production — internal network only
+    volumes:
+      - mongo_data_prod:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Express API + Static Client ────────────────────────────────────────────
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    container_name: cs16_server_prod
+    restart: always
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGO_URI=mongodb://mongo:27017/faqapp
+    env_file:
+      - path: ./server/.env
+        required: true
+    volumes:
+      - ./server/uploads:/app/uploads
+
+volumes:
+  mongo_data_prod:
+    name: cs16_mongo_data_prod

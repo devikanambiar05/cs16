@@ -113,7 +113,7 @@ exports.updateProfile = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const { page = 1, limit = 20, search } = req.query;
-    const query = {};
+    const query = { email: { $ne: 'ragbot@faqapp.local' } };
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -151,7 +151,7 @@ exports.banUser = async (req, res) => {
 exports.getStats = async (req, res) => {
   try {
     const [totalUsers, totalFAQs, totalQueries, totalAnswers, openQueries, answeredQueries, recentQueries, pendingFaqRequests] = await Promise.all([
-      User.countDocuments(),
+      User.countDocuments({ email: { $ne: 'ragbot@faqapp.local' } }),
       FAQ.countDocuments({ status: 'resolved' }),
       Query.countDocuments(),
       Answer.countDocuments(),

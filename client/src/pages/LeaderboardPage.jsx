@@ -95,7 +95,7 @@ export default function LeaderboardPage() {
       <div className="grid grid-cols-12 gap-8">
         <div className="col-span-12 md:col-span-3 space-y-4">
           <div className="bg-white dark:bg-[#22211e] border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-sm">
-            <h3 className="text-[10px] font-bold text-slate-455 dark:text-slate-500 uppercase tracking-wider mb-2.5 select-none">
+            <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5 select-none">
               Filter by Category
             </h3>
             <div className="space-y-1 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
@@ -129,7 +129,7 @@ export default function LeaderboardPage() {
                   }`}
                 >
                   <span className="flex items-center gap-1.5 truncate">
-                    <svg className="w-3.5 h-3.5 shrink-0 text-slate-455" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <svg className="w-3.5 h-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <span className="truncate">{cat.name}</span>
@@ -162,7 +162,7 @@ export default function LeaderboardPage() {
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-655 transition-colors"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -175,12 +175,12 @@ export default function LeaderboardPage() {
                 <div className="flex justify-center py-16"><div className="spinner" /></div>
               ) : filteredUsers.length === 0 ? (
                 isFiltering ? (
-                  <div className="text-center py-16 text-slate-455 dark:text-slate-500">
+                  <div className="text-center py-16 text-slate-400 dark:text-slate-500">
                     <p className="text-base font-semibold">No results for "{searchQuery}"</p>
                     <button onClick={() => setSearchQuery('')} className="mt-2 text-sm text-primary-600 hover:underline">Clear search</button>
                   </div>
                 ) : (
-                  <div className="text-center py-16 text-slate-400 dark:text-slate-555">No users found.</div>
+                  <div className="text-center py-16 text-slate-400 dark:text-slate-500">No users found.</div>
                 )
               ) : (
                 <div className="space-y-4">
@@ -209,13 +209,13 @@ export default function LeaderboardPage() {
                 <div className="flex justify-center py-16"><div className="spinner" /></div>
               ) : categoryContributors.length === 0 ? (
                 <div className="text-center py-16 bg-white dark:bg-[#22211e] border border-slate-200 dark:border-slate-800 rounded-2xl p-8 select-none">
-                  <p className="text-base font-semibold text-slate-655 dark:text-slate-350">No answers recorded for this category yet</p>
-                  <p className="text-xs text-slate-455 mt-1.5">Be the first to claim and answer a query tagged with this category!</p>
+                  <p className="text-base font-semibold text-slate-600 dark:text-slate-350">No answers recorded for this category yet</p>
+                  <p className="text-xs text-slate-400 mt-1.5">Be the first to claim and answer a query tagged with this category!</p>
                   <Link to="/community" className="btn-primary mt-4 inline-block text-xs py-2">Browse Community</Link>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="border-b border-slate-105 dark:border-slate-800 pb-3 flex items-center justify-between select-none">
+                  <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between select-none">
                     <h2 className="text-lg font-serif font-bold text-slate-850 dark:text-slate-200">
                       Top Category Responders
                     </h2>
@@ -246,11 +246,11 @@ export default function LeaderboardPage() {
                 Your answer gets converted to a public FAQ — <strong className="text-slate-700 dark:text-slate-300">+10</strong>
               </li>
               <li className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-amber-505 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+                <svg className="w-4 h-4 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
                 Your answer gets upvoted — <strong className="text-slate-700 dark:text-slate-300">+5</strong>
               </li>
               <li className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-amber-505 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
+                <svg className="w-4 h-4 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M2 20h2c.55 0 1-.45 1-1v-7c0-.55-.45-1-1-1H2v9zm19.83-7.12c.11-.25.17-.52.17-.8V11c0-1.1-.9-2-2-2h-5.5l.92-4.65c.05-.22.02-.46-.08-.66-.23-.45-.52-.86-.88-1.22L14 2 7.59 8.41C7.21 8.79 7 9.3 7 9.83V19c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05-.03.15z"/></svg>
                 Your question gets upvoted — <strong className="text-slate-700 dark:text-slate-300">+2</strong>
               </li>
             </ul>
@@ -314,7 +314,7 @@ function GlobalTopContributorCard({ userObj, rank }) {
     <div className={`relative overflow-hidden bg-white dark:bg-[#22211e] border rounded-2xl p-5 flex flex-col items-center text-center shadow-sm hover:shadow-md hover:border-slate-350 dark:hover:border-slate-700 transition-all duration-300 ${
       rank === 0 ? 'border-amber-300 dark:border-amber-500/30 ring-2 ring-amber-500/5 sm:-translate-y-1' :
       rank === 1 ? 'border-slate-300 dark:border-slate-800' :
-      'border-orange-355 dark:border-orange-500/30'
+      'border-orange-300 dark:border-orange-500/30'
     }`}>
       {/* Crown / Trophy element for 1st place */}
       {rank === 0 && (
@@ -331,7 +331,7 @@ function GlobalTopContributorCard({ userObj, rank }) {
       </div>
 
       <div className="w-full min-w-0">
-        <span className="block font-bold text-slate-850 dark:text-slate-205 truncate text-sm">{userObj.name}</span>
+        <span className="block font-bold text-slate-850 dark:text-slate-200 truncate text-sm">{userObj.name}</span>
         {level && (
           <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${level.badgeClass}`}>
             {level.icon} Lvl {level.level}
@@ -342,11 +342,11 @@ function GlobalTopContributorCard({ userObj, rank }) {
       {/* Reputation details */}
       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 w-full">
         <span className="text-xl font-extrabold text-primary-600 dark:text-primary-400">{userObj.reputation || 0}</span>
-        <span className="text-[9px] text-slate-400 dark:text-slate-550 block uppercase tracking-wider font-bold select-none">Reputation</span>
+        <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase tracking-wider font-bold select-none">Reputation</span>
       </div>
 
       {/* Mini stats */}
-      <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-455 dark:text-slate-500 select-none">
+      <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-400 dark:text-slate-500 select-none">
         <span>{userObj.questionsAsked || 0} asked</span>
         <span className="text-slate-300 dark:text-slate-750">•</span>
         <span>{userObj.answersGiven || 0} answered</span>
@@ -361,7 +361,7 @@ function CategoryContributorCard({ contributor, rank }) {
       {/* Rank */}
       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
         rank === 0 ? 'bg-amber-100 text-amber-700 border-2 border-amber-300 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30' :
-        rank === 1 ? 'bg-slate-100 text-slate-605 border-2 border-slate-300 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30' :
+        rank === 1 ? 'bg-slate-100 text-slate-600 border-2 border-slate-300 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/30' :
         rank === 2 ? 'bg-orange-100 text-orange-700 border-2 border-orange-300 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/30' :
         'bg-slate-50 text-slate-400 border border-slate-200 dark:bg-[#191816] dark:border-slate-800 dark:text-slate-500'
       }`}>
@@ -380,13 +380,13 @@ function CategoryContributorCard({ contributor, rank }) {
         </div>
 
         {/* Category Stats Row */}
-        <div className="flex items-center gap-4 mt-2.5 text-xs text-slate-550 dark:text-slate-450 flex-wrap select-none bg-slate-50/50 dark:bg-[#191816]/30 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-850 w-fit">
+        <div className="flex items-center gap-4 mt-2.5 text-xs text-slate-600 dark:text-slate-455 flex-wrap select-none bg-slate-50/50 dark:bg-[#191816]/30 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-slate-850 w-fit">
           <span className="flex items-center gap-1">
-            <svg className="w-3.5 h-3.5 text-slate-455" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             <strong>{contributor.answerCount || 0}</strong> answers
           </span>
           <span className="text-slate-300 dark:text-slate-700">|</span>
-          <span className="flex items-center gap-1 text-emerald-605 dark:text-emerald-450 font-medium">
+          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-450 font-medium">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
             <strong>{contributor.acceptedCount || 0}</strong> accepted
           </span>

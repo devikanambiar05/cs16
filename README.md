@@ -55,47 +55,36 @@ Granth also features a state-of-the-art **RAG (Retrieval-Augmented Generation) C
 * **Moderation Console**: Verify answers, ban bad actors, and resolve pending query logs.
 * **Hero Spotlights**: Pin Announcements, system Overviews, or high-value FAQs to the home landing board.
 * **Audit Trails**: Complete historical version tracking (`FAQHistory`) for edited FAQs to capture prior revisions and reasons.
-* **SLA Breaches**: Automated systems to detect, track, and close stale, unfulfilled query claims.
+* **Response Breaches**: Automated systems to detect, track, and close stale, unfulfilled query claims.
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
-Run the following root script to install node packages across both client and server automatically:
+### Local Setup (Concurrency Mode)
 ```bash
-npm run install:all
+npm run setup   # Install dependencies & configure .env (first-time only)
+npm run dev     # Run both Server & Client concurrently
 ```
-
-### 2. Configure Environment Variables
-Create a `.env` configuration file in the `server` folder:
-```bash
-cp server/.env.example server/.env
-```
-Ensure your configuration points to the Granth local database:
-```env
-MONGO_URI=mongodb://localhost:27017/Granth
-JWT_SECRET=your-secret-key-goes-here
-PORT=5000
-RESET_DB=false
-```
-
-### 3. Seed Database
-Wipe existing tables and populate the 118 parsed academic/program FAQs:
-```bash
-# On Windows PowerShell:
-$env:RESET_DB="true"; npm run seed
-```
-* **Default Admin Credentials**: `admin@faqapp.com` / `admin123`
-
-### 4. Run Locally
-Launch the client and server processes concurrently inside Vite's dev sandbox:
-```bash
-npm run dev
-```
-Granth is now running at `http://localhost:5173` (Client) and `http://localhost:5000` (Server)!
+* **Frontend:** [http://localhost:5173](http://localhost:5173)
+* **API Server:** [http://localhost:5000](http://localhost:5000)
 
 ---
+
+### Docker Setup (Containerized Mode)
+```bash
+npm run docker:dev    # Build & run Client, Server, & MongoDB stack
+npm run docker:down   # Stop all running containers
+```
+
+---
+
+### Admin Credentials (Auto-Seeded)
+* **Email:** `admin@faqapp.com`
+* **Password:** `admin123`
+
+---
+
 
 ## 📌 Directory Structure
 
@@ -120,6 +109,26 @@ cs16/
     ├── seed.js                 # Database seeder script
     └── tests/                  # Jest tests
 ```
+
+---
+
+## 👥 Cohort Team Members
+
+The **Grantha** platform was designed, built, and optimized by the following cohort members under the **Vicharanashala Lab for Education Design** at the **Indian Institute of Technology Ropar**:
+
+| Name | Email ID |
+| :--- | :--- |
+| **Vaibhav Satish (Lead)** | vaibhavsatish9@gmail.com |
+| **Hasti Lakhani** | hastilakhani569@gmail.com |
+| **Rohit Rathia** | rohitrathia2@gmail.com |
+| **Rekha Sree** | rekhasree4545@gmail.com |
+| **Sri Lakshmi** | ksrilakshmi459@gmail.com |
+| **Nishita Rajpurohit** | rajpurohitnishita33@gmail.com |
+| **Devika Nambiar** | devikanambiar05@gmail.com |
+| **Tanishka Sharma** | tanishka130506@gmail.com |
+| **Kratika Varshney** | kratikavarshney1607@gmail.com |
+| **Bithika Jain** | bithika.jainn@gmail.com |
+| **Laxmi Parmanandani** | lajjakhatri@gmail.com |
 
 ---
 

@@ -288,25 +288,31 @@ export default function RAGChatWidget() {
             onClick={closeDialog}
           />
 
-          {/* Draggable dialog panel */}
-          <motion.div
-            drag
-            dragControls={dragControls}
-            dragListener={false}
-            dragMomentum={false}
-            dragElastic={0}
-            dragConstraints={viewportRef}
-            className="absolute bottom-24 right-6 w-[min(calc(100vw-2rem),24rem)] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
-            style={{ maxHeight: 'min(65vh, 560px)' }}
-          >
-            {/* Drag handle bar */}
-            <div
-              onPointerDown={(e) => {
-                e.preventDefault();
-                dragControls.start(e, { snapToCursor: false });
-              }}
-              className="flex items-center justify-between px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 shrink-0 cursor-grab active:cursor-grabbing select-none"
+          {/* Centering Wrapper Container */}
+          <div className={isLauncherExcludedPage ? "absolute inset-0 pointer-events-none" : "fixed inset-0 flex justify-center items-end pointer-events-none"}>
+            {/* Draggable dialog panel */}
+            <motion.div
+              drag
+              dragControls={dragControls}
+              dragListener={false}
+              dragMomentum={false}
+              dragElastic={0}
+              dragConstraints={viewportRef}
+              className={`${
+                isLauncherExcludedPage 
+                  ? "absolute bottom-24 right-6 w-[min(calc(100vw-2rem),24rem)]" 
+                  : "relative bottom-24 w-[min(calc(100vw-2rem),36rem)] mx-4"
+              } rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden pointer-events-auto`}
+              style={{ maxHeight: 'min(65vh, 560px)' }}
             >
+              {/* Drag handle bar */}
+              <div
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  dragControls.start(e, { snapToCursor: false });
+                }}
+                className="flex items-center justify-between px-5 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 shrink-0 cursor-grab active:cursor-grabbing select-none"
+              >
               {/* Title */}
               <div className="flex items-center gap-2 cursor-default">
                 <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,7 +479,8 @@ export default function RAGChatWidget() {
             </div>
           </motion.div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* Viewport bottom gradient mask */}
       {!isLauncherExcludedPage && !isMinimised && !dialogOpen && (
@@ -483,11 +490,11 @@ export default function RAGChatWidget() {
       {/* ── Tooltip Probe ── */}
       {showProbe && (
         <div className="fixed bottom-[85px] left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4 animate-fade-in">
-          <div className="relative bg-gradient-to-r from-amber-500/95 to-amber-600/95 dark:from-amber-600 dark:to-amber-700 text-white p-3.5 rounded-xl shadow-xl backdrop-blur-md border border-amber-400/20 dark:border-amber-500/10 flex items-start gap-3">
-            <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-amber-600 dark:bg-amber-700 rotate-45" />
+          <div className="relative bg-gradient-to-r from-primary-500/95 to-primary-600/95 dark:from-primary-600 dark:to-primary-700 text-white p-3.5 rounded-xl shadow-xl backdrop-blur-md border border-primary-400/20 dark:border-primary-500/10 flex items-start gap-3">
+            <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-primary-600 dark:bg-primary-700 rotate-45" />
             <span className="text-base shrink-0 mt-0.5 select-none">⚡</span>
             <div className="flex-1 pr-5">
-              <h4 className="font-semibold text-[11px] uppercase tracking-wider text-amber-100/90 font-serif">AI Instant Search</h4>
+              <h4 className="font-semibold text-[11px] uppercase tracking-wider text-primary-100/90 font-serif">AI Instant Search</h4>
               <p className="text-xs text-white/95 mt-0.5 leading-relaxed font-medium">
                 Skip the manual exploration and get your queries instantaneously!
               </p>
@@ -516,7 +523,7 @@ export default function RAGChatWidget() {
               setDialogOpen(true);
               setIsMinimised(false);
             }}
-            className="fixed bottom-6 right-6 z-55 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-600 dark:to-amber-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-grab active:cursor-grabbing focus:outline-none pointer-events-auto"
+            className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-grab active:cursor-grabbing focus:outline-none pointer-events-auto"
             title="FAQ Assistant"
           >
             <svg className="w-6 h-6 select-none pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -524,25 +531,14 @@ export default function RAGChatWidget() {
             </svg>
           </motion.button>
         ) : (
-          <motion.div
+          <div
             ref={launcherRef}
-            drag
-            dragMomentum={false}
-            dragElastic={0}
-            dragConstraints={viewportRef}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4 cursor-grab active:cursor-grabbing"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4"
           >
             <div className="relative" onClick={(e) => e.stopPropagation()}>
-              {/* Drag handle icon */}
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-0.5 text-slate-300 dark:text-slate-600 select-none pointer-events-none">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </div>
-
               <input
                 type="text"
-                className="w-full pl-10 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl
+                className="w-full pl-5 pr-12 py-3 text-sm border border-slate-200 dark:border-slate-800 rounded-2xl
                            focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500
                            placeholder-slate-400 dark:placeholder-slate-500 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md
                            shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)]
@@ -598,7 +594,7 @@ export default function RAGChatWidget() {
                 samagama.in
               </a>
             </p>
-          </motion.div>
+          </div>
         )
       )}
     </>

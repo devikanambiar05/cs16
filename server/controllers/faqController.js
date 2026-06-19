@@ -76,11 +76,9 @@ exports.getTrending = async (req, res) => {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const faqs = await FAQ.find({
-      status: 'resolved',
-      deletedAt: null,
       $or: [
-        { lastViewed: { $gte: thirtyDaysAgo } },
-        { viewCount: { $gt: 0 }, lastViewed: null }  // legacy FAQs never viewed but have upvotes
+        { status: 'resolved', deletedAt: null, lastViewed: { $gte: thirtyDaysAgo } },
+        { status: 'resolved', deletedAt: null, viewCount: { $gt: 0 }, lastViewed: null }
       ]
     })
       .populate('createdBy', 'name')
@@ -238,11 +236,6 @@ exports.createFAQ = async (req, res) => {
     });
 
     await faq.save();
-
-    // Update user stats
-    await User.findByIdAndUpdate(req.user._id, {
-      $inc: { questionsAsked: 1 }
-    });
 
     res.status(201).json(faq);
   } catch (error) {
