@@ -1,28 +1,54 @@
-# Product Specification: Community Knowledge & Q&A Platform
+# Product: Grantha
 
-This document outlines the product vision, core features, gamification design, administrative workflows, and technical details of the FAQ & Community Q&A platform (cs16).
-
----
-
-## 1. Product Vision
-
-The platform is a community-driven knowledge ecosystem designed specifically for cohort-based programs, internships, and structured learning paths (such as the **Grantha** internship, **VINS**, and **ViBe LMS** tracks). It bridges the gap between static documentation and real-time chat support by combining:
-1. **A Response-Driven Q&A Board** where users ask technical/programmatic questions and volunteers resolve them.
+## Overview
+**Grantha** is a community-driven knowledge ecosystem purpose-built for cohort-based learning programs, internships, and structured training tracks (such as the **Grantha** internship, **VINS**, and **ViBe LMS** tracks). It bridges the gap between static FAQ documentation and ephemeral chat-based support channels (like Discord or WhatsApp) by combining:
+1. **An Active Response-Driven Q&A Board** where users ask technical/programmatic questions and volunteers resolve them.
 2. **A Peer-Vetted Wiki & FAQ Database** that automatically surfaces high-quality community answers.
 3. **A Local AI (RAG) Assistant** that instantly resolves incoming questions by running vector semantic search over the FAQ database.
 
 ---
 
-## 2. Core Problems Solved
-
-* **Redundant Questions (Duplicate Overhead):** Cohorts often ask the same questions repeatedly. The platform detects duplicates at submission time using **Jaccard Similarity** (for title overlap) and **BM25 Search** (for content indexing), blocking duplicate posts and pointing users directly to existing answers.
-* **Out-of-Scope Noise:** Filters out completely off-topic questions (e.g., general knowledge, personal queries) at submission using a keyword scope filter, keeping the platform focused strictly on program guidelines and technical tracks.
-* **Slow Query Resolution:** Enforces a **24-Hour Response Window**. Volunteers claim queries to work on them. If a claim is inactive for 48 hours without a response, the platform automatically releases it back to the community and alerts the volunteer.
-* **Quality Assurance & Trust:** Avoids spam and incorrect advice by tying publishing privileges to a **Trust-Based Gamification** system. Highly reputable users (reputation $\ge$ 50) and admins have their responses auto-vetted, while newer users' answers require manual vetting by peer volunteers.
+## Problem Statement
+Traditional cohort education and support systems suffer from several core friction points:
+* **Redundant Questions (Duplicate Overhead):** Cohorts often ask the same questions repeatedly. Mentors spend disproportionate time answering them, and knowledge gets buried.
+* **Out-of-Scope Noise:** General knowledge queries and off-topic discussion clutter technical tracks.
+* **Slow Query Resolution:** Students wait hours for help, stalling their progress, while volunteers might hoard queries without resolving them.
+* **Quality Assurance & Trust:** Crowdsourced answers on open platforms often suffer from spam, incorrect advice, or reputation farming.
+* **Institutional Knowledge Fragmentation:** Critical solutions resolved in individual chats are lost to future cohorts, creating a perpetual support bottleneck.
 
 ---
 
-## 3. Key Product Features
+## Target Users
+* **Cohort Participants / Students:** Seek quick, context-accurate answers to technical, procedural, or policy questions to unblock their learning.
+* **Volunteer Responders / Peers:** Advanced participants or alumni who answer queries, vet answers, earn reputation, and build their professional profile.
+* **Program Administrators / Mentors:** Oversee the cohort, handle escalations, approve FAQ promotion requests, pin announcements, and audit database revisions.
+
+---
+
+## Goals
+* **Sub-10ms Latency for FAQ Lookups:** Bypass LLM inference for duplicate questions using a high-efficiency Jaccard cache.
+* **Zero Lost Questions:** Ensure every student question is actively monitored and resolved via claim release timers.
+* **Mentor Support Offloading:** Distribute the support load to peer volunteers and automated AI responses.
+* **Privacy-First AI Assistance:** Run LLM embeddings and generation locally without sending student data to external cloud services.
+
+---
+
+## Non-Goals
+* **Real-Time Interactive Chatrooms:** The platform utilizes structured forum threads rather than instant messaging.
+* **Third-Party OAuth Delegations:** Authentication is self-contained via secure JWT tokens in HTTP-only cookies.
+* **Multi-Turn Conversational AI Memory:** The RAG assistant resolves single-turn queries based on semantic context rather than ongoing multi-turn conversations.
+
+---
+
+## User Stories
+* **As an intern,** I want to search for internship certificate guidelines so that I can get immediate answers or find the existing thread.
+* **As an intern raising a query,** I want the system to warn me if my question is a duplicate, redirecting me to the answer so I don't waste time or lose reputation points.
+* **As a volunteer,** I want to claim an open query in my area of expertise and submit an answer so that I can earn reputation points once it is accepted or vetted.
+* **As an administrator,** I want to approve proposed FAQ promotions, pin important announcements to the home board, and check the audit logs to track content revisions.
+
+---
+
+## Features
 
 ### 💬 Community Q&A Board
 * **Query Lifecycle:** Queries progress from `open` $\rightarrow$ `claimed` (volunteer assigned) $\rightarrow$ `answered` (response submitted) $\rightarrow$ `closed` (answer accepted by owner).
@@ -50,9 +76,9 @@ The platform is a community-driven knowledge ecosystem designed specifically for
 
 ---
 
-## 4. Key Workflows & State Diagrams
+### Key Workflows & State Diagrams
 
-### 1. Query Submission & Pre-Filtering
+#### 1. Query Submission & Pre-Filtering
 ```mermaid
 graph TD
   A[User clicks 'Raise Query'] --> B[Enter Title & Details]
@@ -65,7 +91,7 @@ graph TD
   G -- No --> I[Save Query & start 24hr response timer]
 ```
 
-### 2. Response Claim Lifecycle
+#### 2. Response Claim Lifecycle
 ```mermaid
 graph TD
   A[Open Query] --> B[Volunteer Claims Query]
@@ -77,7 +103,7 @@ graph TD
   G --> H[Query status 'closed' & timer stops]
 ```
 
-### 3. Collaborative FAQ Promotion
+#### 3. Collaborative FAQ Promotion
 ```mermaid
 graph TD
   A[Closed Query] --> B{High search hits >= 5 or facing >= 3?}
@@ -90,11 +116,29 @@ graph TD
 
 ---
 
-## 5. Technology Stack
+## Success Metrics
+* **Direct Cache Resolution Rate:** $\ge$ 30% of user queries redirected immediately to existing answers at the pre-filtering step.
+* **Average Response Time:** Open community queries claimed and answered within 24 hours.
+* **Mentor Load Reduction:** $\ge$ 80% of support requests resolved by community volunteers or local AI without admin escalation.
+* **Anti-Collusion Flag Rate:** System flags and blocks overlapping upvote pairs to maintain leaderboard integrity.
 
-* **Frontend:** React 18, Vite, React Router v6, TailwindCSS.
-* **Backend:** Node.js, Express.js.
-* **Database:** MongoDB (using Mongoose).
-* **AI Engine:** Ollama (local model runner for vector embeddings).
-* **Visuals:** Chart.js, React-Chartjs-2 for analytics charts.
-* **Testing:** Jest, Supertest for integration and route security suites.
+---
+
+## Constraints
+* **Local Hardware Execution:** The local RAG engine runs on CPU/GPU via Ollama. Server scripts require memory optimizations (`--max-old-space-size=4096`) under Windows environments to prevent build OOM errors.
+* **Voluntary Allocation Limit:** Volunteers are restricted to exactly 1 active query claim at a time to prevent task hoarding.
+* **Strict Anti-Spam Penalties:** Query duplication attempts result in an automatic `-2` reputation penalty to discourage spamming.
+
+---
+
+## Open Questions
+* **Dynamic Tag Classification:** How can we leverage the local LLM to automatically tag incoming queries rather than relying on manual user selection?
+* **File Storage Scaling:** Should we keep local disk storage for attachment uploads or containerize a MinIO/GridFS volume for large-scale production?
+
+---
+
+## Future Ideas
+* **Multi-turn RAG Chat History:** Pass conversational message arrays to Ollama to support follow-up prompts within the widget.
+* **UI-based Role Administration:** Direct admin console features to promote volunteers to moderators or admins without manual DB edits.
+* **Real-time Push Notifications:** Implement WebSockets (Socket.io) to push claim alerts and answers instantly.
+* **Slack / Discord Integration:** Bot webhooks to query local RAG context directly from cohort communication channels.
