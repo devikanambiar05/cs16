@@ -22,4 +22,8 @@ server/.mongodb/
 *.tmp
 server/db_check.js
 server/test_endpoint.js
-
+FAQ report.pdf
+FAQ.txt
+FAQ.txt.bak
+presentation.md
+project-report.html
