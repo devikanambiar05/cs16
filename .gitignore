@@ -15,8 +15,6 @@ RAG_INFERENCE_EXPERIMENTS.md
 team-wiki-pages
 server/.mongodb/
 
-
-
 # Temp/Backup/Debug/Build files
 *.bak
 *.tmp
@@ -27,3 +25,4 @@ FAQ.txt
 FAQ.txt.bak
 presentation.md
 project-report.html
+GRANTHA_CSFAQ_Report_Reformatted.pdf
